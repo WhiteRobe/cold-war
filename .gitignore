@@ -10,3 +10,4 @@ wrangler.local.jsonc
 .env*
 worker-configuration.d.ts
 .claude/
+dist-art/
