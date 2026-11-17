@@ -21,6 +21,7 @@ export function Board({ session }: { session: GameSession }) {
   const flash = useFlash(view);
   const popup = usePopup(view);
   const [overSeen, setOverSeen] = useState(false);
+  const [handOpen, setHandOpen] = useState(false);
 
   if (!view) return <div class="hero"><div class="empty-hint">正在载入对局…</div></div>;
   const me = view.me;
@@ -36,6 +37,7 @@ export function Board({ session }: { session: GameSession }) {
 
   return (
     <div class={`board me-${(me ?? 'none').toLowerCase()}`}>
+      <div class="rotate-hint">请把手机横过来玩 ↻</div>
       <header class="board-top">
         <button type="button" class="icon-btn" title="返回" onClick={() => go('/')}>←</button>
         <Tracks view={view} names={names} onPile={setPile} />
@@ -71,7 +73,10 @@ export function Board({ session }: { session: GameSession }) {
         </div>
         {tab === 'log' ? <LogView log={session.log.value} me={me} /> : <QuickRef />}
       </aside>
-      <footer class="board-hand">
+      <button type="button" class={`hand-toggle${handChoice ? ' need' : ''}`} onClick={() => setHandOpen(!handOpen)}>
+        手牌 {myHand.length}{handOpen ? ' ▾' : ' ▴'}
+      </button>
+      <footer class={`board-hand${handOpen || handChoice ? ' open' : ''}`}>
         <div class="hand-main">
         <div class="hand-label">
           {me ? `${SIDE_ZH[me]}手牌` : '观战'}

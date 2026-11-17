@@ -145,10 +145,32 @@ export function MapView({ view, selectable, onPick, flash, onRegion }: Props) {
     });
   };
 
+  const pts = useRef(new Map<number, { x: number; y: number }>());
+  const pinch = useRef<{ dist: number; k: number } | null>(null);
   const onDown = (e: PointerEvent) => {
+    pts.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pts.current.size === 2) {
+      const [a, b] = [...pts.current.values()];
+      pinch.current = { dist: Math.hypot(a.x - b.x, a.y - b.y), k: zoom.k };
+      if (drag.current) drag.current.moved = true;
+      return;
+    }
     drag.current = { x: e.clientX, y: e.clientY, zx: zoom.x, zy: zoom.y, moved: false };
   };
   const onMove = (e: PointerEvent) => {
+    if (pts.current.has(e.pointerId)) pts.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pinch.current && pts.current.size === 2) {
+      const [a, b] = [...pts.current.values()];
+      const r = svgRef.current!.getBoundingClientRect();
+      const mx = (((a.x + b.x) / 2 - r.left) / r.width) * MAP_W;
+      const my = (((a.y + b.y) / 2 - r.top) / r.height) * MAP_H;
+      const k = Math.min(4, Math.max(1, (pinch.current.k * Math.hypot(a.x - b.x, a.y - b.y)) / pinch.current.dist));
+      setZoom((z) => {
+        const wx = z.x + mx / z.k, wy = z.y + my / z.k;
+        return clampZoom({ k, x: wx - mx / k, y: wy - my / k });
+      });
+      return;
+    }
     const d = drag.current;
     if (!d || zoom.k === 1) return;
     const r = svgRef.current!.getBoundingClientRect();
@@ -157,7 +179,9 @@ export function MapView({ view, selectable, onPick, flash, onRegion }: Props) {
     if (Math.abs(e.clientX - d.x) + Math.abs(e.clientY - d.y) > 4) d.moved = true;
     setZoom(clampZoom({ k: zoom.k, x: d.zx - dx, y: d.zy - dy }));
   };
-  const onUp = () => {
+  const onUp = (e: PointerEvent) => {
+    pts.current.delete(e.pointerId);
+    if (pts.current.size < 2) pinch.current = null;
     setTimeout(() => (drag.current = null), 0);
   };
 

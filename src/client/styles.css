@@ -326,12 +326,45 @@ h1, h2, h3, h4 { font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif; let
 .over-box { text-align: center; }
 .over-box h2 { font-size: 26px; }
 
-/* ---------------- 窄屏 ---------------- */
-@media (max-width: 900px) {
-  .board { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr) auto auto; grid-template-areas: 'top' 'map' 'side' 'hand'; }
-  .board-side { max-height: 34vh; border-left: none; border-top: 1px solid var(--line); }
-  .decision { max-height: none; }
-  .mini-card { width: 92px; }
+/* ---------------- 窄屏 / 手机横屏 ---------------- */
+.hand-toggle { display: none; }
+.rotate-hint { display: none; }
+@media (max-width: 1000px), (max-height: 620px) {
+  .board { grid-template-columns: minmax(0, 1fr) 230px; grid-template-rows: auto minmax(0, 1fr); grid-template-areas: 'top top' 'map side'; }
+  .board-top { padding: 3px 4px; }
+  .trk { padding: 2px 5px; }
+  .trk-label, .trk-sub, .hand-counts { font-size: 9.5px; }
+  .trk-big { font-size: 16px; }
+  .defcon-cell { width: 16px; height: 16px; font-size: 10px; }
+  .vp-track { width: 110px; height: 14px; }
+  .vp-marker { height: 14px; font-size: 10px; }
+  .mil-cell, .space-cell { width: 9px; height: 8px; }
+  .board-side { font-size: 12px; }
+  .decision { max-height: 55vh; padding: 6px; }
+  .decision .prompt { font-size: 12.5px; }
+  .decision-card .card-face { max-width: 200px; font-size: 11px; }
+  .log { font-size: 11px; }
+  .hand-toggle {
+    display: block; position: fixed; left: 6px; bottom: 6px; z-index: 22; background: var(--bg3); border: 1px solid var(--line);
+    border-radius: 14px; padding: 4px 12px; font-size: 12px;
+  }
+  .hand-toggle.need { background: var(--gold); color: #1f1a10; font-weight: 700; }
+  .board-hand {
+    position: fixed; left: 0; right: 230px; bottom: 0; z-index: 21; transform: translateY(105%); transition: transform 0.2s;
+    padding: 4px 6px 34px; box-shadow: 0 -6px 20px #0008;
+  }
+  .board-hand.open { transform: none; }
+  .board-hand .mini-card { width: 78px; }
+  .board-hand .mc-name { font-size: 10.5px; }
+  .known-opp { display: none; }
+  .online-tools { right: 236px; bottom: 6px; }
+  .online-tools .input { width: 130px; }
+  .play-popup .card-face { width: 200px; font-size: 11px; }
+  .effects .chip { font-size: 10px; padding: 1px 6px; }
+}
+@media (max-width: 600px) and (orientation: portrait) {
+  .board > * { display: none; }
+  .board .rotate-hint { display: grid; position: fixed; inset: 0; place-items: center; text-align: center; padding: 30px; color: var(--text2); }
 }
 
 /* ---------------- 在线 ---------------- */
