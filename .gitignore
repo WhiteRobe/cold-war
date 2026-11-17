@@ -9,3 +9,4 @@ wrangler.local.jsonc
 .DS_Store
 .env*
 worker-configuration.d.ts
+.claude/
