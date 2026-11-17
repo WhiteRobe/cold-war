@@ -348,7 +348,7 @@ h1, h2, h3, h4 { font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif; let
 .dot { width: 9px; height: 9px; border-radius: 50%; background: #666; }
 .dot.on { background: #5bbf6a; }
 .conn-banner { position: fixed; top: 0; left: 50%; transform: translateX(-50%); background: #c08a2a; color: #1f1a10; padding: 4px 14px; border-radius: 0 0 8px 8px; z-index: 60; font-weight: 700; }
-.online-tools { position: fixed; right: 340px; top: 12px; display: flex; gap: 6px; z-index: 20; }
+.online-tools { position: fixed; right: 340px; bottom: 172px; display: flex; gap: 6px; z-index: 20; }
 .online-tools .input { width: 200px; padding: 4px 8px; }
 .replay-bar { position: fixed; left: 50%; bottom: 150px; transform: translateX(-50%); background: #1f2328ee; border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; display: flex; gap: 8px; align-items: center; z-index: 30; }
 .replay-bar input[type='range'] { width: 280px; }
