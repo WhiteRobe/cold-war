@@ -13,7 +13,9 @@ let seed = 1;
 let timer: ReturnType<typeof setTimeout> | undefined;
 let aiRand = 1;
 
-const AI_STEP_MS = 260;
+const AI_STEP_MS = 320;
+/** 连续的逐点放置走快一点 */
+const FAST_TAGS = new Set(['setup', 'placeOps', 'placeEvent', 'removeEvent', 'realignTarget']);
 
 function rand() {
   aiRand = (aiRand * 1103515245 + 12345) & 0x7fffffff;
@@ -54,7 +56,7 @@ function pump() {
     if (err) game.submit(aiSide(), dd.options[0].v);
     send();
     pump();
-  }, game.pendingFor(human) ? 0 : AI_STEP_MS);
+  }, game.pendingFor(human) ? 0 : FAST_TAGS.has(d.tag) ? 90 : AI_STEP_MS);
 }
 
 self.onmessage = (e: MessageEvent<WorkerIn>) => {

@@ -258,6 +258,7 @@ h1, h2, h3, h4 { font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif; let
 .ct-name small { color: var(--text2); font-weight: 400; font-size: 11px; }
 .ct-bg { color: #f5d76e; }
 .ct-adj { color: var(--text2); font-size: 12px; }
+.ct-odds { color: var(--gold); font-weight: 700; margin-top: 2px; }
 
 .play-popup { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 6; animation: pop 0.25s ease-out; cursor: pointer; text-align: center; }
 .pp-who { font-weight: 800; margin-bottom: 6px; text-shadow: 0 1px 3px #000; }

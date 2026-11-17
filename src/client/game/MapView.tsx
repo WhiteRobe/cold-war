@@ -292,8 +292,57 @@ function Inf({ x, y, n, side, ctl }: { x: number; y: number; n: number; side: Si
   );
 }
 
+/** 政变 / 调整的成功率提示 */
+function odds(id: string, view: GameView): string | null {
+  const d = view.decision;
+  const me = view.me;
+  if (!d || !me || !d.options.some((o) => o.v === id)) return null;
+  const c = COUNTRIES[id];
+  const them: Side = me === 'US' ? 'USSR' : 'US';
+  if (d.tag === 'coupTarget') {
+    const m = d.prompt.match(/（(\d+) 点/);
+    if (!m) return null;
+    let ops = Number(m[1]);
+    if (view.flags.salt) ops -= 1;
+    if (view.flags.lads && (c.region === 'centralAmerica' || c.region === 'southAmerica')) ops += view.flags.lads === me ? 1 : -1;
+    const need = 2 * c.stability;
+    let win = 0, removed = 0;
+    for (let r = 1; r <= 6; r++) {
+      const diff = r + ops - need;
+      if (diff > 0) {
+        win++;
+        removed += Math.min(diff, view.inf[id][me === 'US' ? 1 : 0]);
+      }
+    }
+    return `政变成功率 ${Math.round((win / 6) * 100)}%，平均移除 ${(removed / 6).toFixed(1)} 点${c.bg ? '（战场国：DEFCON −1）' : ''}`;
+  }
+  if (d.tag === 'realignTarget') {
+    const mods = (side: Side) => {
+      const home = side === 'US' ? 'usa' : 'ussr';
+      let k = c.adj.filter((a) => a !== 'usa' && a !== 'ussr' && controller(view as never, a) === side).length;
+      if (c.adj.includes(home)) k++;
+      const i = side === 'US' ? 0 : 1;
+      if (view.inf[id][i] > view.inf[id][1 - i]) k++;
+      if (side === 'US' && view.flags.iranContra) k--;
+      return k;
+    };
+    const ma = mods(me), mb = mods(them);
+    let win = 0, rem = 0;
+    for (let a = 1; a <= 6; a++) for (let b = 1; b <= 6; b++) {
+      const x = a + ma - (b + mb);
+      if (x > 0) {
+        win++;
+        rem += Math.min(x, view.inf[id][me === 'US' ? 1 : 0]);
+      }
+    }
+    return `调整：己方 ${ma >= 0 ? '+' : ''}${ma}，对手 ${mb >= 0 ? '+' : ''}${mb}；获胜 ${Math.round((win / 36) * 100)}%，平均移除 ${(rem / 36).toFixed(1)} 点`;
+  }
+  return null;
+}
+
 function CountryTip({ id, view }: { id: string; view: GameView }) {
   const c = COUNTRIES[id];
+  const hint = odds(id, view);
   const [us, ussr] = view.inf[id];
   const ctl = controller(view as never, id);
   const adj = c.adj.map((a) => (a === 'usa' ? '美国' : a === 'ussr' ? '苏联' : COUNTRIES[a].zh));
@@ -312,6 +361,7 @@ function CountryTip({ id, view }: { id: string; view: GameView }) {
         {ctl ? `（${ctl === 'US' ? '美国' : '苏联'}控制）` : '（未受控）'}
       </div>
       <div class="ct-adj">邻接：{adj.join('、')}</div>
+      {hint && <div class="ct-odds">{hint}</div>}
     </div>
   );
 }
