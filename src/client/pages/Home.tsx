@@ -3,6 +3,7 @@ import { AI_LEVEL_ZH, type AiLevel } from '../../ai';
 import { DEFAULT_OPTIONS, type Side } from '../../engine/types';
 import { deleteSave, listSaves, newSave } from '../game/offline';
 import { go } from '../store';
+import { AudioToggles } from '../game/Board';
 
 export function Home() {
   const [side, setSide] = useState<Side | 'random'>('USSR');
@@ -19,6 +20,7 @@ export function Home() {
 
   return (
     <div class="home">
+      <div class="home-audio"><AudioToggles musicOnly /></div>
       <div class="home-hero">
         <div class="logo-mark" aria-hidden="true">
           <svg viewBox="0 0 64 64"><polygon points="32,4 4,32 32,32" fill="#2f5d8a" /><polygon points="32,4 60,32 32,32" fill="#3d73a8" /><polygon points="4,32 32,60 32,32" fill="#b23a2e" /><polygon points="60,32 32,60 32,32" fill="#8f2c23" /><circle cx="32" cy="32" r="7" fill="#e9dfc7" /></svg>

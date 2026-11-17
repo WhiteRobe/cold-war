@@ -2,6 +2,7 @@ import { render } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
 import './styles.css';
 import { route, toastMsg } from './store';
+import { setMusicTrack } from './audio';
 import { Home } from './pages/Home';
 import { lazy } from './ui/lazy';
 import { Board } from './game/Board';
@@ -32,6 +33,10 @@ function OfflineGame({ id }: { id: string }) {
 
 function App() {
   const r = route.value;
+  // 对局页面由 Board 自己切换到对局音乐；其余页面放首页音乐
+  useEffect(() => {
+    if (r.name !== 'offline' && r.name !== 'room' && r.name !== 'replay') setMusicTrack('menu');
+  }, [r.name]);
   let page;
   if (r.name === 'offline') page = <OfflineGame id={r.id} key={r.id} />;
   else if (r.name === 'online') page = <Online />;

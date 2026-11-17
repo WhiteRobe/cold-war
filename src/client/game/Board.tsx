@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { CARDS, CARD_LIST, CHINA_CARD, COUNTRY_LIST, REGION_ZH, type RegionId, type Side } from '../../data';
 import { scoreRegion } from '../../engine/scoring';
 import type { Decision, LogEntry } from '../../engine/types';
 import type { GameView } from '../../engine/view';
+import { audioPrefs, setAudioPrefs, setMusicTrack, setTension, sfx } from '../audio';
 import { go } from '../store';
 import { CardFace, MiniCard } from './CardFace';
 import { MapView } from './MapView';
@@ -19,7 +20,8 @@ export function Board({ session }: { session: GameSession }) {
   const [region, setRegion] = useState<RegionId | null>(null);
   const [tab, setTab] = useState<'log' | 'help'>('log');
   const flash = useFlash(view);
-  const popup = usePopup(view);
+  const { popup, close: closePopup } = usePopup(view);
+  useGameSounds(view, session.log.value);
   const [overSeen, setOverSeen] = useState(false);
   const [handOpen, setHandOpen] = useState(false);
 
@@ -41,12 +43,13 @@ export function Board({ session }: { session: GameSession }) {
       <header class="board-top">
         <button type="button" class="icon-btn" title="返回" onClick={() => go('/')}>←</button>
         <Tracks view={view} names={names} onPile={setPile} />
+        <AudioToggles />
       </header>
       <main class="board-map">
         <Effects view={view} onCard={setZoomCard} />
         <MapView view={view} selectable={selectable} onPick={(c) => session.choose(c)} flash={flash} onRegion={setRegion} />
         {popup && (
-          <div class="play-popup" onClick={() => setZoomCard(popup.card)}>
+          <div class="play-popup" onClick={closePopup} title="点击关闭">
             <div class={`pp-who ${popup.side.toLowerCase()}`}>{names[popup.side]}打出</div>
             <CardFace id={popup.card} />
           </div>
@@ -339,20 +342,100 @@ function useFlash(view: GameView | null) {
   return flash;
 }
 
-/** 对手打出的牌弹出展示一会儿 */
+/** 对手打出的牌弹出展示一会儿（计时器不能随 view 变化被清掉，否则 AI 结算完后弹窗会一直停在中间） */
 function usePopup(view: GameView | null) {
   const [popup, setPopup] = useState<{ card: number; side: Side } | null>(null);
   const last = useRef<string>('');
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const key = view?.playing ? `${view.playing.side}:${view.playing.card}:${view.turn}:${view.ar}` : '';
   useEffect(() => {
     if (!view?.playing || key === last.current) return;
     last.current = key;
     if (view.playing.side === view.me) return;
     setPopup(view.playing);
-    const t = setTimeout(() => setPopup(null), 2600);
-    return () => clearTimeout(t);
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => setPopup(null), 2200);
   }, [key]);
-  return useMemo(() => popup, [popup]);
+  useEffect(() => () => clearTimeout(timer.current), []);
+  const close = () => {
+    clearTimeout(timer.current);
+    setPopup(null);
+  };
+  return { popup, close };
 }
 
 void CARDS;
+
+/** 音乐 / 音效开关 */
+export function AudioToggles({ musicOnly }: { musicOnly?: boolean }) {
+  const p = audioPrefs.value;
+  return (
+    <div class="audio-toggles">
+      <button type="button" class={`icon-btn${p.music ? ' on' : ''}`} title={p.music ? '关闭背景音乐' : '开启背景音乐'} onClick={() => setAudioPrefs({ music: !p.music })}>
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+          <path d="M9 17V5l11-2v12" fill="none" stroke="currentColor" stroke-width="2" />
+          <circle cx="6.5" cy="17" r="2.5" fill="currentColor" />
+          <circle cx="17.5" cy="15" r="2.5" fill="currentColor" />
+          {!p.music && <path d="M3 3l18 18" stroke="currentColor" stroke-width="2" />}
+        </svg>
+      </button>
+      {!musicOnly && (
+        <button type="button" class={`icon-btn${p.sfx ? ' on' : ''}`} title={p.sfx ? '关闭音效' : '开启音效'} onClick={() => setAudioPrefs({ sfx: !p.sfx })}>
+          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+            <path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor" />
+            {p.sfx ? <path d="M16 8.5a5 5 0 010 7M18.5 6a8.5 8.5 0 010 12" fill="none" stroke="currentColor" stroke-width="2" /> : <path d="M16 9l5 6M21 9l-5 6" stroke="currentColor" stroke-width="2" />}
+          </svg>
+        </button>
+      )}
+    </div>
+  );
+}
+
+/** 根据局面变化播放音效，并切换对局音乐 */
+function useGameSounds(view: GameView | null, log: LogEntry[]) {
+  const prev = useRef<GameView | null>(null);
+  const logSeen = useRef(-1);
+  useEffect(() => {
+    setMusicTrack('game');
+    return () => {
+      setTension(false);
+      setMusicTrack('menu');
+    };
+  }, []);
+  useEffect(() => {
+    if (!view) return;
+    setTension(view.defcon <= 2 && view.phase !== 'over');
+    const p = prev.current;
+    prev.current = view;
+    const seen = logSeen.current;
+    logSeen.current = log.length;
+    // 首次载入 / 重连整段重放时不补播
+    if (!p || seen < 0 || log.length < seen || log.length - seen > 40) return;
+    const fresh = log.slice(seen);
+    let rolled = false;
+    for (const e of fresh) {
+      if (e.kind === 'card') sfx('card');
+      else if (e.kind === 'headline' && e.t.startsWith('头条：')) sfx('headline');
+      else if (e.kind === 'roll') {
+        rolled = true;
+        sfx('dice');
+        if (e.t.includes('政变')) sfx(e.t.includes('成功') ? 'coupWin' : 'coupFail');
+        else if (e.t.includes('太空竞赛') && e.t.includes('成功')) setTimeout(() => sfx('space'), 450);
+      } else if (e.kind === 'score' && e.t.includes('计分：')) sfx('scoring');
+      else if (e.kind === 'end') {
+        const me = view.me;
+        if (!view.winner) sfx('scoring');
+        else sfx(me && view.winner !== me ? 'lose' : 'win');
+      }
+    }
+    if (view.defcon < p.defcon) sfx('defconDown');
+    else if (view.defcon > p.defcon && view.turn === p.turn) sfx('defconUp');
+    if (view.vp !== p.vp && view.phase !== 'over') {
+      const toUs = view.vp > p.vp;
+      const good = view.me ? (view.me === 'US') === toUs : true;
+      setTimeout(() => sfx(good ? 'vpGood' : 'vpBad'), rolled ? 500 : 0);
+    }
+    if (!rolled && COUNTRY_LIST.some((c) => p.inf[c.id][0] !== view.inf[c.id][0] || p.inf[c.id][1] !== view.inf[c.id][1])) sfx('place');
+    if (view.decision && !p.decision) sfx('turn');
+  }, [view]);
+}
