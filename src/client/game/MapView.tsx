@@ -1,7 +1,8 @@
 import { useMemo, useRef, useState } from 'preact/hooks';
-import { COUNTRIES, COUNTRY_LIST, REGIONS, REGION_ZH, countriesIn, type RegionId, type Side } from '../../data';
+import { COUNTRIES, COUNTRY_LIST, REGIONS, REGION_ZH, type RegionId, type Side } from '../../data';
 import { controller, scoreRegion } from '../../engine/scoring';
 import type { GameView } from '../../engine/view';
+import { WORLD } from './worldmap.gen';
 
 export const MAP_W = 1500;
 export const MAP_H = 975;
@@ -23,45 +24,25 @@ export const pos = (id: string): [number, number] => {
   return [p[0] * S, p[1] * S];
 };
 
-const REGION_FILL: Record<RegionId, [string, string]> = {
-  europe: ['#8d9bb0', '#7f8ea5'],
-  asia: ['#b9a27a', '#ad966d'],
-  middleEast: ['#c4ab7b', '#b89f70'],
-  africa: ['#a99572', '#9d8966'],
-  centralAmerica: ['#93a48a', '#86987d'],
-  southAmerica: ['#9fae84', '#93a278'],
+/** 底图配色：按游戏区域着色，每个国家在两三个相邻色阶里取一个，做出分面感 */
+const LAND: Record<string, string[]> = {
+  europe: ['#a3afc0', '#98a5b8', '#aeb9c8'],
+  asia: ['#cdb488', '#c4aa7c', '#d4bc92'],
+  middleEast: ['#dbc290', '#d2b884', '#e0c99a'],
+  africa: ['#c0a577', '#b69b6d', '#c8ae82'],
+  centralAmerica: ['#a9b89a', '#9faf90', '#b2c0a3'],
+  southAmerica: ['#b4c093', '#aab788', '#bcc89d'],
+  usa: ['#6f8fb2'],
+  ussr: ['#b8786c'],
+  china: ['#9b968b'],
+  other: ['#c9c0ab', '#c2b9a3', '#cfc6b2'],
 };
 
-function hull(pts: [number, number][]): [number, number][] {
-  const p = [...pts].sort((a, b) => a[0] - b[0] || a[1] - b[1]);
-  const cross = (o: number[], a: number[], b: number[]) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
-  const lower: [number, number][] = [];
-  for (const q of p) {
-    while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], q) <= 0) lower.pop();
-    lower.push(q);
-  }
-  const upper: [number, number][] = [];
-  for (const q of [...p].reverse()) {
-    while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], q) <= 0) upper.pop();
-    upper.push(q);
-  }
-  return [...lower.slice(0, -1), ...upper.slice(0, -1)];
-}
-
-/** 区域底色：凸包 + 从中心扇形分面，做出 low poly 的效果 */
-function regionShapes(ids: string[], pad: number, fill: [string, string]) {
-  const pts: [number, number][] = [];
-  for (const id of ids) {
-    const [x, y] = pos(id);
-    pts.push([x - BW / 2 - pad, y - BH / 2 - pad], [x + BW / 2 + pad, y - BH / 2 - pad], [x - BW / 2 - pad, y + BH / 2 + pad], [x + BW / 2 + pad, y + BH / 2 + pad]);
-  }
-  const h = hull(pts);
-  const cx = h.reduce((s, p) => s + p[0], 0) / h.length;
-  const cy = h.reduce((s, p) => s + p[1], 0) / h.length;
-  return h.map((p, i) => {
-    const q = h[(i + 1) % h.length];
-    return <polygon key={i} points={`${cx},${cy} ${p[0]},${p[1]} ${q[0]},${q[1]}`} fill={fill[i % 2]} stroke={fill[i % 2]} stroke-width="1" />;
-  });
+function shade(id: string, kind: string) {
+  const list = LAND[kind] ?? LAND.other;
+  let h = 0;
+  for (const ch of id) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return list[h % list.length];
 }
 
 interface Props {
@@ -82,10 +63,10 @@ export function MapView({ view, selectable, onPick, flash, onRegion }: Props) {
   const bg = useMemo(
     () => (
       <g class="map-bg">
-        {REGIONS.map((r) => (
-          <g key={r}>{regionShapes(countriesIn(r).map((c) => c.id), 14, REGION_FILL[r])}</g>
+        {WORLD.map((w, i) => (
+          <path key={i} d={w.d} fill={shade(w.id, w.kind)} class={`land k-${w.kind}`} />
         ))}
-        <g opacity="0.35">{regionShapes(countriesIn('southeastAsia').map((c) => c.id), 6, ['#d8c39a', '#ceb98f'])}</g>
+        <text class="land-label" x="1225" y="400">中 国</text>
       </g>
     ),
     [],
@@ -199,7 +180,7 @@ export function MapView({ view, selectable, onPick, flash, onRegion }: Props) {
         onPointerUp={onUp}
         onPointerLeave={onUp}
       >
-        <rect x="0" y="0" width={MAP_W} height={MAP_H} fill="#cdbf9f" />
+        <rect x="0" y="0" width={MAP_W} height={MAP_H} class="ocean" />
         <MapGrid />
         {bg}
         <g class="edges">{lines}</g>
@@ -257,16 +238,13 @@ function Superpower({ id }: { id: 'usa' | 'ussr' }) {
 const LV_ZH = { none: '—', presence: '存在', domination: '支配', control: '控制' };
 
 function RegionLabel({ region, view, onClick }: { region: RegionId; view: GameView; onClick: () => void }) {
-  const ids = countriesIn(region).map((c) => c.id);
-  const xs = ids.map((i) => pos(i)[0]);
-  const ys = ids.map((i) => pos(i)[1]);
   const anchor: Record<RegionId, [number, number]> = {
-    europe: [(Math.min(...xs) + Math.max(...xs)) / 2 - 120, Math.min(...ys) - 40],
-    asia: [Math.max(...xs) - 60, Math.min(...ys) - 40],
-    middleEast: [Math.min(...xs) + 10, Math.max(...ys) + 44],
-    africa: [Math.min(...xs) - 10, Math.max(...ys) + 44],
-    centralAmerica: [Math.min(...xs) + 10, Math.min(...ys) - 36],
-    southAmerica: [Math.min(...xs) - 10, Math.max(...ys) + 44],
+    europe: [405, 215],
+    asia: [1110, 760],
+    middleEast: [985, 660],
+    africa: [560, 870],
+    centralAmerica: [40, 640],
+    southAmerica: [120, 880],
   };
   const [x, y] = anchor[region];
   const sc = scoreRegion(view as never, region, { formosan: view.flags.formosan });
