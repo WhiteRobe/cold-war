@@ -78,7 +78,7 @@ export const LATE: Record<number, Effect> = {
     *run(g) {
       g.degradeDefcon(1, '大韩航空 007');
       g.vp('US', 2, '大韩航空 007');
-      if (g.controls('US', 'southKorea')) yield* g.opsPlay('US', 4, { card: 89, modes: ['influence', 'realign'] });
+      if (g.controls('US', 'southKorea')) yield* g.opsPlay('US', 4, { card: 89, modes: ['influence', 'realign'], optional: true });
     },
   },
   // Glasnost
@@ -86,7 +86,7 @@ export const LATE: Record<number, Effect> = {
     *run(g) {
       g.improveDefcon(1, '公开性');
       g.vp('USSR', 2, '公开性');
-      if (g.s.flags.reformer) yield* g.opsPlay('USSR', 4, { card: 90, modes: ['influence', 'realign'] });
+      if (g.s.flags.reformer) yield* g.opsPlay('USSR', 4, { card: 90, modes: ['influence', 'realign'], optional: true });
     },
   },
   // Ortega Elected in Nicaragua

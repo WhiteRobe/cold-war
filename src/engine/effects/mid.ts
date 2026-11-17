@@ -125,8 +125,9 @@ export const MID: Record<number, Effect> = {
   49: {
     *run(g, me) {
       const them = opp(me);
-      const hand = g.s.hands[them];
-      if (!hand.length) return g.log('导弹嫉妒：对手没有手牌');
+      // 计分卡不能被换走（DeepStruggle missile_envy_may_take）
+      const hand = g.s.hands[them].filter((c) => !CARDS[c].scoring);
+      if (!hand.length) return g.log('导弹嫉妒：对手没有可换的牌');
       const top = Math.max(...hand.map((c) => CARDS[c].ops));
       const cands = hand.filter((c) => CARDS[c].ops === top);
       const c = (yield* g.askCard(them, 'pickCard', '导弹嫉妒：选择交出的最高行动点牌', cands, { card: 49 })) as number;
@@ -258,7 +259,7 @@ export const MID: Record<number, Effect> = {
   62: {
     *run(g) {
       g.revealHand('US', '孤胆枪手');
-      yield* g.opsPlay('USSR', 1, { card: 62 });
+      yield* g.opsPlay('USSR', 1, { card: 62, optional: true });
     },
   },
   // Colonial Rear Guards
@@ -312,7 +313,7 @@ export const MID: Record<number, Effect> = {
         g.addToHand('USSR', c, true);
         g.log(`美国把 ${cardName(c)} 还给苏联`);
       }
-      yield* g.opsPlay('US', 2, { card: 67 });
+      yield* g.opsPlay('US', 2, { card: 67, optional: true });
     },
   },
   // John Paul II Elected Pope

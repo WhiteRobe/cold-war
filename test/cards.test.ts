@@ -48,7 +48,7 @@ describe('早期卡', () => {
   it('#20 奥运会抵制：DEFCON -1 并获得 4 行动点', () => {
     const g = blank();
     set(g, 'japan', 1, 0);
-    drive(g.fireEvent(20, 'US', {}), ['boycott', 'japan', 'japan', 'japan', 'japan']);
+    drive(g.fireEvent(20, 'US', {}), ['boycott', 'influence', 'japan', 'japan', 'japan', 'japan']);
     expect(g.s.defcon).toBe(4);
     expect(g.inf('japan', 'US')).toBe(5);
   });
@@ -65,7 +65,7 @@ describe('早期卡', () => {
     set(g, 'japan', 1, 0);
     g.s.hands.US = [32, 8];
     g.s.flags.u2 = true;
-    drive(g.playCard('US', 32, {}), ['event', 'japan', 'japan']);
+    drive(g.playCard('US', 32, {}), ['event', 'influence', 'japan', 'japan']);
     expect(g.inf('japan', 'US')).toBe(3);
     expect(g.s.inf.cuba).toEqual([0, 0]);
     expect(g.s.discard).toEqual(expect.arrayContaining([8, 32]));
@@ -143,7 +143,7 @@ describe('中期卡', () => {
     const g = blank();
     set(g, 'japan', 1, 0);
     g.s.hands.USSR = [14];
-    drive(g.fireEvent(67, 'US', {}), ['return', 'japan', 'japan']);
+    drive(g.fireEvent(67, 'US', {}), ['return', 'influence', 'japan', 'japan']);
     expect(g.s.hands.USSR).toEqual([14]);
     expect(g.s.known.USSR).toContain(14);
     expect(g.inf('japan', 'US')).toBe(3);

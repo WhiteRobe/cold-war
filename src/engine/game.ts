@@ -490,8 +490,9 @@ export class Game {
       this.relocate(c, fired, side);
       delete s.headline[side];
       s.playing = undefined;
-      yield* this.endOfRound();
     }
+    // NORAD 只看行动轮；头条阶段降到 2 不算（DeepStruggle 依 Playdek 日志）
+    s.flags.defconTo2 = false;
     this.headlineCancel = new Set();
   }
 

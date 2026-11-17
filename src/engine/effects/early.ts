@@ -177,7 +177,7 @@ export const EARLY: Record<number, Effect> = {
       } else {
         g.log(`${SIDE_ZH[them]}抵制奥运会`);
         g.degradeDefcon(1, '抵制奥运会');
-        yield* g.opsPlay(me, 4, { card: 20 });
+        yield* g.opsPlay(me, 4, { card: 20, optional: true });
       }
     },
   },
@@ -227,7 +227,7 @@ export const EARLY: Record<number, Effect> = {
   26: {
     *run(g) {
       g.revealHand('USSR', '中情局成立');
-      yield* g.opsPlay('US', 1, { card: 26 });
+      yield* g.opsPlay('US', 1, { card: 26, optional: true });
     },
   },
   // US/Japan Mutual Defense Pact
@@ -271,7 +271,7 @@ export const EARLY: Record<number, Effect> = {
   },
   // UN Intervention
   32: {
-    can: (g, _me, player) => g.s.hands[player].some((c) => CARDS[c].side === opp(player) && !CARDS[c].scoring),
+    can: (g, _me, player) => g.s.phase !== 'headline' && g.s.hands[player].some((c) => CARDS[c].side === opp(player) && !CARDS[c].scoring),
     *run(g, me) {
       const cards = g.s.hands[me].filter((c) => CARDS[c].side === opp(me) && !CARDS[c].scoring);
       const c = (yield* g.askCard(me, 'pickCard', '联合国干预：选择一张对手事件牌，取消其事件并使用其行动点', cards, { card: 32 })) as number;
@@ -281,7 +281,7 @@ export const EARLY: Record<number, Effect> = {
       if (g.s.flags.u2) g.vp('USSR', 1, 'U-2 事件');
       const prev = g.s.playing;
       g.s.playing = { card: c, side: me };
-      yield* g.opsPlay(me, CARDS[c].ops, { card: c });
+      yield* g.opsPlay(me, CARDS[c].ops, { card: c, optional: true });
       g.s.playing = prev;
       g.discardCard(c);
     },
@@ -320,6 +320,8 @@ export const EARLY: Record<number, Effect> = {
   },
   // Defectors
   103: {
+    // 只在头条阶段有效果；行动轮里作为事件没有意义，不提供（苏联打出时美方 +1 VP 由出牌流程处理）
+    can: (g) => g.s.phase === 'headline',
     *run(g, me) {
       if (me === 'US' && g.s.phase === 'headline' && g.s.headline.USSR !== undefined && !g.headlineCancel.has('USSR')) {
         g.headlineCancel.add('USSR');
