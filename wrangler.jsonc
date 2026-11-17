@@ -1,0 +1,39 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "cold-war",
+  "main": "src/worker/index.ts",
+  "workers_dev": true,
+  "preview_urls": false,
+  "compatibility_date": "2026-11-17",
+
+  // 前端 SPA：只有 /api 与 /ws 进 Worker，其余直接走免费静态资源
+  "assets": {
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*", "/ws/*"]
+  },
+
+  "durable_objects": {
+    "bindings": [
+      { "name": "LOBBY", "class_name": "LobbyDO" },
+      { "name": "GAME", "class_name": "GameDO" }
+    ]
+  },
+  // 免费计划必须是 SQLite 后端
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["LobbyDO", "GameDO"] }],
+
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "cold-war-db",
+      "database_id": "<YOUR_D1_DATABASE_ID>",
+      "migrations_dir": "migrations"
+    }
+  ],
+
+  "vars": {
+    "PBKDF2_ITERATIONS": "20000",
+    "AI_DELAY_MS": "900"
+  },
+
+  "observability": { "enabled": true }
+}

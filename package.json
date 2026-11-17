@@ -1,0 +1,38 @@
+{
+  "name": "cold-war",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "WRANGLER_CONFIG=./wrangler.local.jsonc vite",
+    "build": "tsc --noEmit && vite build && tsx scripts/check-bundle.ts",
+    "test": "vitest run",
+    "types": "wrangler types",
+    "gen:data": "tsx scripts/gen-data.ts",
+    "deploy": "WRANGLER_CONFIG=./wrangler.local.jsonc vite build && tsx scripts/check-bundle.ts && wrangler deploy -c dist/cold_war/wrangler.json",
+    "db:migrate:local": "wrangler d1 migrations apply DB --local -c wrangler.local.jsonc",
+    "db:migrate": "wrangler d1 migrations apply DB --remote -c wrangler.local.jsonc",
+    "sim": "tsx scripts/sim.ts"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@preact/signals": "^2.11.4",
+    "preact": "^11.2.0"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.69.1",
+    "@cloudflare/workers-types": "^5.20261117.1",
+    "@preact/preset-vite": "^2.10.6",
+    "@types/node": "^26.6.6",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8",
+    "vitest": "^5.1.0",
+    "wrangler": "^4.163.0"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true,
+    "fsevents@2.3.3": true,
+    "workerd@1.20261110.1": true,
+    "workerd@1.20261116.1": true
+  }
+}
