@@ -526,3 +526,8 @@ h1, h2, h3, h4 { font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif; let
 .hover-edges { pointer-events: none; }
 .hover-edges line { stroke: var(--gold); stroke-width: 4; stroke-linecap: round; opacity: 0.9; }
 .country.adj-hl .c-box { stroke: var(--gold) !important; stroke-width: 3 !important; }
+
+/* 平移 / 缩放时暂停动画和悬停效果，避免闪烁 */
+.map-wrap.panning .fog-puff, .map-wrap.panning .country.selectable .c-box { animation-play-state: paused; }
+.map-wrap.panning .map { cursor: grabbing; }
+.map-wrap.panning .country-tip { display: none; }

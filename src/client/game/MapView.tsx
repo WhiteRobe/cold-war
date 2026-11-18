@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'preact/hooks';
+import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { COUNTRIES, COUNTRY_LIST, REGIONS, REGION_ZH, type RegionId, type Side } from '../../data';
 import { controller, scoreRegion, scoreSEA } from '../../engine/scoring';
 import type { GameView } from '../../engine/view';
@@ -170,18 +170,53 @@ export function MapView({ view, selectable, onPick, flash, onRegion }: Props) {
     [edges],
   );
 
+  // 平移 / 缩放过程中直接改 SVG 的 viewBox（每帧一次），手势结束后再写回状态，
+  // 避免每次指针移动都重绘整张地图造成闪烁
+  const live = useRef(zoom);
+  const raf = useRef(0);
+  const commitTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const panning = useRef(false);
+  useEffect(() => {
+    live.current = zoom;
+  }, [zoom]);
+  const apply = (z: { x: number; y: number; k: number }) => {
+    live.current = z;
+    if (raf.current) return;
+    raf.current = requestAnimationFrame(() => {
+      raf.current = 0;
+      const v = live.current;
+      svgRef.current?.setAttribute('viewBox', `${v.x} ${v.y} ${MAP_W / v.k} ${MAP_H / v.k}`);
+    });
+  };
+  const startGesture = () => {
+    if (panning.current) return;
+    panning.current = true;
+    wrapRef.current?.classList.add('panning');
+    setHover(null);
+  };
+  const endGesture = (delay = 0) => {
+    clearTimeout(commitTimer.current);
+    commitTimer.current = setTimeout(() => {
+      panning.current = false;
+      wrapRef.current?.classList.remove('panning');
+      setZoom({ ...live.current });
+    }, delay);
+  };
+
   const onWheel = (e: WheelEvent) => {
     e.preventDefault();
     const svg = svgRef.current!;
     const r = svg.getBoundingClientRect();
     const mx = ((e.clientX - r.left) / r.width) * MAP_W;
     const my = ((e.clientY - r.top) / r.height) * MAP_H;
-    setZoom((z) => {
-      const k = Math.min(4, Math.max(1, z.k * (e.deltaY < 0 ? 1.15 : 1 / 1.15)));
-      // 保持鼠标下的点不动
-      const wx = z.x + mx / z.k, wy = z.y + my / z.k;
-      return clampZoom({ k, x: wx - mx / k, y: wy - my / k });
-    });
+    const z = live.current;
+    const k = Math.min(4, Math.max(1, z.k * (e.deltaY < 0 ? 1.15 : 1 / 1.15)));
+    // 保持鼠标下的点不动
+    const wx = z.x + mx / z.k, wy = z.y + my / z.k;
+    startGesture();
+    apply(clampZoom({ k, x: wx - mx / k, y: wy - my / k }));
+    endGesture(180);
   };
 
   const pts = useRef(new Map<number, { x: number; y: number }>());
@@ -190,11 +225,12 @@ export function MapView({ view, selectable, onPick, flash, onRegion }: Props) {
     pts.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (pts.current.size === 2) {
       const [a, b] = [...pts.current.values()];
-      pinch.current = { dist: Math.hypot(a.x - b.x, a.y - b.y), k: zoom.k };
+      pinch.current = { dist: Math.hypot(a.x - b.x, a.y - b.y), k: live.current.k };
       if (drag.current) drag.current.moved = true;
+      startGesture();
       return;
     }
-    drag.current = { x: e.clientX, y: e.clientY, zx: zoom.x, zy: zoom.y, moved: false };
+    drag.current = { x: e.clientX, y: e.clientY, zx: live.current.x, zy: live.current.y, moved: false };
   };
   const onMove = (e: PointerEvent) => {
     if (pts.current.has(e.pointerId)) pts.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -204,30 +240,39 @@ export function MapView({ view, selectable, onPick, flash, onRegion }: Props) {
       const mx = (((a.x + b.x) / 2 - r.left) / r.width) * MAP_W;
       const my = (((a.y + b.y) / 2 - r.top) / r.height) * MAP_H;
       const k = Math.min(4, Math.max(1, (pinch.current.k * Math.hypot(a.x - b.x, a.y - b.y)) / pinch.current.dist));
-      setZoom((z) => {
-        const wx = z.x + mx / z.k, wy = z.y + my / z.k;
-        return clampZoom({ k, x: wx - mx / k, y: wy - my / k });
-      });
+      const z = live.current;
+      const wx = z.x + mx / z.k, wy = z.y + my / z.k;
+      apply(clampZoom({ k, x: wx - mx / k, y: wy - my / k }));
       return;
     }
     const d = drag.current;
-    if (!d || zoom.k === 1) return;
+    if (!d || live.current.k === 1) return;
+    if (!d.moved) {
+      if (Math.abs(e.clientX - d.x) + Math.abs(e.clientY - d.y) <= 4) return;
+      d.moved = true;
+      startGesture();
+      try { svgRef.current?.setPointerCapture(e.pointerId); } catch { /* 忽略 */ }
+    }
     const r = svgRef.current!.getBoundingClientRect();
-    const dx = ((e.clientX - d.x) / r.width) * MAP_W / zoom.k;
-    const dy = ((e.clientY - d.y) / r.height) * MAP_H / zoom.k;
-    if (Math.abs(e.clientX - d.x) + Math.abs(e.clientY - d.y) > 4) d.moved = true;
-    setZoom(clampZoom({ k: zoom.k, x: d.zx - dx, y: d.zy - dy }));
+    const k = live.current.k;
+    const dx = ((e.clientX - d.x) / r.width) * MAP_W / k;
+    const dy = ((e.clientY - d.y) / r.height) * MAP_H / k;
+    apply(clampZoom({ k, x: d.zx - dx, y: d.zy - dy }));
   };
   const onUp = (e: PointerEvent) => {
     pts.current.delete(e.pointerId);
     if (pts.current.size < 2) pinch.current = null;
+    if (panning.current && pts.current.size === 0) endGesture();
     setTimeout(() => (drag.current = null), 0);
+  };
+  const onHover = (id: string | null) => {
+    if (!panning.current) setHover(id);
   };
 
   const vb = `${zoom.x} ${zoom.y} ${MAP_W / zoom.k} ${MAP_H / zoom.k}`;
 
   return (
-    <div class="map-wrap">
+    <div class="map-wrap" ref={wrapRef}>
       <svg
         ref={svgRef}
         class="map"
@@ -259,7 +304,7 @@ export function MapView({ view, selectable, onPick, flash, onRegion }: Props) {
             adjHl={!!hover && COUNTRIES[hover].adj.includes(c.id)}
             flash={flash.has(c.id)}
             onPick={() => !drag.current?.moved && selectable.has(c.id) && onPick(c.id)}
-            onHover={setHover}
+            onHover={onHover}
           />
         ))}
         <g class="links">
@@ -286,9 +331,9 @@ export function MapView({ view, selectable, onPick, flash, onRegion }: Props) {
         <FxLayer fx={fx} pos={pos} />
       </svg>
       <div class="map-zoom">
-        <button type="button" onClick={() => setZoom((z) => clampZoom({ ...z, k: Math.min(4, z.k * 1.3) }))}>＋</button>
+        <button type="button" onClick={() => setZoom(clampZoom({ ...live.current, k: Math.min(4, live.current.k * 1.3) }))}>＋</button>
         <button type="button" onClick={() => setZoom({ x: 0, y: 0, k: 1 })}>⟲</button>
-        <button type="button" onClick={() => setZoom((z) => clampZoom({ ...z, k: Math.max(1, z.k / 1.3) }))}>－</button>
+        <button type="button" onClick={() => setZoom(clampZoom({ ...live.current, k: Math.max(1, live.current.k / 1.3) }))}>－</button>
       </div>
       {hover && <CountryTip id={hover} view={view} />}
     </div>
