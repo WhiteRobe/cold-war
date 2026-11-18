@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { CARDS, CARD_LIST, CHINA_CARD, COUNTRY_LIST, REGION_ZH, type RegionId, type Side } from '../../data';
-import { scoreRegion } from '../../engine/scoring';
+import { REGION_POINTS, scoreRegion, scoreSEA } from '../../engine/scoring';
 import type { Choice, Decision, LogEntry } from '../../engine/types';
 import { Coach, coachOn, danger, setCoach } from './Coach';
 import type { GameView } from '../../engine/view';
@@ -27,7 +27,7 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
   const [zoomCard, setZoomCard] = useState<number | null>(null);
   const [pile, setPile] = useState<'discard' | 'removed' | 'deck' | null>(null);
   const [region, setRegion] = useState<RegionId | null>(null);
-  const [tab, setTab] = useState<'log' | 'headlines' | 'help'>('log');
+  const [tab, setTab] = useState<'log' | 'headlines' | 'cards' | 'help'>('log');
   const flash = useFlash(view);
   const { popup, close: closePopup } = usePopup(view);
   useGameSounds(view, session.log.value);
@@ -79,9 +79,10 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
         <div class="side-tabs" data-tour="sidetabs">
           <button type="button" class={tab === 'log' ? 'on' : ''} onClick={() => setTab('log')}>记录</button>
           <button type="button" class={tab === 'headlines' ? 'on' : ''} onClick={() => setTab('headlines')}>头条</button>
+          <button type="button" class={tab === 'cards' ? 'on' : ''} onClick={() => setTab('cards')}>牌堆</button>
           <button type="button" class={tab === 'help' ? 'on' : ''} onClick={() => setTab('help')}>速查</button>
         </div>
-        {tab === 'log' ? <LogView log={session.log.value} me={me} /> : tab === 'headlines' ? <HeadlineHistory view={view} names={names} onZoom={setZoomCard} /> : <QuickRef />}
+        {tab === 'log' ? <LogView log={session.log.value} me={me} /> : tab === 'headlines' ? <HeadlineHistory view={view} names={names} onZoom={setZoomCard} /> : tab === 'cards' ? <CardsPanel view={view} names={names} onZoom={setZoomCard} /> : <QuickRef />}
       </aside>
       <button type="button" class={`hand-toggle${handChoice ? ' need' : ''}`} onClick={() => setHandOpen(!handOpen)}>
         手牌 {myHand.length}{handOpen ? ' ▾' : ' ▴'}
@@ -139,6 +140,7 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
         <div class="modal" onClick={() => setZoomCard(null)}>
           <div class="modal-card" onClick={(e) => e.stopPropagation()}>
             <CardFace id={zoomCard} faceDown={zoomCard === CHINA_CARD && !view.china.faceUp} />
+            <ScoringPreview view={view} card={zoomCard} names={names} />
             {d?.kind === 'card' && d.options.some((o) => o.v === zoomCard) ? (
               <div class="row">
                 <button type="button" class="btn" onClick={() => setZoomCard(null)}>取消</button>
@@ -284,6 +286,48 @@ function LogView({ log, me }: { log: LogEntry[]; me: Side | null }) {
   );
 }
 
+const SCORING_REGION: Record<number, RegionId | 'sea'> = { 1: 'asia', 2: 'europe', 3: 'middleEast', 37: 'centralAmerica', 38: 'sea', 79: 'africa', 81: 'southAmerica' };
+
+/** 计分卡：现在打出谁得分 */
+function ScoringPreview({ view, card, names }: { view: GameView; card: number; names: Record<Side, string> }) {
+  const r = SCORING_REGION[card];
+  if (!r) return null;
+  let us: string, ussr: string, net: number, win: Side | undefined, note = '';
+  if (r === 'sea') {
+    const sc = scoreSEA(view as never);
+    us = `${sc.points.US} 分`;
+    ussr = `${sc.points.USSR} 分`;
+    net = sc.net;
+  } else {
+    const shuttle = !!view.flags.shuttle && (r === 'asia' || r === 'middleEast');
+    const sc = scoreRegion(view as never, r, { formosan: view.flags.formosan, shuttle });
+    us = `${LV_ZH[sc.US.level]} ${sc.points.US} 分`;
+    ussr = `${LV_ZH[sc.USSR.level]} ${sc.points.USSR} 分`;
+    net = sc.net;
+    win = sc.autoWin;
+    if (sc.shuttleApplied) note = '（已计入穿梭外交：苏联少算一个战场国）';
+  }
+  const res = win
+    ? `${names[win]}（${SIDE_ZH[win]}）控制欧洲，打出即获胜！`
+    : net > 0
+      ? `美国 +${net} VP`
+      : net < 0
+        ? `苏联 +${-net} VP`
+        : '双方打平，不加分';
+  const good = win ? win === view.me : view.me ? (view.me === 'US' ? net > 0 : net < 0) : false;
+  const bad = win ? win !== view.me : view.me ? (view.me === 'US' ? net < 0 : net > 0) : false;
+  return (
+    <div class={`score-preview${good ? ' good' : bad ? ' bad' : ''}`}>
+      <div class="sp-title">现在打出的结果</div>
+      <div class="sp-row">
+        <span class="us">美国 {us}</span>
+        <span class="ussr">苏联 {ussr}</span>
+      </div>
+      <div class="sp-res">→ {res}{note}</div>
+    </div>
+  );
+}
+
 /** 本回合的头条：整个回合都显示 */
 function CurrentHeadline({ view, names, onZoom }: { view: GameView; names: Record<Side, string>; onZoom: (c: number) => void }) {
   const rec = view.headlines?.at(-1);
@@ -360,21 +404,7 @@ function QuickRef() {
 }
 
 function PileModal({ view, pile, onClose, onCard }: { view: GameView; pile: 'discard' | 'removed' | 'deck'; onClose: () => void; onCard: (c: number) => void }) {
-  let cards: number[];
-  let title: string;
-  if (pile === 'discard') {
-    cards = view.discard;
-    title = '弃牌堆';
-  } else if (pile === 'removed') {
-    cards = [...view.removed, ...view.inPlay];
-    title = '已移出 / 持续生效';
-  } else {
-    const era = view.turn <= 3 ? ['early'] : view.turn <= 7 ? ['early', 'mid'] : ['early', 'mid', 'late'];
-    const seen = new Set([...view.discard, ...view.removed, ...view.inPlay, ...view.hands.US, ...view.hands.USSR, ...Object.values(view.headline), CHINA_CARD]);
-    if (view.playing) seen.add(view.playing.card);
-    cards = CARD_LIST.filter((c) => era.includes(c.era) && (view.options.optionalCards || !c.optional) && !seen.has(c.id)).map((c) => c.id);
-    title = `牌库（${view.deckCount} 张）或对手手牌中的牌`;
-  }
+  const { cards, title } = pileCards(view, pile);
   return (
     <div class="modal" onClick={onClose}>
       <div class="modal-box wide" onClick={(e) => e.stopPropagation()}>
@@ -389,27 +419,97 @@ function PileModal({ view, pile, onClose, onCard }: { view: GameView; pile: 'dis
   );
 }
 
+/** 弃牌堆 / 已移出 / 未出现的牌 */
+function pileCards(view: GameView, pile: 'discard' | 'removed' | 'deck'): { cards: number[]; title: string } {
+  if (pile === 'discard') return { cards: [...view.discard].reverse(), title: '弃牌堆（最近的在前）' };
+  if (pile === 'removed') return { cards: [...view.inPlay, ...[...view.removed].reverse()], title: '持续生效 / 已移出游戏' };
+  const era = view.turn <= 3 ? ['early'] : view.turn <= 7 ? ['early', 'mid'] : ['early', 'mid', 'late'];
+  const seen = new Set([...view.discard, ...view.removed, ...view.inPlay, ...view.hands.US, ...view.hands.USSR, ...Object.values(view.headline), CHINA_CARD]);
+  if (view.playing) seen.add(view.playing.card);
+  const cards = CARD_LIST.filter((c) => era.includes(c.era) && (view.options.optionalCards || !c.optional) && !seen.has(c.id)).map((c) => c.id);
+  return { cards, title: `牌库（${view.deckCount} 张）或对手手牌中的牌` };
+}
+
+const HOW_ZH = { event: '事件', ops: '行动点', space: '太空竞赛', headline: '头条' } as const;
+
+/** 侧栏「牌堆」页：出牌记录、弃牌堆、移出、未出现 */
+function CardsPanel({ view, names, onZoom }: { view: GameView; names: Record<Side, string>; onZoom: (c: number) => void }) {
+  const [seg, setSeg] = useState<'plays' | 'discard' | 'removed' | 'deck'>('plays');
+  const plays = [...(view.plays ?? [])].reverse();
+  const tabs: [typeof seg, string][] = [
+    ['plays', `出牌 ${plays.length}`],
+    ['discard', `弃牌 ${view.discard.length}`],
+    ['removed', `移出 ${view.removed.length + view.inPlay.length}`],
+    ['deck', '未出现'],
+  ];
+  return (
+    <div class="cards-panel">
+      <div class="seg small-seg">
+        {tabs.map(([k, label]) => (
+          <button type="button" key={k} class={seg === k ? 'on' : ''} onClick={() => setSeg(k)}>{label}</button>
+        ))}
+      </div>
+      {seg === 'plays' ? (
+        <div class="play-list">
+          {!plays.length && <div class="empty-hint">还没有出牌</div>}
+          {plays.map((p, i) => (
+            <button type="button" key={i} class={`play-row ${p.side.toLowerCase()}`} onClick={() => onZoom(p.card)}>
+              <span class="pr-at">{p.how === 'headline' ? `T${p.turn} 头条` : `T${p.turn}.${p.ar}`}</span>
+              <span class="pr-who">{names[p.side]}</span>
+              <span class={`pr-card side-${CARDS[p.card].side.toLowerCase()}`}>
+                <span class="hl-ops">{CARDS[p.card].scoring ? '计' : CARDS[p.card].ops}</span>
+                {CARDS[p.card].zh}
+              </span>
+              <span class={`pr-how how-${p.how}`}>{HOW_ZH[p.how]}</span>
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div class="pile-cards side">
+          {pileCards(view, seg).cards.map((c) => <MiniCard key={c} id={c} onClick={() => onZoom(c)} />)}
+          {!pileCards(view, seg).cards.length && <div class="empty-hint">空</div>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 const LV_ZH = { none: '无', presence: '存在', domination: '支配', control: '控制' };
 
 function RegionModal({ view, region, onClose }: { view: GameView; region: RegionId; onClose: () => void }) {
   const sc = scoreRegion(view as never, region, { formosan: view.flags.formosan, shuttle: view.flags.shuttle && (region === 'asia' || region === 'middleEast') });
+  const [p, dm, ct] = REGION_POINTS[region];
+  const lvPts = (lv: keyof typeof LV_ZH) => (lv === 'control' ? (region === 'europe' ? '获胜' : `+${ct}`) : lv === 'domination' ? `+${dm}` : lv === 'presence' ? `+${p}` : '+0');
+  const adjRule = region === 'europe' || region === 'asia' || region === 'centralAmerica';
   return (
     <div class="modal" onClick={onClose}>
       <div class="modal-box" onClick={(e) => e.stopPropagation()}>
         <h3>{REGION_ZH[region]}计分预览</h3>
         <table class="score-table">
           <thead>
-            <tr><th /><th class="us">美国</th><th class="ussr">苏联</th></tr>
+            <tr><th>项目</th><th>计分规则</th><th class="us">美国</th><th class="ussr">苏联</th></tr>
           </thead>
           <tbody>
-            <tr><td>等级</td><td>{LV_ZH[sc.US.level]}</td><td>{LV_ZH[sc.USSR.level]}</td></tr>
-            <tr><td>控制国家</td><td>{sc.US.countries}</td><td>{sc.USSR.countries}</td></tr>
-            <tr><td>控制战场国</td><td>{sc.US.bgs}</td><td>{sc.USSR.bgs}</td></tr>
-            <tr><td>邻接敌方本土</td><td>{sc.US.adjEnemy}</td><td>{sc.USSR.adjEnemy}</td></tr>
-            <tr><td>得分</td><td>{sc.points.US}</td><td>{sc.points.USSR}</td></tr>
+            <tr>
+              <td>等级</td>
+              <td class="rule">存在 {p} / 支配 {dm} / 控制 {region === 'europe' ? '直接获胜' : ct}</td>
+              <td>{LV_ZH[sc.US.level]}（{lvPts(sc.US.level)}）</td>
+              <td>{LV_ZH[sc.USSR.level]}（{lvPts(sc.USSR.level)}）</td>
+            </tr>
+            <tr><td>控制国家</td><td class="rule">用于判定等级</td><td>{sc.US.countries}</td><td>{sc.USSR.countries}</td></tr>
+            <tr><td>控制战场国</td><td class="rule">每国 +1 VP</td><td>{sc.US.bgs}</td><td>{sc.USSR.bgs}</td></tr>
+            <tr><td>邻接敌方本土</td><td class="rule">{adjRule ? '每国 +1 VP' : '本区域没有'}</td><td>{sc.US.adjEnemy}</td><td>{sc.USSR.adjEnemy}</td></tr>
+            <tr class="total"><td>合计</td><td /><td>{sc.points.US}</td><td>{sc.points.USSR}</td></tr>
           </tbody>
         </table>
-        <p>{sc.autoWin ? `${SIDE_ZH[sc.autoWin]}控制欧洲，打出欧洲计分即获胜！` : sc.net === 0 ? '现在打出计分卡：不加分' : `现在打出计分卡：${sc.net > 0 ? '美国' : '苏联'} +${Math.abs(sc.net)} VP`}</p>
+        <p class="sp-big">{sc.autoWin ? `${SIDE_ZH[sc.autoWin]}控制欧洲，打出欧洲计分即获胜！` : sc.net === 0 ? '现在打出计分卡：双方打平，不加分' : `现在打出计分卡：${sc.net > 0 ? '美国' : '苏联'} +${Math.abs(sc.net)} VP（双方得分相减）`}</p>
+        {sc.shuttleApplied && <p class="note">已计入穿梭外交：苏联少算一个战场国。</p>}
+        <div class="lv-help">
+          <div><b>存在</b>：在该区域至少控制 1 个国家。</div>
+          <div><b>支配</b>：控制的国家总数和战场国数都比对手多，并且至少控制 1 个非战场国。</div>
+          <div><b>控制</b>：控制的国家总数比对手多，并且控制该区域<b>全部</b>战场国。</div>
+          <div>三档只取最高的一档。一个国家“被控制”= 己方影响力 ≥ 稳定度，且比对手多出至少稳定度。</div>
+        </div>
         <button type="button" class="btn" onClick={onClose}>关闭</button>
       </div>
     </div>

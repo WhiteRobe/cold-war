@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'preact/hooks';
 import { COUNTRIES, COUNTRY_LIST, REGIONS, REGION_ZH, type RegionId, type Side } from '../../data';
-import { controller, scoreRegion } from '../../engine/scoring';
+import { controller, scoreRegion, scoreSEA } from '../../engine/scoring';
 import type { GameView } from '../../engine/view';
 import { WORLD } from './worldmap.gen';
 import { Flag, FogLayer, FxLayer, Tank, useMapFx } from './MapFx';
@@ -24,6 +24,30 @@ export const pos = (id: string): [number, number] => {
   const p = COUNTRIES[id].pos;
   return [p[0] * S, p[1] * S];
 };
+
+/** 区域标识色与图标：方框边缘色条 + 挂件 */
+export const REGION_COLOR: Record<RegionId, string> = {
+  europe: '#4f7cac', asia: '#c9962a', middleEast: '#c0622d', africa: '#5f8f3a', centralAmerica: '#2f9c95', southAmerica: '#8a6bbf',
+};
+
+const GLYPH: Record<string, string> = {
+  europe: 'M-4,4L-4,-2L-3,-2L-3,-4.5L-1,-4.5L-1,-2L1,-2L1,-4.5L3,-4.5L3,-2L4,-2L4,4Z',
+  asia: 'M-5.5,-0.5L0,-5L5.5,-0.5L3,-0.5L3,4L1,4L1,1.5L-1,1.5L-1,4L-3,4L-3,-0.5Z',
+  southeastAsia: 'M-0.6,4L0,-1.5L0.6,4ZM0,-1.5L-5,-0.5L-3,-3L0,-2.2L-2,-4.8L0.5,-2.6L3,-4.5L1.2,-2L5,-1.2Z',
+  middleEast: 'M2.5,-4.2A4.6,4.6,0,1,0,2.5,4.2A3.6,3.6,0,1,1,2.5,-4.2Z',
+  africa: 'M-5.5,-1.5L-2.5,-4L2.5,-4L5.5,-1.5L2,-0.5L-2,-0.5ZM-0.7,-0.5L0.7,-0.5L0.7,4.2L-0.7,4.2Z',
+  centralAmerica: 'M-5,4L-5,2L-3.3,2L-3.3,0L-1.6,0L-1.6,-2L-0.8,-2L-0.8,-4L0.8,-4L0.8,-2L1.6,-2L1.6,0L3.3,0L3.3,2L5,2L5,4Z',
+  southAmerica: 'M-5.5,4L-1.8,-3.5L0.3,0L2,-2L5.5,4Z',
+};
+
+export function RegionGlyph({ region, x, y, r = 7, sub }: { region: RegionId; x: number; y: number; r?: number; sub?: boolean }) {
+  return (
+    <g class="region-glyph" transform={`translate(${x},${y})`}>
+      <circle r={r} fill={REGION_COLOR[region]} stroke="#1f1a10" stroke-width="1" />
+      <path d={GLYPH[sub ? 'southeastAsia' : region]} fill="#fff8e6" transform={`scale(${r / 7})`} />
+    </g>
+  );
+}
 
 /** 底图配色：按游戏区域着色，每个国家在两三个相邻色阶里取一个，做出分面感 */
 const LAND: Record<string, string[]> = {
@@ -251,14 +275,27 @@ function RegionLabel({ region, view, onClick }: { region: RegionId; view: GameVi
     southAmerica: [120, 880],
   };
   const [x, y] = anchor[region];
-  const sc = scoreRegion(view as never, region, { formosan: view.flags.formosan });
+  const shuttle = !!view.flags.shuttle && (region === 'asia' || region === 'middleEast');
+  const sc = scoreRegion(view as never, region, { formosan: view.flags.formosan, shuttle });
+  const vpText = (net: number, win?: Side) =>
+    win ? `${win === 'US' ? '美' : '苏'}控制欧洲即胜` : net > 0 ? `美 +${net} VP` : net < 0 ? `苏 +${-net} VP` : '打平 0 VP';
+  const sea = region === 'asia' ? scoreSEA(view as never) : null;
   return (
     <g class="region-label" onClick={onClick}>
+      <RegionGlyph region={region} x={x - 16} y={y - 8} r={11} />
       <text x={x} y={y} class="rl-name">{REGION_ZH[region]}</text>
       <text x={x} y={y + 18} class="rl-score">
         <tspan class="us">美 {LV_ZH[sc.US.level]} {sc.points.US}</tspan>
         <tspan dx="10" class="ussr">苏 {LV_ZH[sc.USSR.level]} {sc.points.USSR}</tspan>
       </text>
+      <text x={x} y={y + 35} class={`rl-vp ${sc.autoWin ? sc.autoWin.toLowerCase() : sc.net > 0 ? 'us' : sc.net < 0 ? 'ussr' : 'even'}`}>
+        现在计分：{vpText(sc.net, sc.autoWin)}
+      </text>
+      {sea && (
+        <text x={x} y={y + 52} class={`rl-vp ${sea.net > 0 ? 'us' : sea.net < 0 ? 'ussr' : 'even'}`}>
+          东南亚计分：{vpText(sea.net)}
+        </text>
+      )}
     </g>
   );
 }
@@ -277,7 +314,10 @@ function CountryBox({ id, view, selectable, dimmed, flash, onPick, onHover }: { 
       onPointerEnter={() => onHover(id)}
       onPointerLeave={() => onHover(null)}
     >
-      <rect class="c-box" x={left} y={top} width={BW} height={BH} rx="3" />
+      <line x1={left + 7} y1={top + BH} x2={left + 7} y2={top + BH + 3} class="c-hook" />
+      <RegionGlyph region={c.region} x={left + 7} y={top + BH + 8} r={6} sub={c.sub.includes('southeastAsia')} />
+      <rect class="c-box" x={left} y={top} width={BW} height={BH} rx="3" style={{ stroke: ctl ? undefined : REGION_COLOR[c.region] }} />
+      <rect class="c-edge" x={left + 1} y={top + BH - 3} width={BW - 2} height="2.5" fill={REGION_COLOR[c.region]} />
       <rect class="c-band" x={left} y={top} width={BW} height="17" rx="3" />
       <text class="c-name" x={left + (BW - 13) / 2} y={top + 13.5} textLength={name.length >= 4 ? BW - 16 : undefined} lengthAdjust="spacingAndGlyphs">{name}</text>
       <rect class="c-stab" x={left + BW - 13} y={top + 2} width="11.5" height="13" rx="2" />

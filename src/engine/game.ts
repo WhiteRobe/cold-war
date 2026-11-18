@@ -471,6 +471,7 @@ export class Game {
         return ob - oa || (a === 'US' ? -1 : 1);
       });
     const record: NonNullable<GameState['headlines']>[number] = { turn: s.turn, US: picks.US, USSR: picks.USSR };
+    for (const sd of ['USSR', 'US'] as Side[]) if (picks[sd] !== undefined) this.recordPlay(sd, picks[sd]!, 'headline');
     s.headlines = [...(s.headlines ?? []), record];
     const cancelled = new Set<Side>();
     if (picks.US === 103 && picks.USSR !== undefined) {
@@ -598,6 +599,11 @@ export class Game {
     return this.effOps(side, card) >= SPACE[next].ops;
   }
 
+  private recordPlay(side: Side, card: number, how: 'event' | 'ops' | 'space' | 'headline') {
+    const s = this.s;
+    s.plays = [...(s.plays ?? []), { turn: s.turn, ar: s.ar, side, card, how }];
+  }
+
   /** 打出一张牌（行动轮或嵌套打出，如 Grain Sales） */
   *playCard(side: Side, card: number, o: { forcedOps?: boolean; nested?: boolean }): Gen {
     const s = this.s;
@@ -609,6 +615,7 @@ export class Game {
       if (this.canSpace(side, card)) opts.push(['space', '太空竞赛']);
       const mode = yield* this.askOption(side, '中国牌：选择打法', opts, { tag: 'mode', card });
       this.log(`${SIDE_ZH[side]}打出 ${cardName(card)}（${mode === 'space' ? '太空竞赛' : '行动点'}）`, { side, kind: 'card' });
+      this.recordPlay(side, card, mode === 'space' ? 'space' : 'ops');
       s.china = { holder: opp(side), faceUp: false };
       if (side === 'US' && s.flags.formosan) {
         s.flags.formosan = false;
@@ -624,6 +631,7 @@ export class Game {
     const def = CARDS[card];
     if (def.scoring) {
       this.log(`${SIDE_ZH[side]}打出 ${cardName(card)}`, { side, kind: 'card' });
+      this.recordPlay(side, card, 'event');
       const fired = yield* this.fireEvent(card, side, {});
       this.relocate(card, fired, side);
       s.playing = prevPlaying;
@@ -639,6 +647,7 @@ export class Game {
     if (this.canSpace(side, card) && !o.forcedOps) modes.push(['space', '太空竞赛']);
     const mode = yield* this.askOption(side, `${cardName(card)}：选择打法`, modes, { tag: 'mode', card, auto: false });
     this.log(`${SIDE_ZH[side]}打出 ${cardName(card)}（${mode === 'event' ? '事件' : mode === 'space' ? '太空竞赛' : '行动点'}）`, { side, kind: 'card' });
+    this.recordPlay(side, card, mode === 'event' ? 'event' : mode === 'space' ? 'space' : 'ops');
 
     if (side === 'USSR' && card === 103 && s.phase === 'action') this.vp('US', 1, '苏联打出叛逃者');
     if (side === 'US' && def.war && s.flags.flowerPower && mode !== 'space') this.vp('USSR', 2, '花之力');
