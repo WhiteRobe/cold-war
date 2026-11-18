@@ -959,13 +959,19 @@ export class Game {
     }
     const lv = { none: '无', presence: '存在', domination: '支配', control: '控制' };
     this.log(`${REGION_ZH[region]}计分：美国 ${lv[r.US.level]} ${r.points.US} 分，苏联 ${lv[r.USSR.level]} ${r.points.USSR} 分`, { kind: 'score' });
+    this.markScore(region, r.autoWin ?? (r.net > 0 ? 'US' : r.net < 0 ? 'USSR' : null));
     if (r.autoWin) throw new GameOver(r.autoWin, '控制欧洲');
     this.vpNet(r.net, `${REGION_ZH[region]}计分`);
+  }
+
+  private markScore(region: string, side: Side | null) {
+    this.s.lastScore = { ...this.s.lastScore, [region]: { side, at: this.s.log.length } };
   }
 
   scoreSEACard() {
     const r = scoreSEA(this.s);
     this.log(`东南亚计分：美国 ${r.points.US} 分，苏联 ${r.points.USSR} 分`, { kind: 'score' });
+    this.markScore('southeastAsia', r.net > 0 ? 'US' : r.net < 0 ? 'USSR' : null);
     this.vpNet(r.net, '东南亚计分');
   }
 
@@ -977,6 +983,7 @@ export class Game {
     let net = 0;
     for (const region of ['europe', 'asia', 'middleEast', 'africa', 'centralAmerica', 'southAmerica'] as RegionId[]) {
       const r = scoreRegion(s, region, { formosan: s.flags.formosan });
+      this.markScore(region, r.autoWin ?? (r.net > 0 ? 'US' : r.net < 0 ? 'USSR' : null));
       if (r.autoWin) throw new GameOver(r.autoWin, '终局计分时控制欧洲');
       this.log(`${REGION_ZH[region]}：美国 ${r.points.US}，苏联 ${r.points.USSR}`, { kind: 'score' });
       net += r.net;

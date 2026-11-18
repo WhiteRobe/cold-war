@@ -3,6 +3,7 @@ import { COUNTRIES, COUNTRY_LIST, REGIONS, REGION_ZH, type RegionId, type Side }
 import { controller, scoreRegion } from '../../engine/scoring';
 import type { GameView } from '../../engine/view';
 import { WORLD } from './worldmap.gen';
+import { Flag, FogLayer, FxLayer, Tank, useMapFx } from './MapFx';
 
 export const MAP_W = 1500;
 export const MAP_H = 975;
@@ -56,6 +57,7 @@ interface Props {
 
 export function MapView({ view, selectable, onPick, flash, onRegion }: Props) {
   const [hover, setHover] = useState<string | null>(null);
+  const { fx, fresh } = useMapFx(view);
   const [zoom, setZoom] = useState({ x: 0, y: 0, k: 1 });
   const drag = useRef<{ x: number; y: number; zx: number; zy: number; moved: boolean } | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -183,6 +185,7 @@ export function MapView({ view, selectable, onPick, flash, onRegion }: Props) {
         <rect x="0" y="0" width={MAP_W} height={MAP_H} class="ocean" />
         <MapGrid />
         {bg}
+        <FogLayer view={view} fresh={fresh} pos={pos} />
         <g class="edges">{lines}</g>
         {REGIONS.map((r) => (
           <RegionLabel key={r} region={r} view={view} onClick={() => onRegion?.(r)} />
@@ -202,6 +205,7 @@ export function MapView({ view, selectable, onPick, flash, onRegion }: Props) {
             onHover={setHover}
           />
         ))}
+        <FxLayer fx={fx} pos={pos} />
       </svg>
       <div class="map-zoom">
         <button type="button" onClick={() => setZoom((z) => clampZoom({ ...z, k: Math.min(4, z.k * 1.3) }))}>＋</button>
@@ -278,6 +282,8 @@ function CountryBox({ id, view, selectable, dimmed, flash, onPick, onHover }: { 
       <text class="c-name" x={left + (BW - 13) / 2} y={top + 13.5} textLength={name.length >= 4 ? BW - 16 : undefined} lengthAdjust="spacingAndGlyphs">{name}</text>
       <rect class="c-stab" x={left + BW - 13} y={top + 2} width="11.5" height="13" rx="2" />
       <text class="c-stab-t" x={left + BW - 7.25} y={top + 12.8}>{c.stability}</text>
+      {ctl && <Flag x={left + 3} y={top + 1} side={ctl} h={c.bg ? 20 : 16} />}
+      {ctl && c.bg && <Tank x={left + BW - 9} y={top - 1} side={ctl} s={0.55} />}
       <Inf x={left + 2} y={top + 19.5} n={us} side="US" ctl={ctl === 'US'} />
       <Inf x={left + BW - 26} y={top + 19.5} n={ussr} side="USSR" ctl={ctl === 'USSR'} />
     </g>

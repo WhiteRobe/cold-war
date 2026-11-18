@@ -103,6 +103,8 @@ export interface GameState {
   log: LogEntry[];
   /** 正在打出 / 结算的牌（界面用） */
   playing?: { card: number; side: Side };
+  /** 各区域最近一次计分的结果（界面显示雾气）：at 为当时的日志长度 */
+  lastScore?: Record<string, { side: Side | null; at: number }>;
 }
 
 export interface Flags {
