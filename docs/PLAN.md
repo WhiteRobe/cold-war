@@ -338,7 +338,7 @@ cold-war/
 ---
 
 ## 13. 参考
-- 规则：`ref/rules-20th-anniversary.txt`、`ref/rules-deluxe.txt`
+- 规则：GMT 官方规则书 PDF（20 周年版与 Deluxe living rules，链接见 research-rules.md；全文不随仓库分发）
 - 数据：`ref/data/*.json`（tomjefferys/twilight-struggle-rs，MIT）
 - 裁定与中文：`ref/deepstruggle/`（mihaild/DeepStruggle，MIT）
 - 架构模板：同作者的其他 Cloudflare 在线桌游项目

@@ -11,3 +11,4 @@ wrangler.local.jsonc
 worker-configuration.d.ts
 .claude/
 dist-art/
+docs/ref/private/
