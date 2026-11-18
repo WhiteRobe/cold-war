@@ -619,3 +619,11 @@ h1, h2, h3, h4 { font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif; let
 .log-card:hover { color: var(--gold); }
 .log-card.side-us { text-decoration-color: var(--us2); }
 .log-card.side-ussr { text-decoration-color: var(--ussr2); }
+
+.sub-badge { pointer-events: none; }
+.sub-badge circle { stroke: #1f1a10; stroke-width: 1; }
+.sub-badge.w circle { fill: #2f5d8a; }
+.sub-badge.e circle { fill: #b23a2e; }
+.sb-glyph { fill: #f5d76e; }
+.sub-badge.w .sb-glyph { fill: #fff; }
+.sb-line { stroke: #f5d76e; stroke-width: 1.3; stroke-linecap: round; }

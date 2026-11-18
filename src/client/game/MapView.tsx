@@ -42,14 +42,27 @@ function STAR_PTS(cx: number, cy: number, r: number) {
 }
 
 /** 方框名称条：按区域着色（比标识色深一些，保证白字清楚） */
-/** 欧洲细分：西欧石板灰、东欧赭褐；奥地利、芬兰两者都是，名称条一半一半 */
-const WE_COLOR = '#5b6177';
-const EE_COLOR = '#7a5a3e';
 function bandFill(c: { region: RegionId; sub: string[] }) {
   if (c.sub.includes('southeastAsia')) return 'url(#bandSEA)';
-  if (c.region !== 'europe') return BAND_COLOR[c.region];
-  const w = c.sub.includes('westernEurope'), e = c.sub.includes('easternEurope');
-  return w && e ? 'url(#bandWE)' : e ? EE_COLOR : WE_COLOR;
+  return BAND_COLOR[c.region];
+}
+
+/** 西欧 / 东欧标记：框左侧星章、右侧镰刀锤子 */
+function SubBadge({ x, y, kind }: { x: number; y: number; kind: 'w' | 'e' }) {
+  return (
+    <g class={`sub-badge ${kind}`} transform={`translate(${x},${y})`}>
+      <circle r="6" />
+      {kind === 'w' ? (
+        <polygon points={STAR_PTS(0, 0.3, 4.2)} class="sb-glyph" />
+      ) : (
+        <>
+          <path d="M-2.4,-3 A3.6,3.6 0 1 0 3,1.4 L1.9,0.9 A2.4,2.4 0 1 1 -1.5,-2.1Z" class="sb-glyph" />
+          <line x1="-2.6" y1="2.8" x2="1.4" y2="-1.2" class="sb-line" />
+          <line x1="0.2" y1="-2.4" x2="2.6" y2="0" class="sb-line" />
+        </>
+      )}
+    </g>
+  );
 }
 
 const BAND_COLOR: Record<RegionId, string> = {
@@ -300,10 +313,6 @@ export function MapView({ view, selectable, onPick, flash, onRegion, focus }: Pr
             <rect width="8" height="8" fill="#9a6f16" />
             <rect width="3.5" height="8" fill="#6e4f0d" />
           </pattern>
-          <linearGradient id="bandWE" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0.5" stop-color={WE_COLOR} />
-            <stop offset="0.5" stop-color={EE_COLOR} />
-          </linearGradient>
         </defs>
         <rect x="0" y="0" width={MAP_W} height={MAP_H} class="ocean" />
         <MapGrid />
@@ -420,12 +429,10 @@ function RegionLabel({ region, view, onClick }: { region: RegionId; view: GameVi
       </text>
       {region === 'europe' && (
         <g class="sub-legend">
-          <rect x={x} y={y + 45} width="12" height="9" rx="2" fill={WE_COLOR} />
+          <SubBadge x={x + 6} y={y + 50} kind="w" />
           <text x={x + 16} y={y + 54}>西欧</text>
-          <rect x={x + 52} y={y + 45} width="12" height="9" rx="2" fill={EE_COLOR} />
+          <SubBadge x={x + 58} y={y + 50} kind="e" />
           <text x={x + 68} y={y + 54}>东欧</text>
-          <rect x={x + 104} y={y + 45} width="12" height="9" rx="2" fill="url(#bandWE)" />
-          <text x={x + 120} y={y + 54}>两者</text>
         </g>
       )}
       {sea && (
@@ -461,6 +468,8 @@ function CountryBox({ id, view, selectable, dimmed, flash, adjHl, onPick, onHove
     >
       <rect class="c-box" x={left} y={top} width={BW} height={BH} rx="3" />
       <rect class="c-band" x={left} y={top} width={BW} height="17" rx="3" fill={bandFill(c)} />
+      {c.sub.includes('westernEurope') && <SubBadge x={left} y={top + BH - 10} kind="w" />}
+      {c.sub.includes('easternEurope') && <SubBadge x={left + BW} y={top + BH - 10} kind="e" />}
       <text class="c-name" x={left + (BW - 13) / 2} y={top + 13.5} textLength={name.length >= 4 ? BW - 16 : undefined} lengthAdjust="spacingAndGlyphs">{name}</text>
       {c.bg ? (
         <>
