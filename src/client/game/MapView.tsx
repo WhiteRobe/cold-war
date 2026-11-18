@@ -31,7 +31,7 @@ const rx = (x: number) => remapX(x / S) * S;
 
 /** 区域标识色与图标：方框边缘色条 + 挂件 */
 export const REGION_COLOR: Record<RegionId, string> = {
-  europe: '#6d7490', asia: '#c9962a', middleEast: '#b24d93', africa: '#5f8f3a', centralAmerica: '#2f9c95', southAmerica: '#7072c4',
+  europe: '#6d7490', asia: '#c9962a', middleEast: '#5f8f3a', africa: '#b24d93', centralAmerica: '#2f9c95', southAmerica: '#7072c4',
 };
 
 /** 战场国稳定度星章 */
@@ -70,7 +70,7 @@ function SubBadge({ x, y, kind }: { x: number; y: number; kind: 'w' | 'e' }) {
 }
 
 const BAND_COLOR: Record<RegionId, string> = {
-  europe: '#5b6177', asia: '#9a6f16', middleEast: '#8b3a72', africa: '#4a7429', centralAmerica: '#22796f', southAmerica: '#55569f',
+  europe: '#5b6177', asia: '#9a6f16', middleEast: '#4a7429', africa: '#8b3a72', centralAmerica: '#22796f', southAmerica: '#55569f',
 };
 
 const GLYPH: Record<string, string> = {
@@ -395,10 +395,46 @@ function MapGrid() {
 
 function Superpower({ id }: { id: 'usa' | 'ussr' }) {
   const [x, y] = pos(id);
+  const hex = `${x - 64},${y - 26} ${x + 64},${y - 26} ${x + 74},${y} ${x + 64},${y + 26} ${x - 64},${y + 26} ${x - 74},${y}`;
+  if (id === 'usa') {
+    const stripes = Array.from({ length: 7 }, (_, i) => (
+      <rect key={i} x={x - 74} y={y - 26 + (i * 52) / 7} width="148" height={52 / 7 + 0.3} fill={i % 2 ? '#f3ecdb' : '#b22234'} />
+    ));
+    const stars = [];
+    for (let r = 0; r < 3; r++) for (let c = 0; c < 4; c++) stars.push(<polygon key={`${r}${c}`} points={STAR_PTS(x - 64 + c * 9 + (r % 2) * 4.5, y - 19 + r * 8.5, 3.2)} fill="#fff" />);
+    return (
+      <g class="superpower sp-usa">
+        <defs>
+          <clipPath id="sp-usa-clip"><polygon points={hex} /></clipPath>
+        </defs>
+        <g clip-path="url(#sp-usa-clip)">
+          {stripes}
+          <rect x={x - 74} y={y - 26} width="44" height="30" fill="#2f3e6e" />
+          {stars}
+          <rect x={x - 26} y={y - 13} width="92" height="26" rx="4" fill="#1f2f5c" opacity="0.92" />
+        </g>
+        <polygon points={hex} class="sp-frame" />
+        <text x={x + 20} y={y + 7.5}>美 国</text>
+      </g>
+    );
+  }
   return (
-    <g class={`superpower sp-${id}`}>
-      <polygon points={`${x - 52},${y - 22} ${x + 52},${y - 22} ${x + 60},${y} ${x + 52},${y + 22} ${x - 52},${y + 22} ${x - 60},${y}`} />
-      <text x={x} y={y + 7}>{id === 'usa' ? '美 国' : '苏 联'}</text>
+    <g class="superpower sp-ussr">
+      {/* 克里姆林宫塔楼与红星 */}
+      <polygon points={`${x - 9},${y - 26} ${x - 9},${y - 40} ${x - 5},${y - 44} ${x},${y - 58} ${x + 5},${y - 44} ${x + 9},${y - 40} ${x + 9},${y - 26}`} fill="#8f2c23" stroke="#5c1a14" stroke-width="1.2" />
+      <polygon points={`${x - 4},${y - 26} ${x - 4},${y - 34} ${x + 4},${y - 34} ${x + 4},${y - 26}`} fill="#f5d76e" opacity="0.7" />
+      <polygon points={STAR_PTS(x, y - 63, 6.5)} fill="#ff3b30" stroke="#f5d76e" stroke-width="1.2" />
+      <polygon points={hex} fill="#b8231c" />
+      <polygon points={`${x - 74},${y} ${x - 64},${y - 26} ${x + 64},${y - 26} ${x + 74},${y}`} fill="#c9302a" />
+      <polygon points={hex} class="sp-frame" />
+      {/* 镰刀锤子与金星 */}
+      <g transform={`translate(${x - 46},${y + 1}) scale(1.6)`} class="sp-emblem">
+        <polygon points={STAR_PTS(0, -10, 3.4)} fill="none" stroke="#f5d76e" stroke-width="0.9" />
+        <path d="M-4.6,-4.4 A6.4,6.4 0 1 0 5.4,2.6 L3.8,1.8 A4.6,4.6 0 1 1 -2.8,-3.2Z" fill="#f5d76e" />
+        <line x1="-5" y1="5.6" x2="2.6" y2="-2" stroke="#f5d76e" stroke-width="2" stroke-linecap="round" />
+        <line x1="0.2" y1="-4.4" x2="4.8" y2="0.2" stroke="#f5d76e" stroke-width="2.2" stroke-linecap="round" />
+      </g>
+      <text x={x + 14} y={y + 7.5}>苏 联</text>
     </g>
   );
 }

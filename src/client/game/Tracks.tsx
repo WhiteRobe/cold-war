@@ -26,22 +26,23 @@ export function Tracks({ view, names, onPile }: { view: GameView; names: Record<
             <thead><tr><th>时期</th><th>回合</th><th>手牌补到</th><th>每回合行动轮</th><th>牌库变化</th></tr></thead>
             <tbody>
               <tr class={view.turn <= 3 ? 'here' : ''}><td>冷战早期</td><td>1–3</td><td>8 张</td><td>6 轮</td><td>只有早期牌</td></tr>
-              <tr class={view.turn >= 4 && view.turn <= 7 ? 'here' : ''}><td>冷战中期</td><td>4–7</td><td>9 张</td><td>7 轮</td><td>第 3 回合结束后洗入中期牌</td></tr>
-              <tr class={view.turn >= 8 ? 'here' : ''}><td>冷战后期</td><td>8–10</td><td>9 张</td><td>7 轮</td><td>第 7 回合结束后洗入后期牌</td></tr>
+              <tr class={view.turn >= 4 && view.turn <= 7 ? 'here' : ''}><td>冷战中期</td><td>4–7</td><td>9 张</td><td>7 轮</td><td>洗入中期牌</td></tr>
+              <tr class={view.turn >= 8 ? 'here' : ''}><td>冷战后期</td><td>8–10</td><td>9 张</td><td>7 轮</td><td>洗入后期牌</td></tr>
             </tbody>
           </table>
           <div class="pop-note">
-            每回合顺序：DEFCON +1 → 补牌 → 头条 → 行动轮（苏联先手，双方交替）→ 军事行动检查 → 手里有计分卡判负 → 中国牌翻正。
-            太空竞赛到达“空间站”、或美国打出北海油田的回合，可多一个第 8 行动轮。第 10 回合结束后进行终局计分。
+            每回合：DEFCON +1 → 补牌 → 头条 → 行动轮（苏联先）→ 查军事行动 → 手里留着计分卡直接判负 → 中国牌翻正。
+            太空竞赛到第 8 格或打出北海油田，可多 1 轮。第 10 回合后终局计分。
           </div>
         </div>
       </div>
       <Defcon d={view.defcon} />
       <Vp vp={view.vp} view={view} />
-      <div class="trk trk-mil" data-tour="milops">
+      <div class="trk trk-mil has-pop" data-tour="milops">
         <div class="trk-label">军事行动（需 {view.defcon}）</div>
         <MilRow side="US" n={view.milops.US} need={view.defcon} />
         <MilRow side="USSR" n={view.milops.USSR} need={view.defcon} />
+        <MilPop view={view} />
       </div>
       <div class="trk trk-space has-pop" data-tour="space">
         <div class="trk-label">太空竞赛</div>
@@ -50,9 +51,21 @@ export function Tracks({ view, names, onPile }: { view: GameView; names: Record<
         <SpacePop view={view} />
       </div>
       <div class="trk trk-cards">
-        <div data-tour="china" class={`china ${view.china.holder.toLowerCase()}${view.china.faceUp ? '' : ' down'}`} title="中国牌：打出后背面朝上交给对手">
+        <div data-tour="china" class={`china has-pop ${view.china.holder.toLowerCase()}${view.china.faceUp ? '' : ' down'}`}>
           中国牌 · {view.china.holder === 'US' ? '美' : '苏'}
           {view.china.faceUp ? '' : '（背面）'}
+          <div class="trk-pop china-pop">
+            <div class="pop-title">中国牌（#6）</div>
+            <div class="pop-note">
+              现在在<b>{view.china.holder === 'US' ? '美国' : '苏联'}</b>手中，{view.china.faceUp ? '正面朝上，可以打出' : '背面朝上，本回合不能打出，回合结束翻回正面'}。
+            </div>
+            <ul class="pop-list">
+              <li>4 行动点，全用在亚洲再 +1。</li>
+              <li>打完翻面交给对手，本回合对手不能用。</li>
+              <li>不能当头条，不占手牌，不会被弃；能拿去太空竞赛。</li>
+              <li>终局时谁拿着谁 +1 VP。</li>
+            </ul>
+          </div>
         </div>
         <div class="piles">
           <button type="button" onClick={() => onPile('deck')}>牌库 {view.deckCount}</button>
@@ -68,9 +81,54 @@ export function Tracks({ view, names, onPile }: { view: GameView; names: Record<
   );
 }
 
-function Defcon({ d }: { d: number }) {
+function MilPop({ view }: { view: GameView }) {
+  const need = view.defcon;
+  const short = (s: 'US' | 'USSR') => Math.max(0, need - view.milops[s]);
+  const su = short('US'), ss = short('USSR');
+  const net = ss - su;
   return (
-    <div class="trk trk-defcon" data-tour="defcon">
+    <div class="trk-pop mil-pop">
+      <div class="pop-title">军事行动</div>
+      <ul class="pop-list">
+        <li>回合结束时要攒够 <b>DEFCON 值</b>（现在 {need}）点，差几点对手就 +几 VP。</li>
+        <li>怎么攒：用牌政变（按行动点算）、战争类事件、奇爱博士。</li>
+        <li>不算：调整阵营、事件送的免费政变。</li>
+        <li>每回合清零。</li>
+      </ul>
+      <div class="pop-note">
+        美 {view.milops.US}/{need}{su ? `，差 ${su}` : ' ✓'}；苏 {view.milops.USSR}/{need}{ss ? `，差 ${ss}` : ' ✓'}。
+        现在结算：{net > 0 ? `美国 +${net} VP` : net < 0 ? `苏联 +${-net} VP` : '谁都不扣'}。
+      </div>
+    </div>
+  );
+}
+
+function Defcon({ d }: { d: number }) {
+  const rows: [number, string][] = [
+    [5, '没有限制'],
+    [4, '欧洲禁止政变和调整阵营'],
+    [3, '再加亚洲'],
+    [2, '再加中东'],
+    [1, '核战争：谁的行动轮谁输'],
+  ];
+  return (
+    <div class="trk trk-defcon has-pop" data-tour="defcon">
+      <div class="trk-pop defcon-pop">
+        <div class="pop-title">DEFCON（核战争警戒等级）</div>
+        <table class="pop-table">
+          <tbody>
+            {rows.map(([n, t]) => (
+              <tr key={n} class={n === d ? 'here' : ''}><td><span class={`defcon-cell on d${n}`}>{n}</span></td><td>{t}</td></tr>
+            ))}
+          </tbody>
+        </table>
+        <ul class="pop-list">
+          <li>每回合开始 +1。</li>
+          <li>在战场国政变，不管成败 −1。</li>
+          <li>有些事件会升降它。</li>
+          <li>掉到 1 时<b>正在行动的一方</b>输，哪怕是对手的事件害的。</li>
+        </ul>
+      </div>
       <div class="trk-label">DEFCON</div>
       <div class="defcon-row">
         {[5, 4, 3, 2, 1].map((n) => (
@@ -108,7 +166,7 @@ function Vp({ vp, view }: { vp: number; view: GameView }) {
         <table class="pop-table">
           <thead><tr><th>项目</th><th class="us">美国</th><th class="ussr">苏联</th><th>净得</th></tr></thead>
           <tbody>
-            <tr><td>当前胜利点</td><td colSpan={2} class="dim">（已含太空竞赛、事件、计分卡等）</td><td>{leadShort(vp)}</td></tr>
+            <tr><td>当前胜利点</td><td colSpan={2} class="dim">（已含之前所有得分）</td><td>{leadShort(vp)}</td></tr>
             {pj.regions.map((r) => (
               <tr key={r.region}>
                 <td>{REGION_ZH[r.region]}</td>
@@ -121,7 +179,7 @@ function Vp({ vp, view }: { vp: number; view: GameView }) {
             <tr class="total"><td>合计</td><td colSpan={2} /><td>{pj.autoWin ? '欧洲控制获胜' : leadShort(pj.total)}</td></tr>
           </tbody>
         </table>
-        <div class="pop-note">终局计分时东南亚并入亚洲计算；达到 20 VP 不提前获胜，只有控制欧洲直接获胜。穿梭外交不作用于终局计分。</div>
+        <div class="pop-note">东南亚并入亚洲算。终局时控制欧洲直接获胜。</div>
       </div>
     </div>
   );
@@ -147,9 +205,9 @@ function SpacePop({ view }: { view: GameView }) {
     <div class="trk-pop space-pop">
       <div class="pop-title">太空竞赛规则</div>
       <div class="pop-note">
-        用一张行动点 ≥ 下一格要求的牌（中国牌也行，计分卡不行）掷一枚骰子，点数 ≤ 该格数字就前进一格。每回合限 1 次（有“动物进入太空”特权 2 次）。牌上的事件不发动，常用来甩掉对手的坏事件。
+        弃一张行动点够的牌掷骰，点数够小就前进一格。每回合 1 次。牌上事件不发动，适合甩掉对手的坏牌。
         <br />
-        VP：先到该格的一方拿前一个数，后到的拿后一个数。特权只归领先的一方，对手到达同一格后失效。
+        先到拿高分，后到拿低分；特权归独自领先的一方。
       </div>
       <table class="pop-table">
         <thead><tr><th>格</th><th>名称</th><th>行动点</th><th>掷骰</th><th>VP 先/后</th><th>特权</th><th>位置</th></tr></thead>
@@ -173,7 +231,7 @@ function SpacePop({ view }: { view: GameView }) {
         </tbody>
       </table>
       <div class="pop-note">
-        本回合已尝试：美国 {view.spaceAttempts.US} 次，苏联 {view.spaceAttempts.USSR} 次。
+        本回合已用：美 {view.spaceAttempts.US} 次，苏 {view.spaceAttempts.USSR} 次。
       </div>
     </div>
   );

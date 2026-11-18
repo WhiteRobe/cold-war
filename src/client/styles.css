@@ -149,7 +149,7 @@ h1, h2, h3, h4 { font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif; let
 .board-side { grid-area: side; background: var(--bg2); border-left: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; }
 .board-hand { grid-area: hand; background: var(--bg2); border-top: 1px solid var(--line); padding: 6px 8px; display: flex; gap: 14px; min-width: 0; }
 .hand-label { font-size: 12px; color: var(--text2); margin-bottom: 4px; display: flex; gap: 8px; align-items: center; }
-.hand-cards { display: flex; gap: 6px; overflow-x: auto; padding: 4px 2px 6px; }
+.hand-cards { display: flex; gap: 6px; overflow-x: auto; padding: 14px 4px 6px; }
 .hand-main { min-width: 0; flex: 1; }
 .known-opp { min-width: 0; max-width: 40%; }
 .hand-cards.small .mini-card { width: 92px; }
@@ -214,10 +214,10 @@ h1, h2, h3, h4 { font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif; let
 .edge.sp-usa { stroke: var(--us); stroke-width: 2.4; stroke-dasharray: none; }
 .edge.sp-ussr { stroke: var(--ussr); stroke-width: 2.4; stroke-dasharray: none; }
 .edge-label { font-size: 14px; fill: var(--us3); font-weight: 700; }
-.superpower polygon { stroke-width: 2.5; }
-.sp-usa polygon { fill: var(--us); stroke: var(--us3); }
-.sp-ussr polygon { fill: var(--ussr); stroke: var(--ussr3); }
-.superpower text { fill: #fff; font-size: 20px; font-weight: 800; text-anchor: middle; letter-spacing: 0.2em; }
+.sp-frame { fill: none; stroke: #d9b64a; stroke-width: 3; }
+.superpower { filter: drop-shadow(0 4px 6px #0007); }
+.superpower text { fill: #fff; font-size: 21px; font-weight: 900; text-anchor: middle; letter-spacing: 0.25em; font-family: 'Songti SC', 'STSong', serif; paint-order: stroke; stroke: #0006; stroke-width: 2px; }
+.sp-ussr text { fill: #ffe9a8; }
 .region-label { cursor: pointer; }
 .rl-name { font-size: 24px; font-weight: 800; fill: #2b2620; paint-order: stroke; stroke: #e9dfc7cc; stroke-width: 4px; font-family: 'Songti SC', 'STSong', serif; letter-spacing: 0.15em; }
 .rl-score { font-size: 13px; font-weight: 700; paint-order: stroke; stroke: #e9dfc7cc; stroke-width: 3px; }
@@ -738,3 +738,34 @@ h1, h2, h3, h4 { font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif; let
 }
 .mv-names { margin-top: 8px; font-size: 13px; color: var(--gold); font-weight: 700; }
 .final-table { margin: 6px 0 12px; } .final-table td, .final-table th { text-align: center; }
+.pop-list { margin: 4px 0; padding-left: 18px; font-size: 12.5px; line-height: 1.65; color: var(--text); }
+.pop-list b, .pop-note b { color: var(--gold); }
+.defcon-pop { min-width: 420px; }
+.defcon-pop .defcon-cell { display: inline-grid; animation: none; }
+.mil-pop { min-width: 400px; }
+.china.has-pop { position: relative; cursor: help; }
+.china-pop { min-width: 360px; left: auto; right: 0; color: var(--text); font-weight: 400; }
+
+/* ---------------- 手牌悬浮抽出 ---------------- */
+.hand-slot { flex: none; transition: transform 0.18s cubic-bezier(.2,.8,.2,1); }
+.hand-slot .mini-card:hover { transform: none; box-shadow: none; }
+.hand-slot.lifted { transform: translateY(-10px) scale(1.04); }
+.hand-slot.lifted .mini-card { box-shadow: 0 0 0 2px var(--gold), 0 10px 20px #000a; }
+.lift-card {
+  position: fixed; z-index: 45; transform: translateX(-50%); transform-origin: 50% 100%; pointer-events: none;
+  display: flex; flex-direction: column; gap: 6px; align-items: center;
+  animation: liftOut 0.22s cubic-bezier(.2,.9,.25,1.15);
+  filter: drop-shadow(0 18px 30px #000c);
+}
+.lift-card .card-face { width: 280px; }
+.lift-card .score-preview { width: 280px; }
+@keyframes liftOut {
+  from { opacity: 0; transform: translateX(-50%) translateY(60px) scale(0.42) rotate(-3deg); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0) scale(1) rotate(0); }
+}
+@media (max-width: 1000px), (max-height: 620px) {
+  .lift-card { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .lift-card { animation: none; } }
+.region-panel.in-modal { padding: 0; margin: 10px 0; }
+.region-panel.in-modal .rp-card { margin: 0; }

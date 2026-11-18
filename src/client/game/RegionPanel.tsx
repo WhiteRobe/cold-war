@@ -7,13 +7,13 @@ import { leadText, projectFinal } from './projection';
 const LV_ZH = { none: '—', presence: '存在', domination: '支配', control: '控制' };
 const SCORING_CARD: Record<string, number> = { asia: 1, europe: 2, middleEast: 3, centralAmerica: 37, southeastAsia: 38, africa: 79, southAmerica: 81 };
 const DOT: Record<string, string> = {
-  europe: '#6d7490', asia: '#c9962a', middleEast: '#b24d93', africa: '#5f8f3a', centralAmerica: '#2f9c95', southAmerica: '#7072c4', southeastAsia: '#c9962a',
+  europe: '#6d7490', asia: '#c9962a', middleEast: '#5f8f3a', africa: '#b24d93', centralAmerica: '#2f9c95', southAmerica: '#7072c4', southeastAsia: '#c9962a',
 };
 
 function cardWhere(v: GameView, id: number): string {
   const me = v.me;
   if (me && v.hands[me].includes(id)) return '在你手中';
-  if (v.discard.includes(id)) return '在弃牌堆（洗牌后会回来）';
+  if (v.discard.includes(id)) return '在弃牌堆（洗牌后回来）';
   if (v.removed.includes(id)) return '已移出游戏';
   const opp: Side = me === 'US' ? 'USSR' : 'US';
   if (me && v.hands[opp].includes(id)) return '在对手手中（已知）';
@@ -35,7 +35,7 @@ function Bar({ us, ussr, total }: { us: number; ussr: number; total: number }) {
   );
 }
 
-function RegionCard({ v, region }: { v: GameView; region: RegionId | 'southeastAsia' }) {
+export function RegionCard({ v, region }: { v: GameView; region: RegionId | 'southeastAsia' }) {
   const list = countriesIn(region);
   const ctl = (id: string) => controller(v as never, id);
   const us = list.filter((c) => ctl(c.id) === 'US').length;
@@ -109,7 +109,7 @@ export function RegionPanel({ view }: { view: GameView }) {
         <RegionCard key={r} v={view} region={r} />
       ))}
       <RegionCard v={view} region="southeastAsia" />
-      <div class="pop-note">“现在计分”是此刻打出该区域计分卡的结果；“终局”是第 10 回合终局计分时该区域的得分（不计穿梭外交）。</div>
+      <div class="pop-note">现在计分 = 此刻打出计分卡的结果；终局 = 第 10 回合结束时的得分。</div>
     </div>
   );
 }

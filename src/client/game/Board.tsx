@@ -10,7 +10,7 @@ import { CardFace, MiniCard } from './CardFace';
 import { cardPreview } from './preview';
 import { BeatOverlay, useEventPacing } from './Dice';
 import { VictoryScene } from './Victory';
-import { RegionPanel } from './RegionPanel';
+import { RegionCard, RegionPanel } from './RegionPanel';
 import { SPACE } from '../../engine/space';
 import { MapView } from './MapView';
 import type { GameSession } from './session';
@@ -42,6 +42,21 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
   const [overSeen, setOverSeen] = useState(false);
   const [handOpen, setHandOpen] = useState(false);
   const [confirm, setConfirm] = useState<{ msg: string; v: Choice } | null>(null);
+  // 手牌悬浮：牌原地抽出放大，显示完整卡面和预估
+  const [lift, setLift] = useState<{ id: number; x: number; top: number } | null>(null);
+  const liftTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const liftCard = (id: number, el: HTMLElement) => {
+    clearTimeout(liftTimer.current);
+    const r = el.getBoundingClientRect();
+    const show = () => setLift({ id, x: r.left + r.width / 2, top: r.top });
+    // 已经有展开的牌时立即切换；第一次稍等一下，扫过时不闪
+    if (lift) show();
+    else liftTimer.current = setTimeout(show, 110);
+  };
+  const dropCard = () => {
+    clearTimeout(liftTimer.current);
+    liftTimer.current = setTimeout(() => setLift(null), 60);
+  };
 
   if (!view) return <div class="hero"><div class="empty-hint">正在载入对局…</div></div>;
   const me = view.me;
@@ -106,14 +121,15 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
             const isChina = c === CHINA_CARD;
             const active = handOpts.has(c);
             return (
-              <MiniCard
-                key={c}
-                id={c}
-                active={active}
-                dim={!!handChoice && !active}
-                faceDown={isChina && !view.china.faceUp}
-                onClick={() => setZoomCard(c)}
-              />
+              <div key={c} class={`hand-slot${lift?.id === c ? ' lifted' : ''}`} onPointerEnter={(e) => liftCard(c, e.currentTarget as HTMLElement)} onPointerLeave={dropCard}>
+                <MiniCard
+                  id={c}
+                  active={active}
+                  dim={!!handChoice && !active}
+                  faceDown={isChina && !view.china.faceUp}
+                  onClick={() => { dropCard(); setZoomCard(c); }}
+                />
+              </div>
             );
           })}
           {!myHand.length && <div class="empty-hint">没有手牌</div>}
@@ -123,12 +139,22 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
           <div class="known-opp">
             <div class="hand-label">已知对手手牌</div>
             <div class="hand-cards small">
-              {known.map((c) => <MiniCard key={c} id={c} onClick={() => setZoomCard(c)} />)}
+              {known.map((c) => (
+                <div key={c} class={`hand-slot${lift?.id === c ? ' lifted' : ''}`} onPointerEnter={(e) => liftCard(c, e.currentTarget as HTMLElement)} onPointerLeave={dropCard}>
+                  <MiniCard id={c} onClick={() => { dropCard(); setZoomCard(c); }} />
+                </div>
+              ))}
             </div>
           </div>
         )}
       </footer>
 
+      {lift && zoomCard === null && (
+        <div class="lift-card" key={lift.id} style={{ left: `${Math.max(170, Math.min(window.innerWidth - 170, lift.x))}px`, bottom: `${window.innerHeight - lift.top + 6}px` }}>
+          <CardFace id={lift.id} faceDown={lift.id === CHINA_CARD && !view.china.faceUp} />
+          <CardPreview view={view} card={lift.id} />
+        </div>
+      )}
       <Coach view={view} force={tutorial} />
       {confirm && (
         <div class="modal" onClick={() => setConfirm(null)}>
@@ -502,17 +528,18 @@ function RegionModal({ view, region, onClose }: { view: GameView; region: Region
             </tr>
             <tr><td>控制国家</td><td class="rule">用于判定等级</td><td>{sc.US.countries}</td><td>{sc.USSR.countries}</td></tr>
             <tr><td>控制战场国</td><td class="rule">每国 +1 VP</td><td>{sc.US.bgs}</td><td>{sc.USSR.bgs}</td></tr>
-            <tr><td>邻接敌方本土</td><td class="rule">{adjRule ? '每国 +1 VP' : '本区域没有'}</td><td>{sc.US.adjEnemy}</td><td>{sc.USSR.adjEnemy}</td></tr>
+            {adjRule && <tr><td>邻接敌方本土</td><td class="rule">每国 +1 VP</td><td>{sc.US.adjEnemy}</td><td>{sc.USSR.adjEnemy}</td></tr>}
             <tr class="total"><td>合计</td><td /><td>{sc.points.US}</td><td>{sc.points.USSR}</td></tr>
           </tbody>
         </table>
         <p class="sp-big">{sc.autoWin ? `${SIDE_ZH[sc.autoWin]}控制欧洲，打出欧洲计分即获胜！` : sc.net === 0 ? '现在打出计分卡：双方打平，不加分' : `现在打出计分卡：${sc.net > 0 ? '美国' : '苏联'} +${Math.abs(sc.net)} VP（双方得分相减）`}</p>
-        {sc.shuttleApplied && <p class="note">已计入穿梭外交：苏联少算一个战场国。</p>}
+        {sc.shuttleApplied && <p class="note">穿梭外交生效：苏联少算一个战场国。</p>}
+        <div class="region-panel in-modal"><RegionCard v={view} region={region} /></div>
         <div class="lv-help">
-          <div><b>存在</b>：在该区域至少控制 1 个国家。</div>
-          <div><b>支配</b>：控制的国家总数和战场国数都比对手多，并且至少控制 1 个非战场国。</div>
-          <div><b>控制</b>：控制的国家总数比对手多，并且控制该区域<b>全部</b>战场国。</div>
-          <div>三档只取最高的一档。一个国家“被控制”= 己方影响力 ≥ 稳定度，且比对手多出至少稳定度。</div>
+          <div><b>存在</b>：控制至少 1 国。</div>
+          <div><b>支配</b>：控制国数、战场国数都比对手多，且至少有 1 个非战场国。</div>
+          <div><b>控制</b>：控制国数比对手多，且拿下全部战场国。</div>
+          <div>只算最高一档。“控制”一国 = 你的影响力 ≥ 稳定度，且比对手多出至少一个稳定度。</div>
         </div>
         <button type="button" class="btn" onClick={onClose}>关闭</button>
       </div>
