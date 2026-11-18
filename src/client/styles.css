@@ -230,12 +230,12 @@ h1, h2, h3, h4 { font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif; let
 .region-label:hover .rl-name { fill: #000; }
 
 .country { cursor: default; }
-.c-box { fill: #f3ecdb; stroke: #3a352e; stroke-width: 1.8; }
+.c-box { fill: #f3ecdb; stroke: #3a352e; stroke-width: 1.4; }
 .c-hook { stroke: #3a352e; stroke-width: 1.2; }
 .region-glyph { pointer-events: none; }
-.c-band { fill: #6e6553; }
-.country.bg .c-band { fill: #5b3a5e; }
+.c-band { stroke: none; }
 .c-name { fill: #fff; font-size: 13px; font-weight: 700; text-anchor: middle; }
+.country.bg .c-name { fill: #ffd76a; }
 .c-stab { fill: #f3ecdb; }
 .c-stab-t { fill: #2b2b2b; font-size: 11px; font-weight: 800; text-anchor: middle; }
 .country.bg .c-stab { fill: #f5d76e; }
@@ -249,8 +249,6 @@ h1, h2, h3, h4 { font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif; let
 .inf-us.ctl rect { fill: var(--us); }
 .inf-ussr.ctl rect { fill: var(--ussr); }
 .inf.ctl text { fill: #fff; }
-.country.ctl-us .c-box { stroke: var(--us); stroke-width: 2.6; }
-.country.ctl-ussr .c-box { stroke: var(--ussr); stroke-width: 2.6; }
 .country.selectable { cursor: pointer; }
 .country.selectable .c-box { stroke: var(--gold); stroke-width: 3.5; animation: glow 1.2s infinite; }
 .country.selectable:hover .c-box { fill: #fff6d8; }

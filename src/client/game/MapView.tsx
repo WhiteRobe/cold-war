@@ -27,7 +27,12 @@ export const pos = (id: string): [number, number] => {
 
 /** 区域标识色与图标：方框边缘色条 + 挂件 */
 export const REGION_COLOR: Record<RegionId, string> = {
-  europe: '#4f7cac', asia: '#c9962a', middleEast: '#c0622d', africa: '#5f8f3a', centralAmerica: '#2f9c95', southAmerica: '#8a6bbf',
+  europe: '#6d7490', asia: '#c9962a', middleEast: '#c0622d', africa: '#5f8f3a', centralAmerica: '#2f9c95', southAmerica: '#8a6bbf',
+};
+
+/** 方框名称条：按区域着色（比标识色深一些，保证白字清楚） */
+const BAND_COLOR: Record<RegionId, string> = {
+  europe: '#5b6177', asia: '#9a6f16', middleEast: '#a04d1f', africa: '#4a7429', centralAmerica: '#22796f', southAmerica: '#6a4f99',
 };
 
 const GLYPH: Record<string, string> = {
@@ -352,11 +357,8 @@ function CountryBox({ id, view, selectable, dimmed, flash, adjHl, onPick, onHove
       onPointerEnter={() => onHover(id)}
       onPointerLeave={() => onHover(null)}
     >
-      <line x1={left + 7} y1={top + BH} x2={left + 7} y2={top + BH + 3} class="c-hook" />
-      <RegionGlyph region={c.region} x={left + 7} y={top + BH + 8} r={6} sub={c.sub.includes('southeastAsia')} />
-      <rect class="c-box" x={left} y={top} width={BW} height={BH} rx="3" style={{ stroke: ctl ? undefined : REGION_COLOR[c.region] }} />
-      <rect class="c-edge" x={left + 1} y={top + BH - 3} width={BW - 2} height="2.5" fill={REGION_COLOR[c.region]} />
-      <rect class="c-band" x={left} y={top} width={BW} height="17" rx="3" />
+      <rect class="c-box" x={left} y={top} width={BW} height={BH} rx="3" />
+      <rect class="c-band" x={left} y={top} width={BW} height="17" rx="3" fill={BAND_COLOR[c.region]} />
       <text class="c-name" x={left + (BW - 13) / 2} y={top + 13.5} textLength={name.length >= 4 ? BW - 16 : undefined} lengthAdjust="spacingAndGlyphs">{name}</text>
       <rect class="c-stab" x={left + BW - 13} y={top + 2} width="11.5" height="13" rx="2" />
       <text class="c-stab-t" x={left + BW - 7.25} y={top + 12.8}>{c.stability}</text>
