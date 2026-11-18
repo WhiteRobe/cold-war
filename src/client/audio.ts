@@ -9,12 +9,20 @@ export type Sfx =
 export type Track = 'menu' | 'game';
 
 const KEY = 'cw.audio';
-export const audioPrefs = signal<{ music: boolean; sfx: boolean }>(
+export interface AudioPrefs {
+  music: boolean;
+  sfx: boolean;
+  /** 0–1 */
+  musicVol: number;
+  sfxVol: number;
+}
+const DEFAULT_PREFS: AudioPrefs = { music: true, sfx: true, musicVol: 0.6, sfxVol: 0.8 };
+export const audioPrefs = signal<AudioPrefs>(
   (() => {
     try {
-      return { music: true, sfx: true, ...JSON.parse(localStorage.getItem(KEY) || '{}') };
+      return { ...DEFAULT_PREFS, ...JSON.parse(localStorage.getItem(KEY) || '{}') };
     } catch {
-      return { music: true, sfx: true };
+      return { ...DEFAULT_PREFS };
     }
   })(),
 );
@@ -26,8 +34,11 @@ let sfxBus: GainNode | null = null;
 let noiseBuf: AudioBuffer | null = null;
 let unlocked = false;
 
-const MUSIC_VOL = 0.2;
-const SFX_VOL = 0.8;
+/** 音量滑杆拉满时的增益 */
+const MUSIC_MAX = 0.34;
+const SFX_MAX = 1.0;
+const musicLevel = () => MUSIC_MAX * audioPrefs.value.musicVol;
+const sfxLevel = () => SFX_MAX * audioPrefs.value.sfxVol;
 
 function ac(): AudioContext | null {
   if (!unlocked || typeof AudioContext === 'undefined') return null;
@@ -40,7 +51,7 @@ function ac(): AudioContext | null {
     musicBus.gain.value = 0;
     musicBus.connect(master);
     sfxBus = ctx.createGain();
-    sfxBus.gain.value = SFX_VOL;
+    sfxBus.gain.value = sfxLevel();
     sfxBus.connect(master);
     // 共用一段白噪声，鼓和纸牌声都从里面截取，不用每次重新生成
     noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
@@ -51,10 +62,15 @@ function ac(): AudioContext | null {
   return ctx;
 }
 
-export function setAudioPrefs(p: Partial<{ music: boolean; sfx: boolean }>) {
+export function setAudioPrefs(p: Partial<AudioPrefs>) {
   audioPrefs.value = { ...audioPrefs.value, ...p };
   localStorage.setItem(KEY, JSON.stringify(audioPrefs.value));
   if (p.music !== undefined) syncMusic();
+  if (ctx && p.sfxVol !== undefined && sfxBus) sfxBus.gain.setTargetAtTime(sfxLevel(), ctx.currentTime, 0.05);
+  if (ctx && p.musicVol !== undefined && musicBus && current) {
+    musicBus.gain.cancelScheduledValues(ctx.currentTime);
+    musicBus.gain.setTargetAtTime(musicLevel(), ctx.currentTime, 0.1);
+  }
 }
 
 function unlock() {
@@ -378,7 +394,7 @@ function syncMusic() {
     const g = musicBus.gain;
     g.cancelScheduledValues(ctx.currentTime);
     g.setValueAtTime(0, ctx.currentTime);
-    g.linearRampToValueAtTime(MUSIC_VOL, ctx.currentTime + 2);
+    g.linearRampToValueAtTime(musicLevel(), ctx.currentTime + 2);
     clearInterval(timer);
     timer = setInterval(tick, 60);
     tick();

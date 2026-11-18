@@ -12,7 +12,7 @@ export function* discardOrElse(g: Game, victim: Side, card: number, n: number, p
   if (c === 'pass') return false;
   g.removeFromHand(victim, c);
   g.discardCard(c);
-  g.log(`${SIDE_ZH[victim]}弃掉 ${cardName(c)}`, { side: victim });
+  g.log(`${SIDE_ZH[victim]}弃掉 ${cardName(c)}`, { side: victim, move: { cards: [c], from: victim, to: 'discard', why: `${CARDS[card].zh}：弃掉一张 ≥${n} 行动点的牌` } });
   return true;
 }
 
@@ -38,7 +38,7 @@ export const EARLY: Record<number, Effect> = {
     *run(g) {
       const c = randomDiscard(g, 'USSR');
       if (c === undefined) return g.log('苏联没有手牌');
-      g.log(`五年计划：苏联随机弃掉 ${cardName(c)}`);
+      g.log(`五年计划：苏联随机弃掉 ${cardName(c)}`, { move: { cards: [c], from: 'USSR', to: CARDS[c].side === 'US' ? 'played' : 'discard', why: '五年计划：苏联随机弃牌' } });
       if (CARDS[c].side === 'US') {
         const fired = yield* g.fireEvent(c, 'US', {});
         g.relocate(c, fired, 'US');

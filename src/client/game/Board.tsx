@@ -10,6 +10,7 @@ import { CardFace, MiniCard } from './CardFace';
 import { cardPreview } from './preview';
 import { BeatOverlay, useEventPacing } from './Dice';
 import { VictoryScene } from './Victory';
+import { RegionPanel } from './RegionPanel';
 import { SPACE } from '../../engine/space';
 import { MapView } from './MapView';
 import type { GameSession } from './session';
@@ -35,7 +36,7 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
   const [zoomCard, setZoomCard] = useState<number | null>(null);
   const [pile, setPile] = useState<'discard' | 'removed' | 'deck' | null>(null);
   const [region, setRegion] = useState<RegionId | null>(null);
-  const [tab, setTab] = useState<'log' | 'headlines' | 'cards' | 'help'>('log');
+  const [tab, setTab] = useState<'log' | 'headlines' | 'cards' | 'regions' | 'help'>('log');
   const flash = useFlash(view);
   useGameSounds(view, view?.log ?? []);
   const [overSeen, setOverSeen] = useState(false);
@@ -83,9 +84,10 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
           <button type="button" class={tab === 'log' ? 'on' : ''} onClick={() => setTab('log')}>记录</button>
           <button type="button" class={tab === 'headlines' ? 'on' : ''} onClick={() => setTab('headlines')}>头条</button>
           <button type="button" class={tab === 'cards' ? 'on' : ''} onClick={() => setTab('cards')}>牌堆</button>
+          <button type="button" class={tab === 'regions' ? 'on' : ''} onClick={() => setTab('regions')}>局势</button>
           <button type="button" class={tab === 'help' ? 'on' : ''} onClick={() => setTab('help')}>速查</button>
         </div>
-        {tab === 'log' ? <LogView log={view.log} me={me} onZoom={setZoomCard} /> : tab === 'headlines' ? <HeadlineHistory view={view} names={names} onZoom={setZoomCard} /> : tab === 'cards' ? <CardsPanel view={view} names={names} onZoom={setZoomCard} /> : <QuickRef />}
+        {tab === 'log' ? <LogView log={view.log} me={me} onZoom={setZoomCard} /> : tab === 'headlines' ? <HeadlineHistory view={view} names={names} onZoom={setZoomCard} /> : tab === 'cards' ? <CardsPanel view={view} names={names} onZoom={setZoomCard} /> : tab === 'regions' ? <RegionPanel view={view} /> : <QuickRef />}
       </aside>
       <button type="button" class={`hand-toggle${handChoice ? ' need' : ''}`} onClick={() => setHandOpen(!handOpen)}>
         手牌 {myHand.length}{handOpen ? ' ▾' : ' ▴'}
@@ -174,6 +176,7 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
             <h2>{view.winner ? `${names[view.winner]}（${SIDE_ZH[view.winner]}）获胜` : '平局'}</h2>
             <p>{view.winReason}</p>
             <p>最终 VP：{view.vp > 0 ? `美国 +${view.vp}` : view.vp < 0 ? `苏联 +${-view.vp}` : '0'} · 第 {view.turn} 回合</p>
+            {view.finalScore && <FinalScoreTable view={view} />}
             <div class="row">
               <button type="button" class="btn" onClick={() => setOverSeen(true)}>查看棋盘</button>
               <button type="button" class="btn primary" onClick={() => go('/')}>返回首页</button>
@@ -535,6 +538,30 @@ function useFlash(view: GameView | null) {
   return flash;
 }
 
+/** 终局计分明细 */
+function FinalScoreTable({ view }: { view: GameView }) {
+  const f = view.finalScore!;
+  const sumUs = f.regions.reduce((s, r) => s + r.US, 0) + (f.china === 'US' ? 1 : 0);
+  const sumSu = f.regions.reduce((s, r) => s + r.USSR, 0) + (f.china === 'USSR' ? 1 : 0);
+  const net = sumUs - sumSu;
+  const before = view.vp - net;
+  const lead = (n: number) => (n > 0 ? `美国领先 ${n}` : n < 0 ? `苏联领先 ${-n}` : '打平');
+  return (
+    <table class="pop-table final-table">
+      <thead><tr><th>终局计分</th><th class="us">美国</th><th class="ussr">苏联</th></tr></thead>
+      <tbody>
+        <tr><td>计分前</td><td colSpan={2}>{lead(before)}</td></tr>
+        {f.regions.map((r) => (
+          <tr key={r.region}><td>{REGION_ZH[r.region as RegionId]}</td><td>{r.US}</td><td>{r.USSR}</td></tr>
+        ))}
+        <tr><td>中国牌</td><td>{f.china === 'US' ? 1 : 0}</td><td>{f.china === 'USSR' ? 1 : 0}</td></tr>
+        <tr class="total"><td>终局计分合计</td><td>{sumUs}</td><td>{sumSu}</td></tr>
+        <tr class="total"><td>最终</td><td colSpan={2}>{lead(view.vp)}</td></tr>
+      </tbody>
+    </table>
+  );
+}
+
 /** 本回合还能打几张牌、能否太空竞赛 */
 function TurnStatus({ view, me }: { view: GameView; me: Side }) {
   if (view.phase !== 'action' && view.phase !== 'headline') return null;
@@ -571,6 +598,7 @@ function TurnStatus({ view, me }: { view: GameView; me: Side }) {
 /** 音乐 / 音效开关 */
 export function AudioToggles({ musicOnly }: { musicOnly?: boolean }) {
   const p = audioPrefs.value;
+  const [open, setOpen] = useState(false);
   return (
     <div class="audio-toggles">
       <button type="button" class={`icon-btn${p.music ? ' on' : ''}`} title={p.music ? '关闭背景音乐' : '开启背景音乐'} onClick={() => setAudioPrefs({ music: !p.music })}>
@@ -588,6 +616,30 @@ export function AudioToggles({ musicOnly }: { musicOnly?: boolean }) {
             {p.sfx ? <path d="M16 8.5a5 5 0 010 7M18.5 6a8.5 8.5 0 010 12" fill="none" stroke="currentColor" stroke-width="2" /> : <path d="M16 9l5 6M21 9l-5 6" stroke="currentColor" stroke-width="2" />}
           </svg>
         </button>
+      )}
+      <button type="button" class={`icon-btn${open ? ' on' : ''}`} title="音量" onClick={() => setOpen(!open)}>
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+          <path d="M4 7h10M18 7h2M4 17h4M12 17h8" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+          <circle cx="16" cy="7" r="2.4" fill="none" stroke="currentColor" stroke-width="2" />
+          <circle cx="10" cy="17" r="2.4" fill="none" stroke="currentColor" stroke-width="2" />
+        </svg>
+      </button>
+      {open && (
+        <div class="volume-pop" onClick={(e) => e.stopPropagation()}>
+          <label>
+            <span>背景音乐</span>
+            <input type="range" min={0} max={100} value={Math.round(p.musicVol * 100)} onInput={(e) => setAudioPrefs({ musicVol: Number((e.target as HTMLInputElement).value) / 100, music: true })} />
+            <b>{Math.round(p.musicVol * 100)}</b>
+          </label>
+          {!musicOnly && (
+            <label>
+              <span>音效</span>
+              <input type="range" min={0} max={100} value={Math.round(p.sfxVol * 100)} onInput={(e) => setAudioPrefs({ sfxVol: Number((e.target as HTMLInputElement).value) / 100, sfx: true })} onChange={() => sfx('card')} />
+              <b>{Math.round(p.sfxVol * 100)}</b>
+            </label>
+          )}
+          <button type="button" class="btn small" onClick={() => setOpen(false)}>完成</button>
+        </div>
       )}
     </div>
   );

@@ -61,7 +61,7 @@ export const MID: Record<number, Effect> = {
       if (c === 'pass') return;
       g.s.discard.splice(g.s.discard.indexOf(c), 1);
       g.addToHand(me, c, true);
-      g.log(`${SIDE_ZH[me]}从弃牌堆拿回 ${cardName(c)}`, { side: me });
+      g.log(`${SIDE_ZH[me]}从弃牌堆拿回 ${cardName(c)}`, { side: me, move: { cards: [c], from: 'discard', to: me, why: 'SALT：从弃牌堆拿回一张牌' } });
     },
   },
   // Bear Trap
@@ -139,7 +139,7 @@ export const MID: Record<number, Effect> = {
       g.markMoved(49);
       if (g.s.headline[me] === 49) delete g.s.headline[me];
       g.s.flags.missileEnvy = them;
-      g.log(`导弹嫉妒：${SIDE_ZH[me]}换走 ${cardName(c)}`);
+      g.log(`导弹嫉妒：${SIDE_ZH[me]}换走 ${cardName(c)}`, { move: { cards: [c], from: them, to: me, why: `导弹嫉妒：${SIDE_ZH[me]}换走对手行动点最高的牌，导弹嫉妒交给对手` } });
       const def = CARDS[c];
       const prev = g.s.playing;
       g.s.playing = { card: c, side: me };
@@ -303,8 +303,7 @@ export const MID: Record<number, Effect> = {
       const hand = g.s.hands.USSR;
       if (hand.length) {
         const c = hand[Math.floor(g.random() * hand.length)];
-        g.log(`向苏联出售谷物：美国抽到 ${cardName(c)}`, { to: 'US' });
-        g.log('向苏联出售谷物：美国从你手中随机抽走一张牌', { to: 'USSR' });
+        g.log(`向苏联出售谷物：美国从苏联手中随机抽到 ${cardName(c)}`, { move: { cards: [c], from: 'USSR', to: 'US', why: '向苏联出售谷物：美国随机抽走苏联一张手牌' } });
         const v = yield* g.askOption('US', `向苏联出售谷物：抽到 ${cardName(c)}，打出还是还回？`, [['play', `打出 ${CARDS[c].zh}`], ['return', '还给苏联，并使用本牌 2 点行动点']], { card: 67, auto: false });
         g.removeFromHand('USSR', c);
         if (v === 'play') {
@@ -314,7 +313,7 @@ export const MID: Record<number, Effect> = {
           return;
         }
         g.addToHand('USSR', c, true);
-        g.log(`美国把 ${cardName(c)} 还给苏联`);
+        g.log(`美国把 ${cardName(c)} 还给苏联`, { move: { cards: [c], from: 'US', to: 'USSR', why: '向苏联出售谷物：美国把牌还回去' } });
       }
       yield* g.opsPlay('US', 2, { card: 67, optional: true });
     },
@@ -463,7 +462,7 @@ export const MID: Record<number, Effect> = {
         out.push(c);
       }
       for (const c of out) g.discardCard(c);
-      if (out.length) g.log(`我们的人在德黑兰：美国弃掉 ${out.map(cardName).join('、')}`);
+      if (out.length) g.log(`我们的人在德黑兰：美国弃掉 ${out.map(cardName).join('、')}`, { move: { cards: out, from: 'deck', to: 'discard', why: '我们的人在德黑兰：从牌库顶弃掉' } });
       g.s.deck.push(...drawn.filter((c) => !out.includes(c)));
       for (let i = g.s.deck.length - 1; i > 0; i--) {
         const j = Math.floor(g.random() * (i + 1));

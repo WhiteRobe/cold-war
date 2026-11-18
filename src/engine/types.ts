@@ -70,6 +70,18 @@ export interface LogEntry {
   kind?: 'roll' | 'score' | 'card' | 'headline' | 'turn' | 'warn' | 'end';
   /** 掷骰详情（界面做骰子动画） */
   roll?: RollInfo;
+  /** 卡牌移动（界面做飞牌动画） */
+  move?: CardMove;
+}
+
+export type PileName = 'deck' | 'discard' | 'removed' | 'played';
+
+export interface CardMove {
+  cards: number[];
+  from: Side | PileName;
+  to: Side | PileName;
+  /** 原因，如“五年计划：随机弃牌” */
+  why: string;
 }
 
 export interface RollInfo {
@@ -123,6 +135,8 @@ export interface GameState {
   playing?: { card: number; side: Side };
   /** 出牌记录 */
   plays?: { turn: number; ar: number; side: Side; card: number; how: 'event' | 'ops' | 'space' | 'headline'; at?: number }[];
+  /** 终局计分明细 */
+  finalScore?: { regions: { region: string; US: number; USSR: number }[]; china: Side };
   /** 每回合的头条记录（cancelled：被叛逃者取消的一方） */
   headlines?: { turn: number; US?: number; USSR?: number; cancelled?: Side }[];
   /** 各区域最近一次计分的结果（界面显示雾气）：at 为当时的日志长度 */

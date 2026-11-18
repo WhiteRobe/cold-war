@@ -40,7 +40,7 @@ export const LATE: Record<number, Effect> = {
       if (!cards.length) return g.log('星球大战：弃牌堆没有非计分牌');
       const c = (yield* g.askCard(me, 'pickCard', '星球大战：从弃牌堆选一张非计分牌立即作为事件打出', cards, { card: 85 })) as number;
       g.s.discard.splice(g.s.discard.indexOf(c), 1);
-      g.log(`星球大战：美国从弃牌堆打出 ${cardName(c)}`);
+      g.log(`星球大战：美国从弃牌堆打出 ${cardName(c)}`, { move: { cards: [c], from: 'discard', to: 'played', why: '星球大战：从弃牌堆打出事件' } });
       const prev = g.s.playing;
       g.s.playing = { card: c, side: me };
       const fired = yield* g.fireEvent(c, me, {});
@@ -110,7 +110,8 @@ export const LATE: Record<number, Effect> = {
         g.discardCard(c);
         out.push(c);
       }
-      g.log(out.length ? `恐怖主义：${SIDE_ZH[victim]}随机弃掉 ${out.map(cardName).join('、')}` : `恐怖主义：${SIDE_ZH[victim]}没有手牌`);
+      if (out.length) g.log(`恐怖主义：${SIDE_ZH[victim]}随机弃掉 ${out.map(cardName).join('、')}`, { move: { cards: out, from: victim, to: 'discard', why: `恐怖主义：${SIDE_ZH[victim]}随机弃牌` } });
+      else g.log(`恐怖主义：${SIDE_ZH[victim]}没有手牌`);
     },
   },
   // Iran-Contra Scandal
@@ -173,7 +174,7 @@ export const LATE: Record<number, Effect> = {
       const c = (yield* g.askCard(me, 'discard', '艾姆斯间谍案：从美国手牌中选一张弃掉', cards, { card: 98 })) as number;
       g.removeFromHand('US', c);
       g.discardCard(c);
-      g.log(`艾姆斯间谍案：苏联弃掉美国的 ${cardName(c)}`);
+      g.log(`艾姆斯间谍案：苏联弃掉美国的 ${cardName(c)}`, { move: { cards: [c], from: 'US', to: 'discard', why: '艾姆斯间谍案：苏联挑一张美国手牌弃掉' } });
     },
   },
   // Pershing II Deployed

@@ -580,6 +580,7 @@ export class Game {
     const r = this.roll();
     this.log(`${SIDE_ZH[side]}弃掉 ${cardName(c)} 尝试摆脱${CARDS[trapCard].zh}：掷出 ${r}`, {
       side, kind: 'roll', roll: { type: 'trap', side, dice: [r], ok: r <= 4, need: '需要 1–4', result: r <= 4 ? `摆脱${CARDS[trapCard].zh}` : '仍然被困' },
+      move: { cards: [c], from: side, to: 'discard', why: `${CARDS[trapCard].zh}：弃牌脱困` },
     });
     if (r <= 4) {
       if (side === 'US') s.flags.quagmire = false;
@@ -1005,8 +1006,10 @@ export class Game {
     this.finalScoring = true;
     this.log('—— 终局计分 ——', { kind: 'turn' });
     let net = 0;
+    s.finalScore = { regions: [], china: s.china.holder };
     for (const region of ['europe', 'asia', 'middleEast', 'africa', 'centralAmerica', 'southAmerica'] as RegionId[]) {
       const r = scoreRegion(s, region, { formosan: s.flags.formosan });
+      s.finalScore.regions.push({ region, US: r.points.US, USSR: r.points.USSR });
       this.markScore(region, r.autoWin ?? (r.net > 0 ? 'US' : r.net < 0 ? 'USSR' : null));
       if (r.autoWin) throw new GameOver(r.autoWin, '终局计分时控制欧洲');
       this.log(`${REGION_ZH[region]}：美国 ${r.points.US}，苏联 ${r.points.USSR}`, { kind: 'score' });

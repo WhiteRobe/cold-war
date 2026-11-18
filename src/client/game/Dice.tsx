@@ -1,10 +1,10 @@
 // 掷骰动画：新的掷骰先播动画，播完才把局面更新出来，避免结果先于骰子出现。
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { COUNTRIES } from '../../data';
-import type { LogEntry, RollInfo, Side } from '../../engine/types';
+import { CARDS, COUNTRIES } from '../../data';
+import type { CardMove, LogEntry, RollInfo, Side } from '../../engine/types';
 import type { GameView } from '../../engine/view';
 import { sfx } from '../audio';
-import { CardFace } from './CardFace';
+import { CardFace, MiniCard } from './CardFace';
 
 /** 每次掷骰动画的总时长 */
 const ROLL_MS = 1900;
@@ -12,6 +12,8 @@ const ROLL_MS = 1900;
 const SPACE_MS = 2600;
 /** 真人对手出牌展示时长（AI 出牌需要点确定） */
 const HUMAN_CARD_MS = 6000;
+/** 卡牌移动展示时长 */
+const MOVE_MS = 2400;
 const TITLE: Record<RollInfo['type'], string> = {
   coup: '政变', realign: '调整阵营', war: '战争', space: '太空竞赛', olympics: '奥运会', summit: '首脑峰会', trap: '脱困检定',
 };
@@ -20,6 +22,7 @@ const HOW_ZH = { event: '作为事件', ops: '使用行动点', space: '用于�
 
 export type Beat =
   | { key: number; kind: 'roll'; roll: RollInfo }
+  | { key: number; kind: 'move'; move: CardMove }
   | { key: number; kind: 'card'; card: number; side: Side; how: keyof typeof HOW_ZH; needConfirm: boolean };
 
 /**
@@ -51,6 +54,7 @@ export function useEventPacing(incoming: GameView | null, aiOpponent: boolean): 
     if (!b) return finish();
     setBeat(b);
     if (b.kind === 'roll') timer.current = setTimeout(next, b.roll.type === 'space' ? SPACE_MS : ROLL_MS);
+    else if (b.kind === 'move') timer.current = setTimeout(next, MOVE_MS);
     else if (!b.needConfirm) timer.current = setTimeout(next, HUMAN_CARD_MS);
   };
 
@@ -66,7 +70,9 @@ export function useEventPacing(incoming: GameView | null, aiOpponent: boolean): 
     const from = prev.log.length;
     const items: { at: number; beat: Beat }[] = [];
     incoming.log.forEach((e: LogEntry, i: number) => {
-      if (i >= from && e.roll) items.push({ at: i, beat: { key: ++seq.current, kind: 'roll', roll: e.roll } });
+      if (i < from) return;
+      if (e.move) items.push({ at: i - 0.5, beat: { key: ++seq.current, kind: 'move', move: e.move } });
+      if (e.roll) items.push({ at: i, beat: { key: ++seq.current, kind: 'roll', roll: e.roll } });
     });
     const me = incoming.me;
     const prevPlays = prev.plays?.length ?? 0;
@@ -132,6 +138,7 @@ export function BeatOverlay({ beat, names, onNext, onSkipAll }: { beat: Beat | n
     if (beat?.kind === 'card') sfx('card');
   }, [beat?.key]);
   if (!beat) return null;
+  if (beat.kind === 'move') return <MoveOverlay move={beat.move} key={beat.key} onNext={onNext} />;
   if (beat.kind === 'card') {
     return (
       <div class="beat-card" key={beat.key}>
@@ -147,6 +154,34 @@ export function BeatOverlay({ beat, names, onNext, onSkipAll }: { beat: Beat | n
     );
   }
   return <DiceOverlay roll={beat.roll} key={beat.key} onSkip={onNext} onSkipAll={onSkipAll} />;
+}
+
+const PLACE: Record<string, string> = { US: '美国手牌', USSR: '苏联手牌', deck: '牌库', discard: '弃牌堆', removed: '移出游戏', played: '发动事件' };
+
+/** 卡牌被弃掉、抽走、换走：牌从一边飞到另一边 */
+function MoveOverlay({ move, onNext }: { move: CardMove; onNext: () => void }) {
+  useEffect(() => {
+    sfx('card');
+  }, []);
+  const fromSide = move.from === 'US' || move.from === 'USSR' ? move.from.toLowerCase() : 'pile';
+  const toSide = move.to === 'US' || move.to === 'USSR' ? move.to.toLowerCase() : 'pile';
+  return (
+    <div class="move-overlay" onClick={onNext} title="点击跳过">
+      <div class="mv-why">{move.why}</div>
+      <div class="mv-row">
+        <div class={`mv-place ${fromSide}`}>{PLACE[move.from]}</div>
+        <div class="mv-cards">
+          {move.cards.map((c, i) => (
+            <div key={c} class="mv-card" style={{ animationDelay: `${0.35 + i * 0.25}s` }}>
+              <MiniCard id={c} />
+            </div>
+          ))}
+        </div>
+        <div class={`mv-place ${toSide}`}>{PLACE[move.to]}</div>
+      </div>
+      <div class="mv-names">{move.cards.map((c) => `#${c} ${CARDS[c].zh}`).join('、')}</div>
+    </div>
+  );
 }
 
 function DiceOverlay({ roll: r, onSkip }: { roll: RollInfo; onSkip: () => void; onSkipAll: () => void }) {

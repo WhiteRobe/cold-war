@@ -31,7 +31,7 @@ const rx = (x: number) => remapX(x / S) * S;
 
 /** 区域标识色与图标：方框边缘色条 + 挂件 */
 export const REGION_COLOR: Record<RegionId, string> = {
-  europe: '#6d7490', asia: '#c9962a', middleEast: '#c0622d', africa: '#5f8f3a', centralAmerica: '#2f9c95', southAmerica: '#8a6bbf',
+  europe: '#6d7490', asia: '#c9962a', middleEast: '#b24d93', africa: '#5f8f3a', centralAmerica: '#2f9c95', southAmerica: '#7072c4',
 };
 
 /** 战场国稳定度星章 */
@@ -70,7 +70,7 @@ function SubBadge({ x, y, kind }: { x: number; y: number; kind: 'w' | 'e' }) {
 }
 
 const BAND_COLOR: Record<RegionId, string> = {
-  europe: '#5b6177', asia: '#9a6f16', middleEast: '#a04d1f', africa: '#4a7429', centralAmerica: '#22796f', southAmerica: '#6a4f99',
+  europe: '#5b6177', asia: '#9a6f16', middleEast: '#8b3a72', africa: '#4a7429', centralAmerica: '#22796f', southAmerica: '#55569f',
 };
 
 const GLYPH: Record<string, string> = {
