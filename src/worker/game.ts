@@ -241,8 +241,8 @@ export class GameDO extends DurableObject<Env> {
     const level = (m.sides![aiSide] as { ai: AiLevel }).ai;
     const humanWaiting = (['US', 'USSR'] as Side[]).some((s) => s !== aiSide && g.pendingFor(s));
     const tag = g.pendingFor(aiSide)!.tag;
-    const fast = tag === 'setup' || tag === 'placeOps' || tag === 'placeEvent' || tag === 'removeEvent' || tag === 'realignTarget';
-    const delay = (humanWaiting ? 50 : fast ? 150 : Number(this.env.AI_DELAY_MS) || 900) + this.rollWait;
+    const point = tag === 'placeOps' || tag === 'placeEvent' || tag === 'removeEvent';
+    const delay = (humanWaiting ? 50 : tag === 'setup' ? 150 : point ? 450 : Number(this.env.AI_DELAY_MS) || 900) + this.rollWait;
     this.aiTimer = setTimeout(() => {
       const d = g.pendingFor(aiSide);
       if (!d || this.game !== g) return;

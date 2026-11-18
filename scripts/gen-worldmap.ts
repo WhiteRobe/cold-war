@@ -3,6 +3,7 @@
 // 用法：npx tsx scripts/gen-worldmap.ts <ne_110m_admin_0_countries.geojson>
 import { readFileSync, writeFileSync } from 'node:fs';
 import { COUNTRIES, COUNTRY_LIST } from '../src/data';
+import { remapX } from '../src/data/layout';
 
 const SRC = process.argv[2];
 if (!SRC) throw new Error('需要 geojson 路径');
@@ -82,7 +83,7 @@ for (const names of [...Object.values(GAME), USA, USSR]) for (const n of names) 
 
 // ---------- 控制点 ----------
 const ctrl: [Pt, Pt][] = [];
-const board = (id: string): Pt => [COUNTRIES[id].pos[0] * S, COUNTRIES[id].pos[1] * S];
+const board = (id: string): Pt => [remapX(COUNTRIES[id].pos[0]) * S, COUNTRIES[id].pos[1] * S];
 const mainland = (names: string[]) => {
   // 每个国家只取最大的那块，避免海外领地把重心拉走
   return names.map((n) => polys(byName.get(n)!).sort((a, b) => Math.abs(area(b)) - Math.abs(area(a)))[0]);
@@ -96,8 +97,8 @@ for (const c of COUNTRY_LIST) {
   const real = SPECIAL[c.id] ?? centroid(mainland(GAME[c.id]));
   ctrl.push([real, board(c.id)]);
 }
-ctrl.push([[-98, 39], [85 * S, 230 * S]]);
-ctrl.push([[42, 56], [635 * S, 112 * S]]);
+ctrl.push([[-98, 39], [remapX(85) * S, 230 * S]]);
+ctrl.push([[42, 56], [remapX(635) * S, 112 * S]]);
 // 额外锚点（DeepStruggle 坐标 ×1.5）
 const extra: [Pt, Pt][] = [
   [[-150, 63], [20, 40]], // 阿拉斯加
@@ -120,7 +121,7 @@ const extra: [Pt, Pt][] = [
   [[127, 46], [1330, 260]], // 东北
   [[-58, 4], [470, 900]], // 圭亚那（占位，后面修正）
 ];
-ctrl.push(...extra.filter(([, b]) => b[0] !== 470));
+ctrl.push(...extra.filter(([, b]) => b[0] !== 470).map(([a, b]) => [a, [remapX(b[0] / S) * S, b[1]]] as [Pt, Pt]));
 
 // ---------- 薄板样条 ----------
 function tps(points: [Pt, Pt][], lambda: number) {

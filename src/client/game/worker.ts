@@ -15,7 +15,10 @@ let aiRand = 1;
 
 const AI_STEP_MS = 320;
 /** 连续的逐点放置走快一点 */
-const FAST_TAGS = new Set(['setup', 'placeOps', 'placeEvent', 'removeEvent', 'realignTarget']);
+const FAST_TAGS = new Set(['setup']);
+/** 放影响力、移除影响力逐点放慢，看得清每一步 */
+const POINT_TAGS = new Set(['placeOps', 'placeEvent', 'removeEvent']);
+const POINT_MS = 450;
 
 function rand() {
   aiRand = (aiRand * 1103515245 + 12345) & 0x7fffffff;
@@ -65,7 +68,7 @@ function pump() {
     if (err) game.submit(aiSide(), dd.options[0].v);
     send();
     pump();
-  }, (game.pendingFor(human) ? 0 : FAST_TAGS.has(d.tag) ? 90 : AI_STEP_MS) + rollWait);
+  }, (game.pendingFor(human) ? 0 : FAST_TAGS.has(d.tag) ? 120 : POINT_TAGS.has(d.tag) ? POINT_MS : AI_STEP_MS) + rollWait);
 }
 
 self.onmessage = (e: MessageEvent<WorkerIn>) => {

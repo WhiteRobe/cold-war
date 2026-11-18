@@ -3,9 +3,10 @@ import { COUNTRIES, COUNTRY_LIST, REGIONS, REGION_ZH, type RegionId, type Side }
 import { controller, scoreRegion, scoreSEA } from '../../engine/scoring';
 import type { GameView } from '../../engine/view';
 import { WORLD } from './worldmap.gen';
+import { remapX } from '../../data/layout';
 import { Flag, FogLayer, FxLayer, Tank, useMapFx } from './MapFx';
 
-export const MAP_W = 1500;
+export const MAP_W = 1600;
 export const MAP_H = 975;
 const S = 1.5;
 const BW = 58;
@@ -19,11 +20,14 @@ const SHORT: Record<string, string> = {
 };
 
 export const pos = (id: string): [number, number] => {
-  if (id === 'usa') return [85 * S, 230 * S];
-  if (id === 'ussr') return [635 * S, 112 * S];
+  if (id === 'usa') return [remapX(85) * S, 230 * S];
+  if (id === 'ussr') return [remapX(635) * S, 112 * S];
   const p = COUNTRIES[id].pos;
-  return [p[0] * S, p[1] * S];
+  return [remapX(p[0]) * S, p[1] * S];
 };
+
+/** 1500 宽坐标系下的横坐标按同样规则重排（区域标签等手摆位置用） */
+const rx = (x: number) => remapX(x / S) * S;
 
 /** 区域标识色与图标：方框边缘色条 + 挂件 */
 export const REGION_COLOR: Record<RegionId, string> = {
@@ -133,7 +137,7 @@ export function MapView({ view, selectable, onPick, flash, onRegion, focus }: Pr
         {WORLD.map((w, i) => (
           <path key={i} d={w.d} fill={shade(w.id, w.kind)} class={`land k-${w.kind}`} />
         ))}
-        <text class="land-label" x="1225" y="400">中 国</text>
+        <text class="land-label" x={rx(1225)} y="400">中 国</text>
       </g>
     ),
     [],
@@ -403,12 +407,12 @@ const LV_ZH = { none: '—', presence: '存在', domination: '支配', control: 
 
 function RegionLabel({ region, view, onClick }: { region: RegionId; view: GameView; onClick: () => void }) {
   const anchor: Record<RegionId, [number, number]> = {
-    europe: [405, 215],
-    asia: [1110, 760],
-    middleEast: [985, 660],
-    africa: [560, 870],
-    centralAmerica: [40, 640],
-    southAmerica: [120, 880],
+    europe: [rx(405), 215],
+    asia: [rx(1110), 760],
+    middleEast: [rx(985), 660],
+    africa: [rx(560), 870],
+    centralAmerica: [rx(40), 640],
+    southAmerica: [rx(120), 880],
   };
   const [x, y] = anchor[region];
   const shuttle = !!view.flags.shuttle && (region === 'asia' || region === 'middleEast');
