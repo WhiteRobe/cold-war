@@ -9,6 +9,7 @@ import { go } from '../store';
 import { CardFace, MiniCard } from './CardFace';
 import { cardPreview } from './preview';
 import { BeatOverlay, useEventPacing } from './Dice';
+import { VictoryScene } from './Victory';
 import { SPACE } from '../../engine/space';
 import { MapView } from './MapView';
 import type { GameSession } from './session';
@@ -168,7 +169,7 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
       {pile && <PileModal view={view} pile={pile} onClose={() => setPile(null)} onCard={setZoomCard} />}
       {region && <RegionModal view={view} region={region} onClose={() => setRegion(null)} />}
       {view.phase === 'over' && !overSeen && (
-        <div class="modal">
+        <VictoryScene winner={view.winner ?? null} me={me}>
           <div class="modal-box over-box">
             <h2>{view.winner ? `${names[view.winner]}（${SIDE_ZH[view.winner]}）获胜` : '平局'}</h2>
             <p>{view.winReason}</p>
@@ -178,7 +179,7 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
               <button type="button" class="btn primary" onClick={() => go('/')}>返回首页</button>
             </div>
           </div>
-        </div>
+        </VictoryScene>
       )}
     </div>
   );

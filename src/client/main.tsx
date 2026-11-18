@@ -33,8 +33,16 @@ function OfflineGame({ id }: { id: string }) {
   return <Board session={session} tutorial={tutorial} />;
 }
 
+/** 仅开发环境：#/dev-victory/US | USSR | draw 预览胜利动画 */
+const DevVictory = import.meta.env.DEV ? lazy<{ w: string }>(() => import('./game/Victory').then((m) => ({ w }: { w: string }) => (
+  <m.VictoryScene winner={w === 'draw' ? null : (w as 'US' | 'USSR')} me="USSR">
+    <div class="modal-box over-box"><h2>预览</h2><p>胜利动画</p></div>
+  </m.VictoryScene>
+))) : null;
+
 function App() {
   const r = route.value;
+  if (DevVictory && location.hash.startsWith('#/dev-victory/')) return <DevVictory w={location.hash.split('/')[2]} />;
   // 对局页面由 Board 自己切换到对局音乐；其余页面放首页音乐
   useEffect(() => {
     if (r.name !== 'offline' && r.name !== 'room' && r.name !== 'replay') setMusicTrack('menu');
