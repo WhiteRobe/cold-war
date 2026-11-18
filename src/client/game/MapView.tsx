@@ -46,6 +46,7 @@ function STAR_PTS(cx: number, cy: number, r: number) {
 const WE_COLOR = '#5b6177';
 const EE_COLOR = '#7a5a3e';
 function bandFill(c: { region: RegionId; sub: string[] }) {
+  if (c.sub.includes('southeastAsia')) return 'url(#bandSEA)';
   if (c.region !== 'europe') return BAND_COLOR[c.region];
   const w = c.sub.includes('westernEurope'), e = c.sub.includes('easternEurope');
   return w && e ? 'url(#bandWE)' : e ? EE_COLOR : WE_COLOR;
@@ -295,6 +296,10 @@ export function MapView({ view, selectable, onPick, flash, onRegion, focus }: Pr
         onPointerLeave={onUp}
       >
         <defs>
+          <pattern id="bandSEA" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <rect width="8" height="8" fill="#9a6f16" />
+            <rect width="3.5" height="8" fill="#6e4f0d" />
+          </pattern>
           <linearGradient id="bandWE" x1="0" y1="0" x2="1" y2="0">
             <stop offset="0.5" stop-color={WE_COLOR} />
             <stop offset="0.5" stop-color={EE_COLOR} />
@@ -421,6 +426,14 @@ function RegionLabel({ region, view, onClick }: { region: RegionId; view: GameVi
           <text x={x + 68} y={y + 54}>东欧</text>
           <rect x={x + 104} y={y + 45} width="12" height="9" rx="2" fill="url(#bandWE)" />
           <text x={x + 120} y={y + 54}>两者</text>
+        </g>
+      )}
+      {sea && (
+        <g class="sub-legend">
+          <rect x={x} y={y + 62} width="12" height="9" rx="2" fill={BAND_COLOR.asia} />
+          <text x={x + 16} y={y + 71}>亚洲</text>
+          <rect x={x + 52} y={y + 62} width="12" height="9" rx="2" fill="url(#bandSEA)" />
+          <text x={x + 68} y={y + 71}>东南亚（单独计分，泰国 2 分）</text>
         </g>
       )}
       {sea && (

@@ -234,7 +234,7 @@ h1, h2, h3, h4 { font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif; let
 .c-hook { stroke: #3a352e; stroke-width: 1.2; }
 .region-glyph { pointer-events: none; }
 .c-band { stroke: none; }
-.c-name { fill: #fff; font-size: 13px; font-weight: 700; text-anchor: middle; }
+.c-name { fill: #fff; font-size: 13px; font-weight: 700; text-anchor: middle; paint-order: stroke; stroke: #00000066; stroke-width: 2px; }
 .c-stab { fill: #f3ecdb; }
 .c-stab-t { fill: #2b2b2b; font-size: 11px; font-weight: 800; text-anchor: middle; }
 .c-bg-star { fill: #1f1a10; stroke: #f5d76e; stroke-width: 1.4; stroke-linejoin: round; }
