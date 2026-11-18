@@ -493,6 +493,9 @@ h1, h2, h3, h4 { font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif; let
 .sp-title { font-size: 12px; color: var(--text2); margin-bottom: 2px; }
 .sp-row { display: flex; justify-content: space-between; font-weight: 700; }
 .sp-res { margin-top: 4px; font-weight: 800; }
+.sp-line { font-size: 13px; line-height: 1.6; }
+.sp-line.res { font-weight: 800; }
+.sp-line.warn { color: #f0a050; font-weight: 700; }
 .score-preview.good .sp-res { color: #8fe09a; }
 .score-preview.bad .sp-res { color: #f08a7c; }
 

@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { CARDS, CARD_LIST, CHINA_CARD, COUNTRY_LIST, REGION_ZH, type RegionId, type Side } from '../../data';
-import { REGION_POINTS, scoreRegion, scoreSEA } from '../../engine/scoring';
+import { REGION_POINTS, scoreRegion } from '../../engine/scoring';
 import type { Choice, Decision, LogEntry } from '../../engine/types';
 import { Coach, coachOn, danger, setCoach } from './Coach';
 import type { GameView } from '../../engine/view';
 import { audioPrefs, setAudioPrefs, setMusicTrack, setTension, sfx } from '../audio';
 import { go } from '../store';
 import { CardFace, MiniCard } from './CardFace';
+import { cardPreview } from './preview';
 import { MapView } from './MapView';
 import type { GameSession } from './session';
 import { Effects, Tracks } from './Tracks';
@@ -140,7 +141,7 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
         <div class="modal" onClick={() => setZoomCard(null)}>
           <div class="modal-card" onClick={(e) => e.stopPropagation()}>
             <CardFace id={zoomCard} faceDown={zoomCard === CHINA_CARD && !view.china.faceUp} />
-            <ScoringPreview view={view} card={zoomCard} names={names} />
+            <CardPreview view={view} card={zoomCard} />
             {d?.kind === 'card' && d.options.some((o) => o.v === zoomCard) ? (
               <div class="row">
                 <button type="button" class="btn" onClick={() => setZoomCard(null)}>取消</button>
@@ -286,44 +287,16 @@ function LogView({ log, me }: { log: LogEntry[]; me: Side | null }) {
   );
 }
 
-const SCORING_REGION: Record<number, RegionId | 'sea'> = { 1: 'asia', 2: 'europe', 3: 'middleEast', 37: 'centralAmerica', 38: 'sea', 79: 'africa', 81: 'southAmerica' };
-
-/** 计分卡：现在打出谁得分 */
-function ScoringPreview({ view, card, names }: { view: GameView; card: number; names: Record<Side, string> }) {
-  const r = SCORING_REGION[card];
-  if (!r) return null;
-  let us: string, ussr: string, net: number, win: Side | undefined, note = '';
-  if (r === 'sea') {
-    const sc = scoreSEA(view as never);
-    us = `${sc.points.US} 分`;
-    ussr = `${sc.points.USSR} 分`;
-    net = sc.net;
-  } else {
-    const shuttle = !!view.flags.shuttle && (r === 'asia' || r === 'middleEast');
-    const sc = scoreRegion(view as never, r, { formosan: view.flags.formosan, shuttle });
-    us = `${LV_ZH[sc.US.level]} ${sc.points.US} 分`;
-    ussr = `${LV_ZH[sc.USSR.level]} ${sc.points.USSR} 分`;
-    net = sc.net;
-    win = sc.autoWin;
-    if (sc.shuttleApplied) note = '（已计入穿梭外交：苏联少算一个战场国）';
-  }
-  const res = win
-    ? `${names[win]}（${SIDE_ZH[win]}）控制欧洲，打出即获胜！`
-    : net > 0
-      ? `美国 +${net} VP`
-      : net < 0
-        ? `苏联 +${-net} VP`
-        : '双方打平，不加分';
-  const good = win ? win === view.me : view.me ? (view.me === 'US' ? net > 0 : net < 0) : false;
-  const bad = win ? win !== view.me : view.me ? (view.me === 'US' ? net < 0 : net > 0) : false;
+/** 打出前预估：修正、成功率、结果 */
+function CardPreview({ view, card }: { view: GameView; card: number }) {
+  const p = cardPreview(view, card);
+  if (!p) return null;
   return (
-    <div class={`score-preview${good ? ' good' : bad ? ' bad' : ''}`}>
-      <div class="sp-title">现在打出的结果</div>
-      <div class="sp-row">
-        <span class="us">美国 {us}</span>
-        <span class="ussr">苏联 {ussr}</span>
-      </div>
-      <div class="sp-res">→ {res}{note}</div>
+    <div class={`score-preview${p.tone ? ` ${p.tone}` : ''}`}>
+      <div class="sp-title">按当前局面预估</div>
+      {p.lines.map((l, i) => (
+        <div key={i} class={`sp-line${l.startsWith('⚠') ? ' warn' : l.startsWith('→') ? ' res' : ''}`}>{l}</div>
+      ))}
     </div>
   );
 }
