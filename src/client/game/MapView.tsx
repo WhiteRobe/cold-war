@@ -113,6 +113,22 @@ export function MapView({ view, selectable, onPick, flash, onRegion }: Props) {
     return out;
   }, []);
 
+  /** 把连线裁到两个方框之外；间隙太小的连线另画一个“锁扣”标记，保证看得见 */
+  const clipped = useMemo(
+    () =>
+      edges
+        .filter(({ b }) => b !== 'usa' && b !== 'ussr')
+        .map(({ a, b, inter }) => {
+          const [x1, y1] = pos(a), [x2, y2] = pos(b);
+          const dx = x2 - x1, dy = y2 - y1;
+          const t = Math.min(dx ? BW / 2 / Math.abs(dx) : Infinity, dy ? BH / 2 / Math.abs(dy) : Infinity);
+          const sx = x1 + dx * t, sy = y1 + dy * t, ex = x2 - dx * t, ey = y2 - dy * t;
+          const gap = Math.hypot(ex - sx, ey - sy) * (t < 0.5 ? 1 : -1);
+          return { a, b, inter, sx, sy, ex, ey, gap, mx: (x1 + x2) / 2, my: (y1 + y2) / 2 };
+        }),
+    [edges],
+  );
+
   const lines = useMemo(
     () =>
       edges.map(({ a, b, inter }) => {
@@ -224,11 +240,33 @@ export function MapView({ view, selectable, onPick, flash, onRegion }: Props) {
             view={view}
             selectable={selectable.has(c.id)}
             dimmed={selectable.size > 0 && !selectable.has(c.id)}
+            adjHl={!!hover && COUNTRIES[hover].adj.includes(c.id)}
             flash={flash.has(c.id)}
             onPick={() => !drag.current?.moved && selectable.has(c.id) && onPick(c.id)}
             onHover={setHover}
           />
         ))}
+        <g class="links">
+          {clipped.filter((e) => e.gap < 14).map((e) => (
+            <g key={e.a + e.b} class={`link${hover && (e.a === hover || e.b === hover) ? ' hl' : ''}`} transform={`translate(${e.mx},${e.my})`}>
+              <rect x="-6" y="-3" width="12" height="6" rx="3" />
+              <line x1="-3" y1="0" x2="3" y2="0" />
+            </g>
+          ))}
+        </g>
+        {hover && (
+          <g class="hover-edges">
+            {clipped.filter((e) => (e.a === hover || e.b === hover) && e.gap >= 14).map((e) => (
+              <line key={e.a + e.b} x1={e.sx} y1={e.sy} x2={e.ex} y2={e.ey} />
+            ))}
+            {COUNTRIES[hover].adj.filter((x) => x === 'usa' || x === 'ussr').map((x) => {
+              const [x1, y1] = pos(hover);
+              let [x2, y2] = pos(x);
+              if (hover === 'japan') { x2 = MAP_W - 4; y2 = y1; }
+              return <line key={x} x1={x1} y1={y1} x2={x2} y2={y2} />;
+            })}
+          </g>
+        )}
         <FxLayer fx={fx} pos={pos} />
       </svg>
       <div class="map-zoom">
@@ -300,7 +338,7 @@ function RegionLabel({ region, view, onClick }: { region: RegionId; view: GameVi
   );
 }
 
-function CountryBox({ id, view, selectable, dimmed, flash, onPick, onHover }: { id: string; view: GameView; selectable: boolean; dimmed: boolean; flash: boolean; onPick: () => void; onHover: (id: string | null) => void }) {
+function CountryBox({ id, view, selectable, dimmed, flash, adjHl, onPick, onHover }: { id: string; view: GameView; selectable: boolean; dimmed: boolean; flash: boolean; adjHl: boolean; onPick: () => void; onHover: (id: string | null) => void }) {
   const c = COUNTRIES[id];
   const [x, y] = pos(id);
   const [us, ussr] = view.inf[id];
@@ -309,7 +347,7 @@ function CountryBox({ id, view, selectable, dimmed, flash, onPick, onHover }: { 
   const name = SHORT[id] ?? c.zh;
   return (
     <g
-      class={`country${c.bg ? ' bg' : ''}${selectable ? ' selectable' : ''}${dimmed ? ' dimmed' : ''}${flash ? ' flash' : ''}${ctl ? ` ctl-${ctl.toLowerCase()}` : ''}`}
+      class={`country${c.bg ? ' bg' : ''}${adjHl ? ' adj-hl' : ''}${selectable ? ' selectable' : ''}${dimmed ? ' dimmed' : ''}${flash ? ' flash' : ''}${ctl ? ` ctl-${ctl.toLowerCase()}` : ''}`}
       onClick={onPick}
       onPointerEnter={() => onHover(id)}
       onPointerLeave={() => onHover(null)}
@@ -388,9 +426,25 @@ function odds(id: string, view: GameView): string | null {
   return null;
 }
 
+/** 放影响力时：为什么这里能放 */
+function placeReason(id: string, view: GameView): string | null {
+  const d = view.decision;
+  const me = view.me;
+  if (!d || !me || d.tag !== 'placeOps' || !d.options.some((o) => o.v === id)) return null;
+  const i = me === 'US' ? 0 : 1;
+  const c = COUNTRIES[id];
+  const why: string[] = [];
+  if (view.inf[id][i] > 0) why.push('这里已有你的影响力');
+  const nb = c.adj.filter((a) => a !== 'usa' && a !== 'ussr' && view.inf[a][i] > 0).map((a) => COUNTRIES[a].zh);
+  if (nb.length) why.push(`相邻 ${nb.join('、')}（有你的影响力）`);
+  if (c.adj.includes(me === 'US' ? 'usa' : 'ussr')) why.push('与你的本土相邻');
+  const cost = controller(view as never, id) === (me === 'US' ? 'USSR' : 'US') ? 2 : 1;
+  return `可以放：${why.join('；') || '相邻国家在本轮开始时有你的影响力'}。每点 ${cost} 行动点`;
+}
+
 function CountryTip({ id, view }: { id: string; view: GameView }) {
   const c = COUNTRIES[id];
-  const hint = odds(id, view);
+  const hint = odds(id, view) ?? placeReason(id, view);
   const [us, ussr] = view.inf[id];
   const ctl = controller(view as never, id);
   const adj = c.adj.map((a) => (a === 'usa' ? '美国' : a === 'ussr' ? '苏联' : COUNTRIES[a].zh));

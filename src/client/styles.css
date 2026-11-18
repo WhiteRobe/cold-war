@@ -517,3 +517,13 @@ h1, h2, h3, h4 { font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif; let
 .pr-how.how-space { color: #9cc6f0; }
 .pr-how.how-headline { color: #f0a050; }
 .pile-cards.side { flex: 1; overflow-y: auto; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); align-content: start; }
+
+/* ---------------- 邻接显示 ---------------- */
+.links { pointer-events: none; }
+.link rect { fill: #3b352a; stroke: #f3ecdb; stroke-width: 1; }
+.link line { stroke: #f3ecdb; stroke-width: 1.4; }
+.link.hl rect { fill: var(--gold); stroke: #1f1a10; }
+.link.hl line { stroke: #1f1a10; }
+.hover-edges { pointer-events: none; }
+.hover-edges line { stroke: var(--gold); stroke-width: 4; stroke-linecap: round; opacity: 0.9; }
+.country.adj-hl .c-box { stroke: var(--gold) !important; stroke-width: 3 !important; }
