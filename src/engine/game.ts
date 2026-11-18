@@ -470,6 +470,8 @@ export class Game {
         const oa = CARDS[picks[a]!].ops, ob = CARDS[picks[b]!].ops;
         return ob - oa || (a === 'US' ? -1 : 1);
       });
+    const record: NonNullable<GameState['headlines']>[number] = { turn: s.turn, US: picks.US, USSR: picks.USSR };
+    s.headlines = [...(s.headlines ?? []), record];
     const cancelled = new Set<Side>();
     if (picks.US === 103 && picks.USSR !== undefined) {
       cancelled.add('USSR');
@@ -479,6 +481,7 @@ export class Game {
     for (const side of order) {
       const c = picks[side]!;
       if (cancelled.has(side)) {
+        record.cancelled = side;
         this.discardCard(c);
         delete s.headline[side];
         continue;

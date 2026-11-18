@@ -13,13 +13,21 @@ import { Effects, Tracks } from './Tracks';
 
 const SIDE_ZH: Record<Side, string> = { US: '美国', USSR: '苏联' };
 
+/** 卡牌详情弹窗里的确认按钮文字 */
+const CARD_ACTION: Partial<Record<Decision['tag'], string>> = {
+  play: '确认打出',
+  headline: '作为头条打出',
+  discard: '弃掉这张',
+  pickCard: '选择这张',
+};
+
 export function Board({ session, tutorial }: { session: GameSession; tutorial?: boolean }) {
   const view = session.view.value;
   const names = session.names.value;
   const [zoomCard, setZoomCard] = useState<number | null>(null);
   const [pile, setPile] = useState<'discard' | 'removed' | 'deck' | null>(null);
   const [region, setRegion] = useState<RegionId | null>(null);
-  const [tab, setTab] = useState<'log' | 'help'>('log');
+  const [tab, setTab] = useState<'log' | 'headlines' | 'help'>('log');
   const flash = useFlash(view);
   const { popup, close: closePopup } = usePopup(view);
   useGameSounds(view, session.log.value);
@@ -67,24 +75,13 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
       </main>
       <aside class="board-side">
         <DecisionPanel view={view} d={d} names={names} choose={choose} onZoom={setZoomCard} />
-        {view.phase === 'headline' && Object.keys(view.headline).length > 0 && (
-          <div class="headline-box">
-            <div class="hb-title">头条</div>
-            <div class="hb-cards">
-              {(['US', 'USSR'] as Side[]).map((s) => view.headline[s] && (
-                <div key={s} class={`hb-card ${s.toLowerCase()}`}>
-                  <div>{names[s]}</div>
-                  <MiniCard id={view.headline[s]!} onClick={() => setZoomCard(view.headline[s]!)} />
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        <CurrentHeadline view={view} names={names} onZoom={setZoomCard} />
         <div class="side-tabs" data-tour="sidetabs">
           <button type="button" class={tab === 'log' ? 'on' : ''} onClick={() => setTab('log')}>记录</button>
+          <button type="button" class={tab === 'headlines' ? 'on' : ''} onClick={() => setTab('headlines')}>头条</button>
           <button type="button" class={tab === 'help' ? 'on' : ''} onClick={() => setTab('help')}>速查</button>
         </div>
-        {tab === 'log' ? <LogView log={session.log.value} me={me} /> : <QuickRef />}
+        {tab === 'log' ? <LogView log={session.log.value} me={me} /> : tab === 'headlines' ? <HeadlineHistory view={view} names={names} onZoom={setZoomCard} /> : <QuickRef />}
       </aside>
       <button type="button" class={`hand-toggle${handChoice ? ' need' : ''}`} onClick={() => setHandOpen(!handOpen)}>
         手牌 {myHand.length}{handOpen ? ' ▾' : ' ▴'}
@@ -108,7 +105,7 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
                 active={active}
                 dim={!!handChoice && !active}
                 faceDown={isChina && !view.china.faceUp}
-                onClick={() => (active ? choose(c) : setZoomCard(c))}
+                onClick={() => setZoomCard(c)}
               />
             );
           })}
@@ -142,7 +139,24 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
         <div class="modal" onClick={() => setZoomCard(null)}>
           <div class="modal-card" onClick={(e) => e.stopPropagation()}>
             <CardFace id={zoomCard} faceDown={zoomCard === CHINA_CARD && !view.china.faceUp} />
-            <button type="button" class="btn" onClick={() => setZoomCard(null)}>关闭</button>
+            {d?.kind === 'card' && d.options.some((o) => o.v === zoomCard) ? (
+              <div class="row">
+                <button type="button" class="btn" onClick={() => setZoomCard(null)}>取消</button>
+                <button
+                  type="button"
+                  class="btn primary"
+                  onClick={() => {
+                    const c = zoomCard;
+                    setZoomCard(null);
+                    choose(c);
+                  }}
+                >
+                  {CARD_ACTION[d.tag] ?? '确认选择'}
+                </button>
+              </div>
+            ) : (
+              <button type="button" class="btn" onClick={() => setZoomCard(null)}>关闭</button>
+            )}
           </div>
         </div>
       )}
@@ -223,11 +237,11 @@ function DecisionPanel({ view, d, names, choose, onZoom }: { view: GameView; d?:
       )}
       {d.kind === 'card' && (
         <>
-          {(d.tag === 'play' || d.tag === 'headline') && <div class="hint">点击下方高亮的手牌</div>}
+          {(d.tag === 'play' || d.tag === 'headline') && <div class="hint">点击下方高亮的手牌查看详情，再确认打出</div>}
           {d.tag !== 'play' && d.tag !== 'headline' && (
             <div class="option-cards">
               {d.options.filter((o) => typeof o.v === 'number').map((o) => (
-                <MiniCard key={o.v} id={o.v as number} active onClick={() => choose(o.v)} />
+                <MiniCard key={o.v} id={o.v as number} active onClick={() => onZoom(o.v as number)} />
               ))}
             </div>
           )}
@@ -264,6 +278,62 @@ function LogView({ log, me }: { log: LogEntry[]; me: Side | null }) {
           {e.kind === 'turn' ? null : <span class="log-t">{e.turn}.{e.ar}</span>}
           {e.t}
           {e.to && e.to === me && <span class="log-private">（仅你可见）</span>}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** 本回合的头条：整个回合都显示 */
+function CurrentHeadline({ view, names, onZoom }: { view: GameView; names: Record<Side, string>; onZoom: (c: number) => void }) {
+  const rec = view.headlines?.at(-1);
+  // 头条刚选完、还没写入记录时，用正在结算的头条
+  const cur = rec && rec.turn === view.turn ? rec : null;
+  if (!cur || view.phase === 'over') return null;
+  return (
+    <div class="headline-box">
+      <div class="hb-title">第 {cur.turn} 回合头条</div>
+      <div class="hb-cards">
+        {(['US', 'USSR'] as Side[]).map((s) => {
+          const c = cur[s];
+          return (
+            <div key={s} class={`hb-card ${s.toLowerCase()}${cur.cancelled === s ? ' cancelled' : ''}`}>
+              <div class="hb-who">{names[s]}</div>
+              {c ? <MiniCard id={c} onClick={() => onZoom(c)} /> : <div class="hb-none">无头条</div>}
+              {cur.cancelled === s && <div class="hb-tag">被叛逃者取消</div>}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/** 每回合头条记录 */
+function HeadlineHistory({ view, names, onZoom }: { view: GameView; names: Record<Side, string>; onZoom: (c: number) => void }) {
+  const list = [...(view.headlines ?? [])].reverse();
+  if (!list.length) return <div class="quickref"><div class="empty-hint">还没有头条记录</div></div>;
+  const chip = (c: number | undefined, side: Side, cancelled: boolean) =>
+    c ? (
+      <button type="button" class={`hl-chip ${side.toLowerCase()}${cancelled ? ' cancelled' : ''}`} onClick={() => onZoom(c)} title={cancelled ? '被叛逃者取消' : CARDS[c].text}>
+        <span class="hl-ops">{CARDS[c].scoring ? '计' : CARDS[c].ops}</span>
+        {CARDS[c].zh}
+      </button>
+    ) : (
+      <span class="hl-none">—</span>
+    );
+  return (
+    <div class="hl-list">
+      <div class="hl-row hl-head">
+        <span>回合</span>
+        <span class="us">{names.US}</span>
+        <span class="ussr">{names.USSR}</span>
+      </div>
+      {list.map((h) => (
+        <div key={h.turn} class="hl-row">
+          <span class="hl-turn">T{h.turn}</span>
+          {chip(h.US, 'US', h.cancelled === 'US')}
+          {chip(h.USSR, 'USSR', h.cancelled === 'USSR')}
         </div>
       ))}
     </div>
@@ -386,7 +456,6 @@ function usePopup(view: GameView | null) {
   return { popup, close };
 }
 
-void CARDS;
 
 /** 音乐 / 音效开关 */
 export function AudioToggles({ musicOnly }: { musicOnly?: boolean }) {
