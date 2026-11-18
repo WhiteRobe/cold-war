@@ -614,3 +614,8 @@ h1, h2, h3, h4 { font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif; let
 }
 
 .sub-legend text { font-size: 12px; font-weight: 700; fill: #2b2620; paint-order: stroke; stroke: #e9dfc7dd; stroke-width: 3px; }
+
+.log-card { background: none; border: none; padding: 0; font: inherit; color: inherit; text-decoration: underline dotted; text-underline-offset: 3px; cursor: pointer; }
+.log-card:hover { color: var(--gold); }
+.log-card.side-us { text-decoration-color: var(--us2); }
+.log-card.side-ussr { text-decoration-color: var(--ussr2); }

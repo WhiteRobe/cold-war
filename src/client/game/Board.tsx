@@ -84,7 +84,7 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
           <button type="button" class={tab === 'cards' ? 'on' : ''} onClick={() => setTab('cards')}>牌堆</button>
           <button type="button" class={tab === 'help' ? 'on' : ''} onClick={() => setTab('help')}>速查</button>
         </div>
-        {tab === 'log' ? <LogView log={view.log} me={me} /> : tab === 'headlines' ? <HeadlineHistory view={view} names={names} onZoom={setZoomCard} /> : tab === 'cards' ? <CardsPanel view={view} names={names} onZoom={setZoomCard} /> : <QuickRef />}
+        {tab === 'log' ? <LogView log={view.log} me={me} onZoom={setZoomCard} /> : tab === 'headlines' ? <HeadlineHistory view={view} names={names} onZoom={setZoomCard} /> : tab === 'cards' ? <CardsPanel view={view} names={names} onZoom={setZoomCard} /> : <QuickRef />}
       </aside>
       <button type="button" class={`hand-toggle${handChoice ? ' need' : ''}`} onClick={() => setHandOpen(!handOpen)}>
         手牌 {myHand.length}{handOpen ? ' ▾' : ' ▴'}
@@ -269,7 +269,32 @@ function PlayingCard({ view, names, onZoom }: { view: GameView; names: Record<Si
   );
 }
 
-function LogView({ log, me }: { log: LogEntry[]; me: Side | null }) {
+/** 日志文字里的「#编号 卡名」变成可点击的卡牌链接 */
+function LogText({ text, onZoom }: { text: string; onZoom: (c: number) => void }) {
+  const out: (string | preact.JSX.Element)[] = [];
+  const re = /#(\d{1,3})/g;
+  let last = 0;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text))) {
+    const id = Number(m[1]);
+    const card = CARDS[id];
+    if (!card) continue;
+    const name = ` ${card.zh}`;
+    const end = text.startsWith(name, m.index + m[0].length) ? m.index + m[0].length + name.length : m.index + m[0].length;
+    if (m.index > last) out.push(text.slice(last, m.index));
+    out.push(
+      <button type="button" key={m.index} class={`log-card side-${card.side.toLowerCase()}`} onClick={() => onZoom(id)}>
+        {text.slice(m.index, end)}
+      </button>,
+    );
+    last = end;
+    re.lastIndex = end;
+  }
+  if (last < text.length) out.push(text.slice(last));
+  return <>{out}</>;
+}
+
+function LogView({ log, me, onZoom }: { log: LogEntry[]; me: Side | null; onZoom: (c: number) => void }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const el = ref.current;
@@ -281,7 +306,7 @@ function LogView({ log, me }: { log: LogEntry[]; me: Side | null }) {
       {shown.map((e, i) => (
         <div key={log.length - shown.length + i} class={`log-e k-${e.kind ?? 'n'}${e.side ? ` s-${e.side.toLowerCase()}` : ''}${e.to ? ' private' : ''}`}>
           {e.kind === 'turn' ? null : <span class="log-t">{e.turn}.{e.ar}</span>}
-          {e.t}
+          <LogText text={e.t} onZoom={onZoom} />
           {e.to && e.to === me && <span class="log-private">（仅你可见）</span>}
         </div>
       ))}
