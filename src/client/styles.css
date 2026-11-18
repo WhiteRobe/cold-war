@@ -769,3 +769,165 @@ h1, h2, h3, h4 { font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif; let
 @media (prefers-reduced-motion: reduce) { .lift-card { animation: none; } }
 .region-panel.in-modal { padding: 0; margin: 10px 0; }
 .region-panel.in-modal .rp-card { margin: 0; }
+
+/* ---------------- 事件动画 ---------------- */
+.beat-card.event { display: grid; grid-template-columns: auto auto; gap: 12px; align-items: start; text-align: left; }
+.beat-card.event .pp-who, .beat-card.event .row { grid-column: 1 / -1; text-align: center; justify-content: center; }
+.beat-card.event .card-face { width: 220px; }
+.event-stage { position: relative; width: min(440px, 52vw); aspect-ratio: 240 / 150; border-radius: 10px; overflow: hidden; border: 2px solid var(--gold); box-shadow: 0 0 30px #f5d76e44; cursor: pointer; background: #000; }
+.event-stage svg { width: 100%; height: 100%; display: block; }
+.es-art { transform-origin: 120px 75px; animation: esZoom 3.2s ease-out forwards; }
+.es-dim { opacity: 0; animation: esDim 0.6s ease-out 0.15s forwards; }
+.es-cap { position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 12px 8px; font-size: 20px; font-weight: 900; letter-spacing: 2px; color: #fff; text-align: center; background: linear-gradient(transparent, #000c 55%); text-shadow: 0 2px 6px #000; opacity: 0; animation: esCap 0.5s ease-out 1s forwards; }
+@keyframes esZoom { from { transform: scale(1); } to { transform: scale(1.14); } }
+@keyframes esDim { to { opacity: 0.18; } }
+@keyframes esCap { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.es-fx * { transform-box: fill-box; }
+.es-fx [class^='ev-'], .es-fx [class*=' ev-'] { animation-fill-mode: both; }
+.ev-burst { transform-origin: center; animation: evBurst 0.9s ease-out both; }
+.ev-pop { transform-origin: center bottom; animation: evPop 0.5s cubic-bezier(.3,1.6,.5,1) both; }
+.ev-wave { transform-origin: left center; animation: evWave 0.6s ease-in-out infinite alternate; }
+.ev-shake { animation: evShake 0.12s linear 6 0.2s; }
+.ev-flash { opacity: 0; animation: evFlash 0.7s ease-out both; }
+.ev-mushroom { transform-origin: center bottom; animation: evMush 1.6s ease-out both; }
+.ev-ring { transform-origin: center; animation: evRing 1.2s ease-out both; }
+.ev-siren { opacity: 0; animation: evSiren 0.5s ease-in-out 3 alternate both; }
+.ev-glow { opacity: 0; transform-origin: center; animation: evGlow 1.2s ease-out both; }
+.ev-fly { animation: evFly 2.6s ease-in-out both; }
+.ev-bob { animation: evBob 0.5s ease-in-out infinite alternate; }
+.ev-flap { transform-origin: center bottom; animation: evFlap 0.22s ease-in-out infinite alternate; }
+.ev-launch-slow { animation: evLaunch 2.2s ease-in 0.4s both; }
+.ev-launch { animation: evLaunchFast 1.3s ease-in both; }
+.ev-flame { transform-origin: center top; animation: evFlame 0.1s linear infinite alternate; }
+.ev-smoke { transform-origin: center; opacity: 0; animation: evSmoke 1.4s ease-out both; }
+.ev-rise { animation: evRise 0.6s ease-out both; }
+.ev-fall { animation: evFall 0.9s cubic-bezier(.4,0,.6,1.3) both; }
+.ev-coin { font: 900 10px sans-serif; fill: #6b4f0a; text-anchor: middle; }
+.ev-wave-ring { transform-origin: center; animation: evWaveRing 1.6s ease-out infinite both; }
+.ev-dark { opacity: 0; animation: evDark 0.6s ease-out forwards; }
+.ev-scan { animation: evScan 2.4s ease-in-out both; }
+.ev-scanline { animation: evScanline 1.8s linear 0.3s 2 both; }
+.ev-draw { stroke-dasharray: 400; stroke-dashoffset: 400; animation: evDraw 1s ease-out forwards; }
+.ev-slam { transform-origin: center; animation: evSlam 0.45s cubic-bezier(.5,0,.7,1.4) both; }
+.ev-toss { transform-origin: center; animation: evToss 1s ease-out both; }
+.ev-cross-plane { animation: evPlane 1.3s linear both; }
+.ev-falling { animation: evFalling 1s ease-in both; }
+.ev-brick { transform-origin: center; animation: evBrick 0.9s ease-in both; }
+.ev-drip { animation: evDrip 0.9s ease-in both; }
+.ev-spark { animation: evSpark 0.15s linear infinite alternate; }
+.ev-aim { transform-origin: center; animation: evAim 1.4s ease-out both; }
+.ev-float { transform-origin: center; animation: evFloat 1.2s ease-out both; }
+.ev-vp { font: 900 40px sans-serif; fill: #f5d76e; stroke: #3a2f10; stroke-width: 2px; paint-order: stroke; text-anchor: middle; }
+.ev-stamp-word { font: 900 40px sans-serif; fill: #c8102e; text-anchor: middle; letter-spacing: 6px; }
+.ev-rays { transform-origin: 120px -10px; transform-box: view-box !important; animation: evRays 6s linear infinite, evFadeIn 0.8s ease-out both; }
+.ev-fall-spin { animation: evFallSpin 1.4s ease-out both; }
+.ev-drop { animation: evDrop 0.6s ease-in both; }
+.ev-sail { animation: evSail 2.4s linear both; }
+.ev-sweep { transform-origin: 120px 75px; transform-box: view-box !important; animation: evSpin 1.6s linear infinite; }
+.ev-blip { opacity: 0; transform-origin: center; animation: evBlip 1s ease-out infinite both; }
+.ev-grow { transform-origin: center bottom; animation: evGrow 0.8s ease-out both; }
+.ev-bars { animation: evBars 0.8s cubic-bezier(.6,0,.8,1.2) 0.3s both; }
+.ev-spin, .ev-spin-rev, .ev-spin-slow { transform-box: view-box !important; }
+.ev-spin { animation: evSpin 3s linear infinite; }
+.ev-spin-rev { animation: evSpin 2s linear infinite reverse; }
+.ev-spin-slow { animation: evSpin 9s linear infinite; }
+.ev-jaw-top { animation: evJawTop 0.9s cubic-bezier(.7,0,1,1) 0.8s both; }
+.ev-jaw-bot { animation: evJawBot 0.9s cubic-bezier(.7,0,1,1) 0.8s both; }
+.ev-from-left { animation: evFromLeft 0.9s ease-out both; }
+.ev-from-right { animation: evFromRight 0.9s ease-out both; }
+.ev-tank { animation: evTank 1.4s ease-out both; }
+.ev-vanish { animation: evVanish 0.7s ease-in both; }
+@keyframes evBurst { 0% { transform: scale(0); opacity: 1; } 60% { transform: scale(1.15); opacity: 1; } 100% { transform: scale(1.3); opacity: 0; } }
+@keyframes evPop { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes evWave { from { transform: skewY(-6deg) scaleX(0.94); } to { transform: skewY(5deg) scaleX(1); } }
+@keyframes evShake { 0%,100% { transform: translate(0,0); } 25% { transform: translate(-3px,2px); } 75% { transform: translate(3px,-2px); } }
+@keyframes evFlash { 0% { opacity: 0; } 15% { opacity: 0.9; } 100% { opacity: 0; } }
+@keyframes evMush { 0% { transform: scale(0.2, 0); opacity: 0; } 30% { opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+@keyframes evRing { from { transform: scale(0.2); opacity: 1; } to { transform: scale(2.2); opacity: 0; } }
+@keyframes evSiren { from { opacity: 0; } to { opacity: 0.28; } }
+@keyframes evGlow { from { opacity: 0; transform: scale(0.6); } 50% { opacity: 0.55; } to { opacity: 0.25; transform: scale(1); } }
+@keyframes evFly { from { transform: translate(-50px, 100px); } to { transform: translate(250px, 20px); } }
+@keyframes evBob { from { transform: translateY(-2px); } to { transform: translateY(3px); } }
+@keyframes evFlap { from { transform: scaleY(1); } to { transform: scaleY(-0.5); } }
+@keyframes evLaunch { 0% { transform: translate(120px,150px); } 15% { transform: translate(120px,148px); } 100% { transform: translate(120px,-90px); } }
+@keyframes evLaunchFast { from { transform: translateY(0); } to { transform: translateY(-200px); } }
+@keyframes evFlame { from { transform: scaleY(0.8); opacity: 0.7; } to { transform: scaleY(1.25); opacity: 1; } }
+@keyframes evSmoke { 0% { opacity: 0; transform: scale(0.3); } 30% { opacity: 0.9; } 100% { opacity: 0; transform: scale(2.4) translateY(-6px); } }
+@keyframes evRise { from { transform: translateY(50px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes evFall { from { transform: translateY(-120px); opacity: 0; } 20% { opacity: 1; } to { transform: none; opacity: 1; } }
+@keyframes evWaveRing { from { transform: scale(1); opacity: 0.9; } to { transform: scale(6); opacity: 0; } }
+@keyframes evDark { to { opacity: 0.45; } }
+@keyframes evScan { 0% { transform: translate(-40px, 0); } 40% { transform: translate(110px, -10px); } 70% { transform: translate(80px, 20px); } 100% { transform: translate(150px, 0); } }
+@keyframes evScanline { from { transform: translateY(0); opacity: 0.8; } to { transform: translateY(150px); opacity: 0.2; } }
+@keyframes evDraw { to { stroke-dashoffset: 0; } }
+@keyframes evSlam { from { transform: scale(2.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes evToss { from { transform: none; opacity: 1; } to { transform: translate(var(--dx), -20px) rotate(var(--rot)); opacity: 0.9; } }
+@keyframes evPlane { from { transform: translate(-30px, 60px); } to { transform: translate(140px, 50px); } }
+@keyframes evFalling { from { transform: none; opacity: 1; } to { transform: translate(20px, 100px) rotate(160deg); opacity: 0; } }
+@keyframes evBrick { from { transform: none; } to { transform: translate(var(--dx), 160px) rotate(var(--rot)); } }
+@keyframes evDrip { from { transform: translateY(-30px); opacity: 0; } 30% { opacity: 1; } to { transform: translateY(70px); opacity: 0; } }
+@keyframes evSpark { from { transform: scale(0.6); } to { transform: scale(1.4); } }
+@keyframes evAim { 0% { transform: translate(-60px, 30px) scale(1.8); opacity: 0; } 30% { opacity: 1; } 70% { transform: translate(10px, -6px) scale(1.1); } 100% { transform: none; opacity: 1; } }
+@keyframes evFloat { from { transform: translateY(30px) scale(0); opacity: 0; } to { transform: translateY(-14px) scale(1); opacity: 1; } }
+@keyframes evRays { to { transform: rotate(360deg); } }
+@keyframes evFadeIn { from { opacity: 0; } }
+@keyframes evFallSpin { from { transform: translateY(-110px) rotate(-120deg); opacity: 0; } 20% { opacity: 1; } to { transform: none; opacity: 1; } }
+@keyframes evDrop { from { transform: translateY(-50px); opacity: 0; } 30% { opacity: 1; } 80% { transform: translateY(40px); opacity: 1; } to { transform: translateY(50px); opacity: 0; } }
+@keyframes evSail { from { transform: translateX(-60px); } to { transform: translateX(250px); } }
+@keyframes evSpin { to { transform: rotate(360deg); } }
+@keyframes evBlip { 0% { opacity: 0; transform: scale(0.4); } 30% { opacity: 1; transform: scale(1.4); } 100% { opacity: 0; transform: scale(1); } }
+@keyframes evGrow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@keyframes evBars { from { transform: translateY(-160px); } to { transform: none; } }
+@keyframes evJawTop { 0% { transform: translateY(-70px); } 55% { transform: translateY(12px); } 100% { transform: translateY(-22px); } }
+@keyframes evJawBot { 0% { transform: translateY(70px); } 55% { transform: translateY(-12px); } 100% { transform: translateY(22px); } }
+@keyframes evFromLeft { from { transform: translateX(-120px); } to { transform: none; } }
+@keyframes evFromRight { from { transform: translateX(120px); } to { transform: none; } }
+@keyframes evTank { from { transform: translate(-90px, 118px); } to { transform: translate(40px, 118px); } }
+@keyframes evVanish { 0% { opacity: 0; } 30% { opacity: 1; } 100% { opacity: 0.1; transform: translateY(6px); } }
+/* 行动点 / 太空：卡面盖章，事件不发动 */
+.beat-mode { display: inline-block; margin-left: 6px; padding: 2px 10px; border-radius: 999px; font-size: 14px; font-weight: 900; letter-spacing: 1px; vertical-align: 1px; }
+.beat-mode.event { background: var(--gold); color: #2b2210; }
+.beat-mode.ops { background: #4b5b78; color: #fff; }
+.beat-mode.space { background: #5b4b8a; color: #fff; }
+.beat-ops-wrap { position: relative; display: inline-block; }
+.beat-ops-wrap .card-face .cf-text { opacity: 0.45; text-decoration: line-through; text-decoration-color: #0006; }
+.beat-ops-stamp { position: absolute; left: 50%; top: 42%; transform: translate(-50%, -50%) rotate(-14deg); padding: 6px 14px; border: 4px solid #e9dfc7; border-radius: 8px; background: #2b3448e6; color: #fff; font-size: 26px; font-weight: 900; letter-spacing: 2px; white-space: nowrap; box-shadow: 0 6px 18px #000a; animation: evSlamCss 0.4s cubic-bezier(.5,0,.7,1.4) 0.15s both; }
+.beat-ops-stamp.space { background: #3f3466e6; }
+.beat-ops-stamp small { display: block; font-size: 12px; letter-spacing: 0; font-weight: 700; opacity: 0.9; }
+@keyframes evSlamCss { from { transform: translate(-50%, -50%) rotate(-14deg) scale(2.4); opacity: 0; } to { transform: translate(-50%, -50%) rotate(-14deg) scale(1); opacity: 1; } }
+.beat-note { margin-top: 6px; font-size: 13px; color: var(--text2); max-width: 300px; margin-left: auto; margin-right: auto; }
+.beat-note b { color: var(--gold); }
+@media (max-width: 900px) { .beat-card.event { grid-template-columns: 1fr; } .beat-card.event .card-face { display: none; } .event-stage { width: 80vw; } }
+.dev-ev .event-stage { width: 100%; }
+
+/* ---------------- 玩家阵营标识 ---------------- */
+.me-badge { position: absolute; top: 4px; right: 5px; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; cursor: help; z-index: 2; }
+.me-badge svg { width: 15px; height: 15px; }
+.me-badge.us { background: #24447a; box-shadow: 0 0 0 1.5px #9cc6f0, 0 0 10px #3d7bd9aa; }
+.me-badge.ussr { background: #b8231c; box-shadow: 0 0 0 1.5px #f5d76e, 0 0 10px #e0302aaa; }
+.me-badge::after { content: attr(data-tip); position: absolute; top: calc(100% + 6px); left: 50%; transform: translateX(-50%); white-space: nowrap; padding: 4px 9px; border-radius: 6px; background: #111c; border: 1px solid var(--line); font-size: 12px; font-weight: 700; color: var(--text); opacity: 0; pointer-events: none; transition: opacity 0.15s; }
+.me-badge:hover::after { opacity: 1; }
+.trk-turn:has(.me-badge:hover) > .trk-pop { display: none !important; }
+.trk-turn { padding-right: 30px; }
+
+/* 手牌区：美国左侧蓝光 + 星条底纹，苏联右侧红光 + 镰刀锤子底纹 */
+.board-hand.side-us {
+  background:
+    radial-gradient(ellipse 260px 140% at 0% 50%, #3d7bd955, transparent 70%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Cpolygon points='16,6 18.4,12.7 25.5,12.9 19.9,17.3 21.9,24.1 16,20.1 10.1,24.1 12.1,17.3 6.5,12.9 13.6,12.7' fill='%23ffffff' fill-opacity='0.05'/%3E%3Cpolygon points='48,38 50.4,44.7 57.5,44.9 51.9,49.3 53.9,56.1 48,52.1 42.1,56.1 44.1,49.3 38.5,44.9 45.6,44.7' fill='%23ffffff' fill-opacity='0.05'/%3E%3C/svg%3E"),
+    repeating-linear-gradient(0deg, #ffffff05 0 10px, transparent 10px 20px),
+    linear-gradient(180deg, #1d2740, #18202f);
+  box-shadow: inset 6px 0 0 #3d7bd9, inset 40px 0 50px -30px #5b9cff88;
+  animation: glowUs 3s ease-in-out infinite alternate;
+}
+.board-hand.side-ussr {
+  background:
+    radial-gradient(ellipse 260px 140% at 100% 50%, #e0302a55, transparent 70%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='72' viewBox='0 0 72 72'%3E%3Cg fill='%23f5d76e' fill-opacity='0.06' transform='translate(18 20)'%3E%3Cpath d='M-6.5,-5.5 A8.4,8.4 0 1 0 7.2,4.2 L5.3,3.1 A6.2,6.2 0 1 1 -4.2,-4.6Z'/%3E%3Cpath d='M-7.6,6.6 L2.4,-3.4 L4,-1.8 L-6,8.2Z'/%3E%3Cpath d='M-1.6,-5.2 L1,-7.8 L7,-1.8 L4.4,0.8Z'/%3E%3C/g%3E%3Cpolygon points='54,44 56,49.6 62,49.8 57.3,53.4 59,59.2 54,55.8 49,59.2 50.7,53.4 46,49.8 52,49.6' fill='%23f5d76e' fill-opacity='0.06'/%3E%3C/svg%3E"),
+    repeating-linear-gradient(120deg, #ffffff04 0 14px, transparent 14px 28px),
+    linear-gradient(180deg, #2f1d1c, #221717);
+  box-shadow: inset -6px 0 0 #e0302a, inset -40px 0 50px -30px #ff4a3a88;
+  animation: glowUssr 3s ease-in-out infinite alternate;
+}
+@keyframes glowUs { to { box-shadow: inset 6px 0 0 #5b9cff, inset 60px 0 60px -30px #5b9cffbb; } }
+@keyframes glowUssr { to { box-shadow: inset -6px 0 0 #ff4a3a, inset -60px 0 60px -30px #ff4a3abb; } }

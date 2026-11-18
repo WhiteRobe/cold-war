@@ -11,6 +11,7 @@ export function Tracks({ view, names, onPile }: { view: GameView; names: Record<
   return (
     <div class="tracks" data-tour="tracks">
       <div class="trk trk-turn has-pop">
+        {view.me && <MeBadge me={view.me} />}
         <div class="trk-label">回合</div>
         <div class="trk-big">
           {view.turn}
@@ -78,6 +79,25 @@ export function Tracks({ view, names, onPile }: { view: GameView; names: Record<
         </div>
       </div>
     </div>
+  );
+}
+
+/** 回合框右上角：你扮演的阵营 */
+function MeBadge({ me }: { me: Side }) {
+  return (
+    <span class={`me-badge ${me.toLowerCase()}`} data-tip={me === 'US' ? '你扮演美国' : '你扮演苏联'}>
+      <svg viewBox="-12 -12 24 24">
+        {me === 'US' ? (
+          <polygon points="0,-10 2.4,-3.3 9.5,-3.1 3.9,1.3 5.9,8.1 0,4.1 -5.9,8.1 -3.9,1.3 -9.5,-3.1 -2.4,-3.3" fill="#fff" />
+        ) : (
+          <g fill="#f5d76e">
+            <path d="M-6.5,-5.5 A8.4,8.4 0 1 0 7.2,4.2 L5.3,3.1 A6.2,6.2 0 1 1 -4.2,-4.6Z" />
+            <line x1="-6.8" y1="7.4" x2="3.2" y2="-2.6" stroke="#f5d76e" stroke-width="2.6" stroke-linecap="round" />
+            <line x1="-0.4" y1="-6.2" x2="5.8" y2="0" stroke="#f5d76e" stroke-width="3" stroke-linecap="round" />
+          </g>
+        )}
+      </svg>
+    </span>
   );
 }
 

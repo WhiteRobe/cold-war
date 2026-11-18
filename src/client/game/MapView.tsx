@@ -397,24 +397,30 @@ function Superpower({ id }: { id: 'usa' | 'ussr' }) {
   const [x, y] = pos(id);
   const hex = `${x - 64},${y - 26} ${x + 64},${y - 26} ${x + 74},${y} ${x + 64},${y + 26} ${x - 64},${y + 26} ${x - 74},${y}`;
   if (id === 'usa') {
-    const stripes = Array.from({ length: 7 }, (_, i) => (
-      <rect key={i} x={x - 74} y={y - 26 + (i * 52) / 7} width="148" height={52 / 7 + 0.3} fill={i % 2 ? '#f3ecdb' : '#b22234'} />
-    ));
-    const stars = [];
-    for (let r = 0; r < 3; r++) for (let c = 0; c < 4; c++) stars.push(<polygon key={`${r}${c}`} points={STAR_PTS(x - 64 + c * 9 + (r % 2) * 4.5, y - 19 + r * 8.5, 3.2)} fill="#fff" />);
+    // 与苏联同款：纯色六边形 + 左侧徽记 + 顶上国会大厦穹顶
+    const ring = Array.from({ length: 8 }, (_, k) => {
+      const a = (k / 8) * Math.PI * 2 - Math.PI / 2;
+      return <polygon key={k} points={STAR_PTS(Math.cos(a) * 8.2, Math.sin(a) * 8.2, 2)} fill="#f5d76e" />;
+    });
     return (
       <g class="superpower sp-usa">
-        <defs>
-          <clipPath id="sp-usa-clip"><polygon points={hex} /></clipPath>
-        </defs>
-        <g clip-path="url(#sp-usa-clip)">
-          {stripes}
-          <rect x={x - 74} y={y - 26} width="44" height="30" fill="#2f3e6e" />
-          {stars}
-          <rect x={x - 26} y={y - 13} width="92" height="26" rx="4" fill="#1f2f5c" opacity="0.92" />
-        </g>
+        {/* 国会大厦穹顶 */}
+        <polygon points={`${x - 22},${y - 26} ${x - 22},${y - 32} ${x + 22},${y - 32} ${x + 22},${y - 26}`} fill="#d9d2bf" stroke="#7d7564" stroke-width="1" />
+        <polygon points={`${x - 13},${y - 32} ${x - 13},${y - 38} ${x + 13},${y - 38} ${x + 13},${y - 32}`} fill="#e9e3d2" stroke="#7d7564" stroke-width="1" />
+        <polygon points={`${x - 12},${y - 38} ${x - 9},${y - 46} ${x - 4},${y - 50} ${x + 4},${y - 50} ${x + 9},${y - 46} ${x + 12},${y - 38}`} fill="#f1ecdf" stroke="#7d7564" stroke-width="1" />
+        <polygon points={`${x - 2},${y - 50} ${x - 1.5},${y - 56} ${x + 1.5},${y - 56} ${x + 2},${y - 50}`} fill="#d9d2bf" />
+        <polygon points={STAR_PTS(x, y - 61, 5.5)} fill="#f5d76e" stroke="#7d6418" stroke-width="0.8" />
+        <polygon points={hex} fill="#24447a" />
+        <polygon points={`${x - 74},${y} ${x - 64},${y - 26} ${x + 64},${y - 26} ${x + 74},${y}`} fill="#2d5291" />
+        {/* 底部一道红白细条呼应星条旗 */}
+        <polygon points={`${x - 69},${y + 14} ${x + 69},${y + 14} ${x + 67},${y + 18} ${x - 67},${y + 18}`} fill="#b8231c" opacity="0.85" />
+        <polygon points={`${x - 67},${y + 18} ${x + 67},${y + 18} ${x + 66},${y + 20} ${x - 66},${y + 20}`} fill="#efe6d0" opacity="0.7" />
         <polygon points={hex} class="sp-frame" />
-        <text x={x + 20} y={y + 7.5}>美 国</text>
+        <g transform={`translate(${x - 46},${y - 1})`} class="sp-emblem">
+          {ring}
+          <polygon points={STAR_PTS(0, 0, 4.6)} fill="#f5d76e" />
+        </g>
+        <text x={x + 14} y={y + 7.5}>美 国</text>
       </g>
     );
   }

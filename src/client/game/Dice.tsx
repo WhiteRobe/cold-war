@@ -5,6 +5,7 @@ import type { CardMove, LogEntry, RollInfo, Side } from '../../engine/types';
 import type { GameView } from '../../engine/view';
 import { sfx } from '../audio';
 import { CardFace, MiniCard } from './CardFace';
+import { EventStage } from './EventFx';
 
 /** 每次掷骰动画的总时长 */
 const ROLL_MS = 1900;
@@ -140,16 +141,47 @@ export function BeatOverlay({ beat, names, onNext, onSkipAll }: { beat: Beat | n
   if (!beat) return null;
   if (beat.kind === 'move') return <MoveOverlay move={beat.move} key={beat.key} onNext={onNext} />;
   if (beat.kind === 'card') {
+    const c = CARDS[beat.card];
+    const isEvent = beat.how === 'event' || beat.how === 'headline';
+    const other: Side = beat.side === 'US' ? 'USSR' : 'US';
+    // 用行动点打出对方阵营的事件牌时，事件仍会为对方发动
+    const firesForOther = beat.how === 'ops' && c.side === other;
+    const who = (
+      <div class={`pp-who ${beat.side.toLowerCase()}`}>
+        {names[beat.side]}（{SIDE_ZH[beat.side]}）{beat.how === 'headline' ? '头条' : ''}打出
+        <span class={`beat-mode ${isEvent ? 'event' : beat.how}`}>
+          {isEvent ? '事件' : beat.how === 'space' ? '太空竞赛' : `行动点 ${c.ops}`}
+        </span>
+      </div>
+    );
+    const confirm = (
+      <div class="row">
+        <button type="button" class="btn primary" onClick={onNext}>确定</button>
+        {!beat.needConfirm && <span class="beat-auto">几秒后自动关闭</span>}
+      </div>
+    );
+    if (isEvent) {
+      return (
+        <div class="beat-card event" key={beat.key}>
+          {who}
+          <EventStage card={beat.card} side={beat.side} />
+          <CardFace id={beat.card} />
+          {confirm}
+        </div>
+      );
+    }
     return (
       <div class="beat-card" key={beat.key}>
-        <div class={`pp-who ${beat.side.toLowerCase()}`}>
-          {names[beat.side]}（{SIDE_ZH[beat.side]}）{HOW_ZH[beat.how]}打出
+        {who}
+        <div class="beat-ops-wrap">
+          <CardFace id={beat.card} />
+          <div class={`beat-ops-stamp ${beat.how}`}>
+            {beat.how === 'space' ? '太空竞赛' : `行动点 ×${c.ops}`}
+            <small>{firesForOther ? `事件仍为${SIDE_ZH[other]}发动` : '事件不发动'}</small>
+          </div>
         </div>
-        <CardFace id={beat.card} />
-        <div class="row">
-          <button type="button" class="btn primary" onClick={onNext}>确定</button>
-          {!beat.needConfirm && <span class="beat-auto">几秒后自动关闭</span>}
-        </div>
+        {firesForOther && <div class="beat-note">这是<b>{SIDE_ZH[other]}</b>的事件牌，用作行动点时事件照样为{SIDE_ZH[other]}发动。</div>}
+        {confirm}
       </div>
     );
   }
@@ -189,6 +221,8 @@ function DiceOverlay({ roll: r, onSkip }: { roll: RollInfo; onSkip: () => void; 
   const sides: (Side | undefined)[] = two ? [r.side, r.side ? (r.side === 'US' ? 'USSR' : 'US') : undefined] : [r.side];
   const fmt = (m?: number) => (m ? (m > 0 ? ` +${m}` : ` −${-m}`) : '');
   const space = r.type === 'space';
+  // 双骰时美国固定在左、苏联在右
+  const order = two && sides[0] === 'USSR' ? [1, 0] : r.dice.map((_, i) => i);
   useEffect(() => {
     if (!space) return;
     const t = setTimeout(() => sfx(r.ok ? 'launch' : 'spaceFail'), 950);
@@ -203,14 +237,14 @@ function DiceOverlay({ roll: r, onSkip }: { roll: RollInfo; onSkip: () => void; 
       </div>
       {space && <Rocket ok={r.ok} side={r.side} />}
       <div class="dice-row">
-        {r.dice.map((v, i) => (
+        {order.map((i) => (
           <div key={i} class="dice-col">
             {two && sides[i] && <div class={`dice-label ${sides[i]!.toLowerCase()}`}>{SIDE_ZH[sides[i]!]}</div>}
-            <Die value={v} side={sides[i]} delay={i * 120} />
+            <Die value={r.dice[i]} side={sides[i]} delay={i * 120} />
             <div class="dice-sum">
-              {v}
+              {r.dice[i]}
               {fmt(r.mods?.[i])}
-              {r.mods?.[i] ? ` = ${v + r.mods[i]}` : ''}
+              {r.mods?.[i] ? ` = ${r.dice[i] + r.mods[i]}` : ''}
             </div>
           </div>
         ))}

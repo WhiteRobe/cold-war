@@ -40,9 +40,17 @@ const DevVictory = import.meta.env.DEV ? lazy<{ w: string }>(() => import('./gam
   </m.VictoryScene>
 ))) : null;
 
+/** 仅开发环境：#/dev-event/<卡号> 预览事件动画 */
+const DevEvent = import.meta.env.DEV ? lazy<{ ids: string }>(() => import('./game/EventFx').then((m) => ({ ids }: { ids: string }) => (
+  <div class="dev-ev" style={{ padding: 10, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+    {ids.split(',').map((id) => <div key={id} style={{ width: 340 }}><m.EventStage card={Number(id)} side="USSR" /></div>)}
+  </div>
+))) : null;
+
 function App() {
   const r = route.value;
   if (DevVictory && location.hash.startsWith('#/dev-victory/')) return <DevVictory w={location.hash.split('/')[2]} />;
+  if (DevEvent && location.hash.startsWith('#/dev-event/')) return <DevEvent ids={location.hash.split('/')[2]} />;
   // 对局页面由 Board 自己切换到对局音乐；其余页面放首页音乐
   useEffect(() => {
     if (r.name !== 'offline' && r.name !== 'room' && r.name !== 'replay') setMusicTrack('menu');
