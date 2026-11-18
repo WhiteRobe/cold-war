@@ -4,7 +4,7 @@ import { signal } from '@preact/signals';
 export type Sfx =
   | 'card' | 'place' | 'dice' | 'coupWin' | 'coupFail' | 'defconDown' | 'defconUp'
   | 'vpGood' | 'vpBad' | 'space' | 'scoring' | 'headline' | 'turn' | 'win' | 'lose' | 'click'
-  | 'controlGain' | 'controlLose' | 'fog';
+  | 'controlGain' | 'controlLose' | 'fog' | 'launch' | 'spaceFail';
 
 export type Track = 'menu' | 'game';
 
@@ -219,6 +219,17 @@ export function sfx(name: Sfx) {
       noise(0.09, { freq: 140, vol: 0.3, type: 'lowpass' });
       tone(330, 0.2, { type: 'sawtooth', vol: 0.05, filter: 1200, at: now + 0.08 });
       tone(247, 0.45, { type: 'sawtooth', vol: 0.055, filter: 1000, at: now + 0.22, slide: 0.95 });
+      break;
+    case 'launch':
+      // 点火轰鸣 + 上升
+      noise(1.4, { freq: 260, q: 0.4, vol: 0.3, type: 'lowpass', attack: 0.15 });
+      tone(90, 1.4, { type: 'sawtooth', vol: 0.06, slide: 2.5, filter: 600 });
+      tone(330, 0.9, { type: 'triangle', vol: 0.05, slide: 2.4, at: now + 0.5 });
+      break;
+    case 'spaceFail':
+      noise(0.5, { freq: 300, q: 0.5, vol: 0.35, type: 'lowpass' });
+      noise(0.9, { freq: 900, q: 0.6, vol: 0.12, at: now + 0.05 });
+      tone(160, 0.8, { type: 'sawtooth', vol: 0.06, slide: 0.4, filter: 800, at: now + 0.05 });
       break;
     case 'fog':
       noise(1.6, { freq: 380, q: 0.5, vol: 0.14, type: 'lowpass', attack: 0.5 });

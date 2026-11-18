@@ -603,7 +603,7 @@ export class Game {
 
   private recordPlay(side: Side, card: number, how: 'event' | 'ops' | 'space' | 'headline') {
     const s = this.s;
-    s.plays = [...(s.plays ?? []), { turn: s.turn, ar: s.ar, side, card, how }];
+    s.plays = [...(s.plays ?? []), { turn: s.turn, ar: s.ar, side, card, how, at: s.log.length }];
   }
 
   /** 打出一张牌（行动轮或嵌套打出，如 Grain Sales） */

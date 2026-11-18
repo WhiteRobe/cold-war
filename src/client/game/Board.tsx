@@ -8,7 +8,8 @@ import { audioPrefs, setAudioPrefs, setMusicTrack, setTension, sfx } from '../au
 import { go } from '../store';
 import { CardFace, MiniCard } from './CardFace';
 import { cardPreview } from './preview';
-import { DiceOverlay, useRollPacing } from './Dice';
+import { BeatOverlay, useEventPacing } from './Dice';
+import { SPACE } from '../../engine/space';
 import { MapView } from './MapView';
 import type { GameSession } from './session';
 import { Effects, Tracks } from './Tracks';
@@ -24,15 +25,17 @@ const CARD_ACTION: Partial<Record<Decision['tag'], string>> = {
 };
 
 export function Board({ session, tutorial }: { session: GameSession; tutorial?: boolean }) {
-  const paced = useRollPacing(session.view.value);
-  const view = paced.view;
   const names = session.names.value;
+  const incoming = session.view.value;
+  const oppOf = incoming?.me === 'US' ? 'USSR' : 'US';
+  const aiOpponent = session.kind === 'offline' || names[oppOf].startsWith('AI');
+  const paced = useEventPacing(incoming, aiOpponent);
+  const view = paced.view;
   const [zoomCard, setZoomCard] = useState<number | null>(null);
   const [pile, setPile] = useState<'discard' | 'removed' | 'deck' | null>(null);
   const [region, setRegion] = useState<RegionId | null>(null);
   const [tab, setTab] = useState<'log' | 'headlines' | 'cards' | 'help'>('log');
   const flash = useFlash(view);
-  const { popup, close: closePopup } = usePopup(view);
   useGameSounds(view, view?.log ?? []);
   const [overSeen, setOverSeen] = useState(false);
   const [handOpen, setHandOpen] = useState(false);
@@ -41,7 +44,7 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
   if (!view) return <div class="hero"><div class="empty-hint">正在载入对局…</div></div>;
   const me = view.me;
   // 掷骰动画播放时旧局面里的选择已经过期，先不让操作
-  const d = paced.show ? undefined : view.decision;
+  const d = paced.beat ? undefined : view.decision;
   const selectable = new Set<string>(d?.kind === 'country' ? d.options.map((o) => String(o.v)).filter((v) => v !== 'done') : []);
   const handChoice = d && d.kind === 'card' && (d.tag === 'play' || d.tag === 'headline' || (d.tag === 'discard' && d.options.every((o) => o.v === 'pass' || (me && view.hands[me].includes(o.v as number)) || o.v === CHINA_CARD)));
   const handOpts = new Set<number>(handChoice ? d!.options.map((o) => o.v).filter((v): v is number => typeof v === 'number') : []);
@@ -69,14 +72,8 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
       </header>
       <main class="board-map" data-tour="map">
         <Effects view={view} onCard={setZoomCard} />
-        <MapView view={view} selectable={selectable} onPick={(c) => choose(c)} flash={flash} onRegion={setRegion} focus={paced.show?.roll.target} />
-        <DiceOverlay show={paced.show} onSkip={paced.skip} />
-        {popup && (
-          <div class="play-popup" onClick={closePopup} title="点击关闭">
-            <div class={`pp-who ${popup.side.toLowerCase()}`}>{names[popup.side]}打出</div>
-            <CardFace id={popup.card} />
-          </div>
-        )}
+        <MapView view={view} selectable={selectable} onPick={(c) => choose(c)} flash={flash} onRegion={setRegion} focus={paced.beat?.kind === 'roll' ? paced.beat.roll.target : undefined} />
+        <BeatOverlay beat={paced.beat} names={names} onNext={paced.next} onSkipAll={paced.skipAll} />
       </main>
       <aside class="board-side">
         <DecisionPanel view={view} d={d} names={names} choose={choose} onZoom={setZoomCard} />
@@ -96,6 +93,7 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
         <div class="hand-main" data-tour="hand">
         <div class="hand-label">
           {me ? `${SIDE_ZH[me]}手牌` : '观战'}
+          {me && <TurnStatus view={view} me={me} />}
           {session.undo && (
             <button type="button" class="undo-btn" disabled={!session.canUndo.value} onClick={() => session.undo!()}>撤销</button>
           )}
@@ -511,26 +509,36 @@ function useFlash(view: GameView | null) {
   return flash;
 }
 
-/** 对手打出的牌弹出展示一会儿（计时器不能随 view 变化被清掉，否则 AI 结算完后弹窗会一直停在中间） */
-function usePopup(view: GameView | null) {
-  const [popup, setPopup] = useState<{ card: number; side: Side } | null>(null);
-  const last = useRef<string>('');
-  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const key = view?.playing ? `${view.playing.side}:${view.playing.card}:${view.turn}:${view.ar}` : '';
-  useEffect(() => {
-    if (!view?.playing || key === last.current) return;
-    last.current = key;
-    if (view.playing.side === view.me) return;
-    setPopup(view.playing);
-    clearTimeout(timer.current);
-    timer.current = setTimeout(() => setPopup(null), 2200);
-  }, [key]);
-  useEffect(() => () => clearTimeout(timer.current), []);
-  const close = () => {
-    clearTimeout(timer.current);
-    setPopup(null);
+/** 本回合还能打几张牌、能否太空竞赛 */
+function TurnStatus({ view, me }: { view: GameView; me: Side }) {
+  if (view.phase !== 'action' && view.phase !== 'headline') return null;
+  const them: Side = me === 'US' ? 'USSR' : 'US';
+  const base = view.turn <= 3 ? 6 : 7;
+  const perk8 = (s: Side) => view.space[s] >= 8 && view.space[s === 'US' ? 'USSR' : 'US'] < 8;
+  const maxAr = (s: Side) => base + (perk8(s) || (s === 'US' && view.flags.northSeaOil8) ? 1 : 0);
+  // 苏联先手：同一轮里苏联已经行动过，美国还没
+  const done = (s: Side) => {
+    if (view.phase === 'headline') return 0;
+    const ar = view.ar;
+    if (s === 'USSR') return view.phasing === 'USSR' ? ar - 1 : ar;
+    return ar - 1;
   };
-  return { popup, close };
+  const left = (s: Side) => Math.max(0, maxAr(s) - done(s));
+  const next = view.space[me] + 1;
+  const limit = view.space[me] >= 2 && view.space[them] < 2 ? 2 : 1;
+  const used = view.spaceAttempts[me];
+  let space: string;
+  if (next > 8) space = '已到终点';
+  else if (used >= limit) space = `本回合已用完（${used}/${limit}）`;
+  else space = `可用 ${limit - used} 次，下一格「${SPACE[next].name}」需行动点 ≥${SPACE[next].ops}`;
+  const trapped = me === 'US' ? view.flags.quagmire : view.flags.bearTrap;
+  return (
+    <span class="turn-status">
+      <span>本回合剩余行动轮：你 <b>{left(me)}</b> · 对手 <b>{left(them)}</b></span>
+      <span class={used >= limit || next > 8 ? 'muted' : ''}>太空竞赛：{space}</span>
+      {trapped && <span class="warn">被困中：每轮须弃一张 ≥2 行动点的牌</span>}
+    </span>
+  );
 }
 
 

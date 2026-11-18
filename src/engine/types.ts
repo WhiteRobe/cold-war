@@ -122,7 +122,7 @@ export interface GameState {
   /** 正在打出 / 结算的牌（界面用） */
   playing?: { card: number; side: Side };
   /** 出牌记录 */
-  plays?: { turn: number; ar: number; side: Side; card: number; how: 'event' | 'ops' | 'space' | 'headline' }[];
+  plays?: { turn: number; ar: number; side: Side; card: number; how: 'event' | 'ops' | 'space' | 'headline'; at?: number }[];
   /** 每回合的头条记录（cancelled：被叛逃者取消的一方） */
   headlines?: { turn: number; US?: number; USSR?: number; cancelled?: Side }[];
   /** 各区域最近一次计分的结果（界面显示雾气）：at 为当时的日志长度 */
