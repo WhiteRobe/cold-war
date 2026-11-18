@@ -204,7 +204,7 @@ export function cardPreview(v: GameView, card: number): Preview | null {
     case 50: lines.push(v.defcon === 2 ? '⚠ DEFCON 会降到 1：行动方直接输掉！' : `DEFCON ${v.defcon} → ${v.defcon - 1}；美国下个行动轮不打联合国干预，苏联 +3 VP`); break;
     case 89: lines.push(v.defcon === 2 ? '⚠ DEFCON 会降到 1：行动方直接输掉！' : `DEFCON ${v.defcon} → ${v.defcon - 1}，美国 +2 VP；韩国${ctl(v, 'southKorea') === 'US' ? '由美国控制，还能用 4 点行动点' : '不由美国控制，不给行动点'}`); break;
     case 90: lines.push(`DEFCON +1，苏联 +2 VP；${f.reformer ? '改革者已生效，还能用 4 点行动点' : '改革者未生效，不给行动点'}`); break;
-    case 100: if (v.defcon === 2) { const after = v.vp + (me === 'US' ? -6 : 6); lines.push(`结束对局后 VP ${after}：${after > 0 ? '美国胜' : after < 0 ? '苏联胜' : '平局'}`); if (after) good((after > 0) === (me === 'US')); } break;
+    case 100: if (v.defcon === 2) { const after = v.vp + (me === 'US' ? -6 : 6); lines.push(`给${ZH[opp(me)]} 6 VP 后${after > 0 ? `美国领先 ${after}` : after < 0 ? `苏联领先 ${-after}` : '双方打平'} → ${after > 0 ? '美国获胜' : after < 0 ? '苏联获胜' : '平局'}`); if (after) good((after > 0) === (me === 'US')); } break;
     case 58: lines.push(v.china.holder === 'US' ? '中国牌在美国手里 → 交给苏联（正面朝上）' : '苏联已持有中国牌 → 苏联 +1 VP'); break;
     case 71: lines.push(v.china.holder === 'USSR' ? '中国牌在苏联手里 → 交给美国（背面朝上）' : '美国已持有中国牌 → 美国 +2 VP'); break;
     case 76: lines.push(v.china.holder === 'USSR' ? '中国牌在苏联手里 → 交给美国（正面朝上）' : '美国已持有中国牌 → 美国在亚洲放 4 点影响力'); break;

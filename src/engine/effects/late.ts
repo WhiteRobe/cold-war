@@ -189,7 +189,15 @@ export const LATE: Record<number, Effect> = {
   100: {
     can: (g) => g.s.defcon === 2,
     *run(g, me) {
-      const v = yield* g.askOption(me, '战争游戏：给对手 6 VP 并立即结束对局？', [['end', `结束对局（当前 VP ${g.s.vp}，结束后 ${g.s.vp + (me === 'US' ? -6 : 6)}）`], ['no', '不结束']], { card: 100, auto: false });
+      const lead = (vp: number) => (vp > 0 ? `美国领先 ${vp}` : vp < 0 ? `苏联领先 ${-vp}` : '双方打平');
+      const after = g.s.vp + (me === 'US' ? -6 : 6);
+      const result = after > 0 ? '美国获胜' : after < 0 ? '苏联获胜' : '平局';
+      const v = yield* g.askOption(
+        me,
+        `战争游戏：给${SIDE_ZH[opp(me)]} 6 VP 并立即结束对局？（现在${lead(g.s.vp)}）`,
+        [['end', `结束对局：${SIDE_ZH[opp(me)]} +6 VP 后${lead(after)} → ${result}`], ['no', '不结束，继续对局']],
+        { card: 100, auto: false },
+      );
       if (v !== 'end') return;
       g.s.vp += me === 'US' ? -6 : 6;
       g.log(`战争游戏：${SIDE_ZH[opp(me)]} +6 VP，对局结束`, { kind: 'score' });
