@@ -80,7 +80,10 @@ export const MID: Record<number, Effect> = {
       }).length;
       const mu = count('US'), ms = count('USSR');
       const a = g.roll(), b = g.roll();
-      g.log(`首脑峰会：美国 ${a}+${mu}，苏联 ${b}+${ms}`, { kind: 'roll' });
+      g.log(`首脑峰会：美国 ${a}+${mu}，苏联 ${b}+${ms}`, {
+        kind: 'roll',
+        roll: { type: 'summit', side: 'US', dice: [a, b], mods: [mu, ms], ok: a + mu > b + ms, result: a + mu === b + ms ? '平局，无效果' : `${a + mu > b + ms ? '美国' : '苏联'}获胜 +2 VP` },
+      });
       if (a + mu === b + ms) return g.log('首脑峰会：平局');
       const w: Side = a + mu > b + ms ? 'US' : 'USSR';
       g.vp(w, 2, '首脑峰会');

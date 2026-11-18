@@ -68,6 +68,24 @@ export interface LogEntry {
   turn: number;
   ar: number;
   kind?: 'roll' | 'score' | 'card' | 'headline' | 'turn' | 'warn' | 'end';
+  /** 掷骰详情（界面做骰子动画） */
+  roll?: RollInfo;
+}
+
+export interface RollInfo {
+  type: 'coup' | 'realign' | 'war' | 'space' | 'olympics' | 'summit' | 'trap';
+  /** 掷骰的一方；双方对掷时为第一颗骰子的一方 */
+  side?: Side;
+  dice: number[];
+  /** 每颗骰子的修正 */
+  mods?: number[];
+  /** 目标国家 */
+  target?: string;
+  ok: boolean;
+  /** 结果说明，如“移除 2 点” */
+  result: string;
+  /** 判定说明，如“需要 > 6” */
+  need?: string;
 }
 
 export interface GameState {

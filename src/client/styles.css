@@ -534,3 +534,51 @@ h1, h2, h3, h4 { font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif; let
 .map-wrap.panning .fog-puff, .map-wrap.panning .country.selectable .c-box { animation-play-state: paused; }
 .map-wrap.panning .map { cursor: grabbing; }
 .map-wrap.panning .country-tip { display: none; }
+
+/* ---------------- 掷骰动画 ---------------- */
+.dice-overlay {
+  position: absolute; left: 50%; top: 46%; transform: translate(-50%, -50%); z-index: 8; min-width: 280px;
+  background: #1f2328ee; border: 1px solid var(--gold); border-radius: 12px; padding: 14px 20px 12px; text-align: center;
+  box-shadow: 0 14px 40px #000c; animation: diceIn 0.2s ease-out; cursor: pointer;
+}
+@keyframes diceIn { from { opacity: 0; transform: translate(-50%, -44%) scale(0.92); } }
+.dice-title { font-size: 17px; font-weight: 800; margin-bottom: 10px; }
+.dice-who { margin-right: 6px; }
+.dice-who.us { color: #9cc6f0; }
+.dice-who.ussr { color: #ffa093; }
+.dice-target { color: var(--gold); margin-left: 4px; }
+.dice-row { display: flex; justify-content: center; gap: 28px; }
+.dice-col { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.dice-label { font-size: 12px; font-weight: 700; }
+.dice-label.us { color: #9cc6f0; }
+.dice-label.ussr { color: #ffa093; }
+.die { width: 64px; height: 64px; }
+.die svg { width: 100%; height: 100%; }
+.die-face { fill: #f3ecdb; stroke: #3a352e; stroke-width: 2.5; }
+.die.us .die-face { fill: #e6eef7; stroke: var(--us); }
+.die.ussr .die-face { fill: #f9e6e3; stroke: var(--ussr); }
+.die-pip { fill: #1f1a10; }
+.die.rolling { animation: dieTumble 0.25s linear infinite; }
+.die.landed { animation: dieLand 0.35s ease-out; }
+@keyframes dieTumble {
+  0% { transform: translate(-6px, -4px) rotate(0deg); }
+  25% { transform: translate(5px, 3px) rotate(90deg); }
+  50% { transform: translate(-3px, 5px) rotate(180deg); }
+  75% { transform: translate(6px, -3px) rotate(270deg); }
+  100% { transform: translate(-6px, -4px) rotate(360deg); }
+}
+@keyframes dieLand { 0% { transform: scale(1.25); } 60% { transform: scale(0.95); } 100% { transform: scale(1); } }
+.dice-sum { font-size: 15px; font-weight: 800; opacity: 0; animation: fadeIn 0.3s ease-out 0.85s forwards; }
+.dice-need { font-size: 12px; color: var(--text2); margin-top: 8px; opacity: 0; animation: fadeIn 0.3s ease-out 0.9s forwards; }
+.dice-result { font-size: 18px; font-weight: 900; margin-top: 6px; opacity: 0; animation: resultPop 0.4s ease-out 1s forwards; }
+.dice-result.ok { color: #8fe09a; }
+.dice-result.fail { color: #f08a7c; }
+@keyframes fadeIn { to { opacity: 1; } }
+@keyframes resultPop { 0% { opacity: 0; transform: scale(1.4); } 100% { opacity: 1; transform: scale(1); } }
+.roll-focus circle { fill: none; stroke: var(--gold); stroke-width: 4; animation: focusPulse 1s ease-out infinite; transform-box: fill-box; transform-origin: center; }
+.roll-focus circle.r2 { animation-delay: 0.5s; }
+@keyframes focusPulse { 0% { transform: scale(0.7); opacity: 1; } 100% { transform: scale(1.6); opacity: 0; } }
+@media (max-width: 1000px), (max-height: 620px) {
+  .dice-overlay { min-width: 220px; padding: 10px 14px; }
+  .die { width: 48px; height: 48px; }
+}

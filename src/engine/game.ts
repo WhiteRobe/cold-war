@@ -578,7 +578,9 @@ export class Game {
     this.removeFromHand(side, c);
     this.discardCard(c);
     const r = this.roll();
-    this.log(`${SIDE_ZH[side]}弃掉 ${cardName(c)} 尝试摆脱${CARDS[trapCard].zh}：掷出 ${r}`, { side, kind: 'roll' });
+    this.log(`${SIDE_ZH[side]}弃掉 ${cardName(c)} 尝试摆脱${CARDS[trapCard].zh}：掷出 ${r}`, {
+      side, kind: 'roll', roll: { type: 'trap', side, dice: [r], ok: r <= 4, need: '需要 1–4', result: r <= 4 ? `摆脱${CARDS[trapCard].zh}` : '仍然被困' },
+    });
     if (r <= 4) {
       if (side === 'US') s.flags.quagmire = false;
       else s.flags.bearTrap = false;
@@ -877,7 +879,9 @@ export class Game {
     let res = '平局，无效果';
     if (a > b) res = `${countryName(c)} 移除对手 ${this.removeInf(c, opp(side), a - b)} 点影响力`;
     else if (b > a) res = `${countryName(c)} 移除己方 ${this.removeInf(c, side, b - a)} 点影响力`;
-    this.log(`${SIDE_ZH[side]}调整${countryName(c)}：${ra}${fmtMod(ma)} 对 ${rb}${fmtMod(mb)} → ${res}`, { side, kind: 'roll' });
+    this.log(`${SIDE_ZH[side]}调整${countryName(c)}：${ra}${fmtMod(ma)} 对 ${rb}${fmtMod(mb)} → ${res}`, {
+      side, kind: 'roll', roll: { type: 'realign', side, dice: [ra, rb], mods: [ma, mb], target: c, ok: a > b, result: res.replace(`${countryName(c)} `, '') },
+    });
   }
 
   canPayCmc(side: Side) {
@@ -921,7 +925,13 @@ export class Game {
     this.log(
       `${SIDE_ZH[side]}在${countryName(c)}发动政变：${r}+${ops}${mod ? fmtMod(mod) : ''} 对 ${2 * d.stability} → ` +
         (diff > 0 ? `成功，移除 ${removed} 点${removed < diff ? `，增加 ${diff - removed} 点` : ''}` : '失败'),
-      { side, kind: 'roll' },
+      {
+        side, kind: 'roll',
+        roll: {
+          type: 'coup', side, dice: [r], mods: [ops + mod], target: c, ok: diff > 0, need: `需要 > ${2 * d.stability}（2×稳定度）`,
+          result: diff > 0 ? `移除 ${removed} 点${removed < diff ? `，增加 ${diff - removed} 点` : ''}` : '政变失败',
+        },
+      },
     );
     if (side === 'US' && s.flags.yuri) this.vp('USSR', 1, '尤里和萨曼莎');
     if (d.bg && !(side === 'US' && s.flags.nuclearSubs && !o.free)) this.degradeDefcon(1, '战场国政变');
@@ -937,7 +947,9 @@ export class Game {
     const box = SPACE[next];
     const r = this.roll();
     const ok = r <= box.roll;
-    this.log(`${SIDE_ZH[side]}用 ${cardName(card)} 进行太空竞赛（${box.name}，需 ≤${box.roll}）：掷出 ${r}，${ok ? '成功' : '失败'}`, { side, kind: 'roll' });
+    this.log(`${SIDE_ZH[side]}用 ${cardName(card)} 进行太空竞赛（${box.name}，需 ≤${box.roll}）：掷出 ${r}，${ok ? '成功' : '失败'}`, {
+      side, kind: 'roll', roll: { type: 'space', side, dice: [r], ok, need: `${box.name}：需要 ≤${box.roll}`, result: ok ? `推进到「${box.name}」` : '发射失败' },
+    });
     if (ok) this.advanceSpace(side, 1);
   }
 
@@ -1125,7 +1137,10 @@ export class Game {
     this.addMilops(side, o.milops);
     const r = this.roll();
     const ok = r - mod >= o.need;
-    this.log(`${CARDS[card].zh}：目标${countryName(target)}，掷出 ${r}${mod ? `-${mod}` : ''}（需 ≥${o.need}）→ ${ok ? '胜利' : '失败'}`, { side, kind: 'roll' });
+    this.log(`${CARDS[card].zh}：目标${countryName(target)}，掷出 ${r}${mod ? `-${mod}` : ''}（需 ≥${o.need}）→ ${ok ? '胜利' : '失败'}`, {
+      side, kind: 'roll',
+      roll: { type: 'war', side, dice: [r], mods: [-mod], target, ok, need: `${CARDS[card].zh}：需要 ≥${o.need}`, result: ok ? `战争胜利，+${o.vp} VP` : '战争失败' },
+    });
     if (ok) {
       const n = this.inf(target, enemy);
       this.setInf(target, enemy, 0);

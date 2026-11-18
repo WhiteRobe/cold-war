@@ -26,8 +26,17 @@ function post(m: WorkerOut) {
   (self as unknown as Worker).postMessage(m);
 }
 
+/** 上次发送后新增的掷骰次数：AI 要等骰子动画播完再走下一步 */
+let sentLog = 0;
+let rollWait = 0;
+const ROLL_MS = 1900;
+
 function send() {
   if (!game) return;
+  const log = game.s.log;
+  const rolls = log.slice(Math.min(sentLog, log.length)).filter((e) => e.roll).length;
+  sentLog = log.length;
+  rollWait = Math.min(rolls, 4) * ROLL_MS;
   post({ type: 'view', view: viewFor(game, human), history: game.history, canUndo: game.history.some((h) => h.side === human) && !game.over });
 }
 
@@ -56,7 +65,7 @@ function pump() {
     if (err) game.submit(aiSide(), dd.options[0].v);
     send();
     pump();
-  }, game.pendingFor(human) ? 0 : FAST_TAGS.has(d.tag) ? 90 : AI_STEP_MS);
+  }, (game.pendingFor(human) ? 0 : FAST_TAGS.has(d.tag) ? 90 : AI_STEP_MS) + rollWait);
 }
 
 self.onmessage = (e: MessageEvent<WorkerIn>) => {
@@ -69,6 +78,7 @@ self.onmessage = (e: MessageEvent<WorkerIn>) => {
       seed = s.seed;
       aiRand = (s.seed ^ 0x5bd1e995) & 0x7fffffff || 1;
       game = Game.replay({ seed: s.seed, options: s.options }, s.history);
+      sentLog = game.s.log.length;
       // AI 的随机数也要可复现：按已走步数推进
       for (let i = 0; i < s.history.length; i++) rand();
       send();
@@ -87,6 +97,7 @@ self.onmessage = (e: MessageEvent<WorkerIn>) => {
       while (i >= 0 && h[i].side !== human) i--;
       if (i < 0) return;
       game = Game.replay({ seed, options: game.setup.options }, h.slice(0, i));
+      sentLog = game.s.log.length;
       send();
       pump();
     }

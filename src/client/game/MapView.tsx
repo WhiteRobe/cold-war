@@ -93,9 +93,11 @@ interface Props {
   /** 最近有变化的国家（高亮一下） */
   flash: Set<string>;
   onRegion?: (r: RegionId) => void;
+  /** 正在掷骰的目标国（脉冲高亮） */
+  focus?: string;
 }
 
-export function MapView({ view, selectable, onPick, flash, onRegion }: Props) {
+export function MapView({ view, selectable, onPick, flash, onRegion, focus }: Props) {
   const [hover, setHover] = useState<string | null>(null);
   const { fx, fresh } = useMapFx(view);
   const [zoom, setZoom] = useState({ x: 0, y: 0, k: 1 });
@@ -326,6 +328,12 @@ export function MapView({ view, selectable, onPick, flash, onRegion }: Props) {
               if (hover === 'japan') { x2 = MAP_W - 4; y2 = y1; }
               return <line key={x} x1={x1} y1={y1} x2={x2} y2={y2} />;
             })}
+          </g>
+        )}
+        {focus && COUNTRIES[focus] && (
+          <g class="roll-focus" key={focus}>
+            <circle cx={pos(focus)[0]} cy={pos(focus)[1]} r="34" />
+            <circle cx={pos(focus)[0]} cy={pos(focus)[1]} r="34" class="r2" />
           </g>
         )}
         <FxLayer fx={fx} pos={pos} />

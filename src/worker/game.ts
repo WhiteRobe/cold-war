@@ -50,6 +50,7 @@ export class GameDO extends DurableObject<Env> {
       const moves = ctx.storage.sql.exec<{ side: string; v: string }>('SELECT side, v FROM moves ORDER BY seq').toArray();
       this.game = Game.replay({ seed: this.meta.seed, options: this.meta.config.options }, moves.map((m) => ({ side: m.side as Side, v: JSON.parse(m.v) as Choice })));
       this.aiRand = (this.meta.seed ^ 0x2545f491) & 0x7fffffff || 1;
+      this.sentLog = this.game.s.log.length;
     }
   }
 
@@ -209,7 +210,17 @@ export class GameDO extends DurableObject<Env> {
     this.scheduleAi();
   }
 
+  /** 上次推送后的日志长度（统计新的掷骰，AI 等动画播完再走） */
+  private sentLog = 0;
+  private rollWait = 0;
+
   private afterChange() {
+    if (this.game) {
+      const log = this.game.s.log;
+      const rolls = log.slice(Math.min(this.sentLog, log.length)).filter((e) => e.roll).length;
+      this.sentLog = log.length;
+      this.rollWait = Math.min(rolls, 4) * 1900;
+    }
     if (this.game?.over) this.finish();
     for (const w of this.ctx.getWebSockets()) this.sendView(w, false);
     this.scheduleAi();
@@ -231,7 +242,7 @@ export class GameDO extends DurableObject<Env> {
     const humanWaiting = (['US', 'USSR'] as Side[]).some((s) => s !== aiSide && g.pendingFor(s));
     const tag = g.pendingFor(aiSide)!.tag;
     const fast = tag === 'setup' || tag === 'placeOps' || tag === 'placeEvent' || tag === 'removeEvent' || tag === 'realignTarget';
-    const delay = humanWaiting ? 50 : fast ? 150 : Number(this.env.AI_DELAY_MS) || 900;
+    const delay = (humanWaiting ? 50 : fast ? 150 : Number(this.env.AI_DELAY_MS) || 900) + this.rollWait;
     this.aiTimer = setTimeout(() => {
       const d = g.pendingFor(aiSide);
       if (!d || this.game !== g) return;

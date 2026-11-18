@@ -8,6 +8,7 @@ import { audioPrefs, setAudioPrefs, setMusicTrack, setTension, sfx } from '../au
 import { go } from '../store';
 import { CardFace, MiniCard } from './CardFace';
 import { cardPreview } from './preview';
+import { DiceOverlay, useRollPacing } from './Dice';
 import { MapView } from './MapView';
 import type { GameSession } from './session';
 import { Effects, Tracks } from './Tracks';
@@ -23,7 +24,8 @@ const CARD_ACTION: Partial<Record<Decision['tag'], string>> = {
 };
 
 export function Board({ session, tutorial }: { session: GameSession; tutorial?: boolean }) {
-  const view = session.view.value;
+  const paced = useRollPacing(session.view.value);
+  const view = paced.view;
   const names = session.names.value;
   const [zoomCard, setZoomCard] = useState<number | null>(null);
   const [pile, setPile] = useState<'discard' | 'removed' | 'deck' | null>(null);
@@ -31,14 +33,15 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
   const [tab, setTab] = useState<'log' | 'headlines' | 'cards' | 'help'>('log');
   const flash = useFlash(view);
   const { popup, close: closePopup } = usePopup(view);
-  useGameSounds(view, session.log.value);
+  useGameSounds(view, view?.log ?? []);
   const [overSeen, setOverSeen] = useState(false);
   const [handOpen, setHandOpen] = useState(false);
   const [confirm, setConfirm] = useState<{ msg: string; v: Choice } | null>(null);
 
   if (!view) return <div class="hero"><div class="empty-hint">正在载入对局…</div></div>;
   const me = view.me;
-  const d = view.decision;
+  // 掷骰动画播放时旧局面里的选择已经过期，先不让操作
+  const d = paced.show ? undefined : view.decision;
   const selectable = new Set<string>(d?.kind === 'country' ? d.options.map((o) => String(o.v)).filter((v) => v !== 'done') : []);
   const handChoice = d && d.kind === 'card' && (d.tag === 'play' || d.tag === 'headline' || (d.tag === 'discard' && d.options.every((o) => o.v === 'pass' || (me && view.hands[me].includes(o.v as number)) || o.v === CHINA_CARD)));
   const handOpts = new Set<number>(handChoice ? d!.options.map((o) => o.v).filter((v): v is number => typeof v === 'number') : []);
@@ -66,7 +69,8 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
       </header>
       <main class="board-map" data-tour="map">
         <Effects view={view} onCard={setZoomCard} />
-        <MapView view={view} selectable={selectable} onPick={(c) => choose(c)} flash={flash} onRegion={setRegion} />
+        <MapView view={view} selectable={selectable} onPick={(c) => choose(c)} flash={flash} onRegion={setRegion} focus={paced.show?.roll.target} />
+        <DiceOverlay show={paced.show} onSkip={paced.skip} />
         {popup && (
           <div class="play-popup" onClick={closePopup} title="点击关闭">
             <div class={`pp-who ${popup.side.toLowerCase()}`}>{names[popup.side]}打出</div>
@@ -83,7 +87,7 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
           <button type="button" class={tab === 'cards' ? 'on' : ''} onClick={() => setTab('cards')}>牌堆</button>
           <button type="button" class={tab === 'help' ? 'on' : ''} onClick={() => setTab('help')}>速查</button>
         </div>
-        {tab === 'log' ? <LogView log={session.log.value} me={me} /> : tab === 'headlines' ? <HeadlineHistory view={view} names={names} onZoom={setZoomCard} /> : tab === 'cards' ? <CardsPanel view={view} names={names} onZoom={setZoomCard} /> : <QuickRef />}
+        {tab === 'log' ? <LogView log={view.log} me={me} /> : tab === 'headlines' ? <HeadlineHistory view={view} names={names} onZoom={setZoomCard} /> : tab === 'cards' ? <CardsPanel view={view} names={names} onZoom={setZoomCard} /> : <QuickRef />}
       </aside>
       <button type="button" class={`hand-toggle${handChoice ? ' need' : ''}`} onClick={() => setHandOpen(!handOpen)}>
         手牌 {myHand.length}{handOpen ? ' ▾' : ' ▴'}
@@ -582,7 +586,6 @@ function useGameSounds(view: GameView | null, log: LogEntry[]) {
       else if (e.kind === 'headline' && e.t.startsWith('头条：')) sfx('headline');
       else if (e.kind === 'roll') {
         rolled = true;
-        sfx('dice');
         if (e.t.includes('政变')) sfx(e.t.includes('成功') ? 'coupWin' : 'coupFail');
         else if (e.t.includes('太空竞赛') && e.t.includes('成功')) setTimeout(() => sfx('space'), 450);
       } else if (e.kind === 'score' && e.t.includes('计分：')) sfx('scoring');

@@ -169,7 +169,10 @@ export const EARLY: Record<number, Effect> = {
       if (v === 'go') {
         for (;;) {
           const a = g.roll() + 2, b = g.roll();
-          g.log(`奥运会：${SIDE_ZH[me]} ${a - 2}+2，${SIDE_ZH[them]} ${b}`, { kind: 'roll' });
+          g.log(`奥运会：${SIDE_ZH[me]} ${a - 2}+2，${SIDE_ZH[them]} ${b}`, {
+            kind: 'roll',
+            roll: { type: 'olympics', side: me, dice: [a - 2, b], mods: [2, 0], ok: a > b, result: a === b ? '平局，重掷' : `${SIDE_ZH[a > b ? me : them]}获胜 +2 VP` },
+          });
           if (a === b) continue;
           g.vp(a > b ? me : them, 2, '奥运会');
           break;
