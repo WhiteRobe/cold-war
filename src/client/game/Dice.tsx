@@ -15,6 +15,8 @@ const SPACE_MS = 2600;
 const HUMAN_CARD_MS = 6000;
 /** 卡牌移动展示时长 */
 const MOVE_MS = 2400;
+/** 自己打出事件的动画时长 */
+const OWN_EVENT_MS = 3400;
 const TITLE: Record<RollInfo['type'], string> = {
   coup: '政变', realign: '调整阵营', war: '战争', space: '太空竞赛', olympics: '奥运会', summit: '首脑峰会', trap: '脱困检定',
 };
@@ -24,7 +26,7 @@ const HOW_ZH = { event: '作为事件', ops: '使用行动点', space: '用于�
 export type Beat =
   | { key: number; kind: 'roll'; roll: RollInfo }
   | { key: number; kind: 'move'; move: CardMove }
-  | { key: number; kind: 'card'; card: number; side: Side; how: keyof typeof HOW_ZH; needConfirm: boolean };
+  | { key: number; kind: 'card'; card: number; side: Side; how: keyof typeof HOW_ZH; needConfirm: boolean; own?: boolean };
 
 /**
  * 局面节奏控制：新局面里有对手出牌或掷骰时，先保持旧局面依次展示（对手的牌、骰子动画），
@@ -56,6 +58,7 @@ export function useEventPacing(incoming: GameView | null, aiOpponent: boolean): 
     setBeat(b);
     if (b.kind === 'roll') timer.current = setTimeout(next, b.roll.type === 'space' ? SPACE_MS : ROLL_MS);
     else if (b.kind === 'move') timer.current = setTimeout(next, MOVE_MS);
+    else if (b.own) timer.current = setTimeout(next, OWN_EVENT_MS);
     else if (!b.needConfirm) timer.current = setTimeout(next, HUMAN_CARD_MS);
   };
 
@@ -78,7 +81,11 @@ export function useEventPacing(incoming: GameView | null, aiOpponent: boolean): 
     const me = incoming.me;
     const prevPlays = prev.plays?.length ?? 0;
     for (const p of (incoming.plays ?? []).slice(prevPlays)) {
-      if (p.side === me) continue;
+      if (p.side === me) {
+        // 自己打出的事件也播动画（行动点 / 太空不必再提示）
+        if (p.how === 'event' || p.how === 'headline') items.push({ at: p.at ?? Infinity, beat: { key: ++seq.current, kind: 'card', card: p.card, side: p.side, how: p.how, needConfirm: false, own: true } });
+        continue;
+      }
       items.push({ at: p.at ?? Infinity, beat: { key: ++seq.current, kind: 'card', card: p.card, side: p.side, how: p.how, needConfirm: aiOpponent } });
     }
     if (!items.length) {
@@ -148,13 +155,17 @@ export function BeatOverlay({ beat, names, onNext, onSkipAll }: { beat: Beat | n
     const firesForOther = beat.how === 'ops' && c.side === other;
     const who = (
       <div class={`pp-who ${beat.side.toLowerCase()}`}>
-        {names[beat.side]}（{SIDE_ZH[beat.side]}）{beat.how === 'headline' ? '头条' : ''}打出
+        {beat.own ? '你' : `${names[beat.side]}（${SIDE_ZH[beat.side]}）`}{beat.how === 'headline' ? '头条' : ''}打出
         <span class={`beat-mode ${isEvent ? 'event' : beat.how}`}>
           {isEvent ? '事件' : beat.how === 'space' ? '太空竞赛' : `行动点 ${c.ops}`}
         </span>
       </div>
     );
-    const confirm = (
+    const confirm = beat.own ? (
+      <div class="row">
+        <button type="button" class="btn" onClick={onNext}>跳过</button>
+      </div>
+    ) : (
       <div class="row">
         <button type="button" class="btn primary" onClick={onNext}>确定</button>
         {!beat.needConfirm && <span class="beat-auto">几秒后自动关闭</span>}

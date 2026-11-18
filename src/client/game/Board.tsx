@@ -13,6 +13,7 @@ import { VictoryScene } from './Victory';
 import { RegionCard, RegionPanel } from './RegionPanel';
 import { SPACE } from '../../engine/space';
 import { MapView } from './MapView';
+import { RADIAL_LIVE_TAGS, Radial, type RadialAnchor } from './Radial';
 import type { GameSession } from './session';
 import { Effects, Tracks } from './Tracks';
 
@@ -42,6 +43,9 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
   const [overSeen, setOverSeen] = useState(false);
   const [handOpen, setHandOpen] = useState(false);
   const [confirm, setConfirm] = useState<{ msg: string; v: Choice } | null>(null);
+  // 出牌轮盘与预选路径
+  const [radial, setRadial] = useState<RadialAnchor | null>(null);
+  const queue = useRef<Choice[]>([]);
   // 手牌悬浮：牌原地抽出放大，显示完整卡面和预估
   const [lift, setLift] = useState<{ id: number; x: number; top: number } | null>(null);
   const liftTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -64,13 +68,29 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
   const d = paced.beat ? undefined : view.decision;
   const selectable = new Set<string>(d?.kind === 'country' ? d.options.map((o) => String(o.v)).filter((v) => v !== 'done') : []);
   const handChoice = d && d.kind === 'card' && (d.tag === 'play' || d.tag === 'headline' || (d.tag === 'discard' && d.options.every((o) => o.v === 'pass' || (me && view.hands[me].includes(o.v as number)) || o.v === CHINA_CARD)));
-  const handOpts = new Set<number>(handChoice ? d!.options.map((o) => o.v).filter((v): v is number => typeof v === 'number') : []);
+  const scoringInHand = me ? view.hands[me].filter((c) => CARDS[c].scoring).length : 0;
+  // 剩余出牌机会不比手里的计分牌多：只能打计分牌，否则回合结束判负
+  const mustScore = !!me && d?.tag === 'play' && view.phase === 'action' && scoringInHand > 0 && scoringInHand >= arsLeft(view, me);
+  const handOpts = new Set<number>(
+    handChoice ? d!.options.map((o) => o.v).filter((v): v is number => typeof v === 'number' && (!mustScore || CARDS[v].scoring)) : [],
+  );
 
   /** 会让自己当场输掉的选择先确认一下 */
   const choose = (v: Choice) => {
     const msg = d ? danger(view, d, v) : null;
     if (msg) setConfirm({ msg, v });
     else session.choose(v);
+  };
+
+  const radialLive = !!radial && !!d && RADIAL_LIVE_TAGS.has(d.tag) && (d.card === radial.card || d.card === undefined);
+  const radialPick = !!radial && !!d && (d.tag === 'play' || d.tag === 'headline') && handOpts.has(radial.card) && !queue.current.length;
+  const showRadial = radial && (radialLive || radialPick);
+  const openCard = (c: number, el: HTMLElement) => {
+    if (d && (d.tag === 'play' || d.tag === 'headline') && handOpts.has(c)) {
+      const r = el.getBoundingClientRect();
+      setLift(null);
+      setRadial({ card: c, x: r.left + r.width / 2, top: r.top });
+    } else setZoomCard(c);
   };
 
   const myHand = me ? [...view.hands[me]] : [];
@@ -112,6 +132,7 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
         <div class="hand-label">
           {me ? `${SIDE_ZH[me]}手牌` : '观战'}
           {me && <TurnStatus view={view} me={me} />}
+          {mustScore && <span class="must-score">只能打计分牌：手里 {scoringInHand} 张计分牌，只剩 {arsLeft(view, me!)} 次出牌机会，留到回合结束直接判负</span>}
           {session.undo && (
             <button type="button" class="undo-btn" disabled={!session.canUndo.value} onClick={() => session.undo!()}>撤销</button>
           )}
@@ -121,13 +142,13 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
             const isChina = c === CHINA_CARD;
             const active = handOpts.has(c);
             return (
-              <div key={c} class={`hand-slot${lift?.id === c ? ' lifted' : ''}`} onPointerEnter={(e) => liftCard(c, e.currentTarget as HTMLElement)} onPointerLeave={dropCard}>
+              <div key={c} data-hand={c} class={`hand-slot${lift?.id === c || radial?.card === c ? ' lifted' : ''}`} onPointerEnter={(e) => !radial && liftCard(c, e.currentTarget as HTMLElement)} onPointerLeave={dropCard}>
                 <MiniCard
                   id={c}
                   active={active}
                   dim={!!handChoice && !active}
                   faceDown={isChina && !view.china.faceUp}
-                  onClick={() => { dropCard(); setZoomCard(c); }}
+                  onClick={() => { dropCard(); openCard(c, document.querySelector(`[data-hand="${c}"]`) as HTMLElement); }}
                 />
               </div>
             );
@@ -149,11 +170,24 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
         )}
       </footer>
 
-      {lift && zoomCard === null && (
+      {lift && zoomCard === null && !radial && (
         <div class="lift-card" key={lift.id} style={{ left: `${Math.max(170, Math.min(window.innerWidth - 170, lift.x))}px`, bottom: `${window.innerHeight - lift.top + 6}px` }}>
           <CardFace id={lift.id} faceDown={lift.id === CHINA_CARD && !view.china.faceUp} />
           <CardPreview view={view} card={lift.id} />
         </div>
+      )}
+      <QueueRunner d={d} queue={queue} choose={choose} onIdle={() => radial && !radialLive && !radialPick && setRadial(null)} />
+      {showRadial && (
+        <Radial
+          key={radial.card}
+          view={view}
+          anchor={radial}
+          d={d}
+          onCommit={(path) => { queue.current = path.slice(1); choose(path[0]); }}
+          onLive={(v) => choose(v)}
+          onCancel={() => setRadial(null)}
+          onZoom={setZoomCard}
+        />
       )}
       <Coach view={view} force={tutorial} />
       {confirm && (
@@ -162,7 +196,7 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
             <h3>⚠️ 危险操作</h3>
             <p>{confirm.msg}</p>
             <div class="row">
-              <button type="button" class="btn primary" onClick={() => setConfirm(null)}>我再想想</button>
+              <button type="button" class="btn primary" onClick={() => { setConfirm(null); queue.current = []; setRadial(null); }}>我再想想</button>
               <button type="button" class="btn" onClick={() => { session.choose(confirm.v); setConfirm(null); }}>坚持执行</button>
             </div>
           </div>
@@ -272,7 +306,7 @@ function DecisionPanel({ view, d, names, choose, onZoom }: { view: GameView; d?:
       )}
       {d.kind === 'card' && (
         <>
-          {(d.tag === 'play' || d.tag === 'headline') && <div class="hint">点击下方高亮的手牌查看详情，再确认打出</div>}
+          {(d.tag === 'play' || d.tag === 'headline') && <div class="hint">点击高亮的手牌，在牌上方的轮盘里选打法（数字键 1–4 也行）</div>}
           {d.tag !== 'play' && d.tag !== 'headline' && (
             <div class="option-cards">
               {d.options.filter((o) => typeof o.v === 'number').map((o) => (
@@ -589,21 +623,39 @@ function FinalScoreTable({ view }: { view: GameView }) {
   );
 }
 
+/** 预选路径：新决策里有队首选项就自动选上；轮盘不再适用时收起 */
+function QueueRunner({ d, queue, choose, onIdle }: { d?: Decision; queue: { current: Choice[] }; choose: (v: Choice) => void; onIdle: () => void }) {
+  useEffect(() => {
+    if (d && queue.current.length) {
+      const head = queue.current[0];
+      if (d.options.some((o) => o.v === head)) {
+        queue.current.shift();
+        choose(head);
+        return;
+      }
+      if (d.kind === 'country' || d.tag === 'play' || d.tag === 'headline') queue.current = [];
+    }
+    if (d && !queue.current.length) onIdle();
+  }, [d]);
+  return null;
+}
+
+/** 本回合还剩几个行动轮（含正在进行的这一轮） */
+function arsLeft(view: GameView, s: Side) {
+  const base = view.turn <= 3 ? 6 : 7;
+  const perk8 = view.space[s] >= 8 && view.space[s === 'US' ? 'USSR' : 'US'] < 8;
+  const maxAr = base + (perk8 || (s === 'US' && view.flags.northSeaOil8) ? 1 : 0);
+  if (view.phase === 'headline') return maxAr;
+  // 苏联先手：同一轮里苏联已经行动过，美国还没
+  const done = s === 'USSR' ? (view.phasing === 'USSR' ? view.ar - 1 : view.ar) : view.ar - 1;
+  return Math.max(0, maxAr - done);
+}
+
 /** 本回合还能打几张牌、能否太空竞赛 */
 function TurnStatus({ view, me }: { view: GameView; me: Side }) {
   if (view.phase !== 'action' && view.phase !== 'headline') return null;
   const them: Side = me === 'US' ? 'USSR' : 'US';
-  const base = view.turn <= 3 ? 6 : 7;
-  const perk8 = (s: Side) => view.space[s] >= 8 && view.space[s === 'US' ? 'USSR' : 'US'] < 8;
-  const maxAr = (s: Side) => base + (perk8(s) || (s === 'US' && view.flags.northSeaOil8) ? 1 : 0);
-  // 苏联先手：同一轮里苏联已经行动过，美国还没
-  const done = (s: Side) => {
-    if (view.phase === 'headline') return 0;
-    const ar = view.ar;
-    if (s === 'USSR') return view.phasing === 'USSR' ? ar - 1 : ar;
-    return ar - 1;
-  };
-  const left = (s: Side) => Math.max(0, maxAr(s) - done(s));
+  const left = (s: Side) => arsLeft(view, s);
   const next = view.space[me] + 1;
   const limit = view.space[me] >= 2 && view.space[them] < 2 ? 2 : 1;
   const used = view.spaceAttempts[me];
@@ -615,6 +667,11 @@ function TurnStatus({ view, me }: { view: GameView; me: Side }) {
   return (
     <span class="turn-status">
       <span>本回合剩余行动轮：你 <b>{left(me)}</b> · 对手 <b>{left(them)}</b></span>
+      {(() => {
+        const sc = view.hands[me].filter((c) => CARDS[c].scoring).length;
+        const free = Math.max(0, left(me) - sc);
+        return sc > 0 ? <span class={free === 0 ? 'warn' : 'free-plays'}>可自由出牌 <b>{free}</b> 次（另有 {sc} 张计分牌必须打）</span> : null;
+      })()}
       <span class={used >= limit || next > 8 ? 'muted' : ''}>太空竞赛：{space}</span>
       {trapped && <span class="warn">被困中：每轮须弃一张 ≥2 行动点的牌</span>}
     </span>
