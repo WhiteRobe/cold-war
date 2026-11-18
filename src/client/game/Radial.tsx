@@ -27,7 +27,7 @@ function canSpace(v: GameView, me: Side, card: number) {
   return SPACE[next];
 }
 
-export function Radial({ view, anchor, d, onCommit, onLive, onCancel, onZoom }: {
+export function Radial({ view, anchor, d, onCommit, onLive, onCancel, detail }: {
   view: GameView;
   anchor: RadialAnchor;
   d?: Decision;
@@ -35,7 +35,8 @@ export function Radial({ view, anchor, d, onCommit, onLive, onCancel, onZoom }: 
   onCommit: (path: Choice[]) => void;
   onLive: (v: Choice) => void;
   onCancel: () => void;
-  onZoom: (c: number) => void;
+  /** 牌面详情，展开在轮盘旁边 */
+  detail?: JSX.Element;
 }) {
   const me = view.me!;
   const card = anchor.card;
@@ -98,9 +99,13 @@ export function Radial({ view, anchor, d, onCommit, onLive, onCancel, onZoom }: 
   const x = Math.max(R + 70, Math.min(window.innerWidth - R - 70, anchor.x));
   const y = anchor.top - 8;
   const span = petals.length <= 1 ? 0 : petals.length === 2 ? 70 : petals.length === 3 ? 100 : 120;
+  // 详情放在轮盘右侧，右边放不下就放左侧
+  const DW = 290;
+  const dx = x + R + 70 + DW <= window.innerWidth - 8 ? x + R + 70 : Math.max(8, x - R - 70 - DW);
   return (
     <>
       {!live && <div class="radial-backdrop" onClick={onCancel} />}
+      {detail && <div class="radial-detail" style={{ left: `${dx}px`, bottom: `${window.innerHeight - anchor.top + 6}px` }}>{detail}</div>}
       <div class={`radial${live ? ' live' : ''}`} style={{ left: `${x}px`, top: `${y}px` }} key={`${stage}-${live ? d!.tag : 'p'}`}>
         {petals.map((p, i) => {
           const a = ((petals.length === 1 ? 0 : -span / 2 + (span * i) / (petals.length - 1)) - 90) * (Math.PI / 180);
@@ -116,10 +121,11 @@ export function Radial({ view, anchor, d, onCommit, onLive, onCancel, onZoom }: 
         })}
         <div class="radial-hub">
           <span class="rh-title">{title}</span>
-          <span class="rh-actions">
-            <button type="button" onClick={() => onZoom(card)}>详情</button>
-            {!live && <button type="button" onClick={onCancel}>取消</button>}
-          </span>
+          {!live && (
+            <span class="rh-actions">
+              <button type="button" onClick={onCancel}>取消</button>
+            </span>
+          )}
         </div>
       </div>
     </>

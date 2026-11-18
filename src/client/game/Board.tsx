@@ -90,7 +90,8 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
       const r = el.getBoundingClientRect();
       setLift(null);
       setRadial({ card: c, x: r.left + r.width / 2, top: r.top });
-    } else setZoomCard(c);
+    } else if (!canHover()) setZoomCard(c);
+    // 能悬停的设备上，悬停已经展开了完整卡面，单击不再弹窗
   };
 
   const myHand = me ? [...view.hands[me]] : [];
@@ -186,7 +187,12 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
           onCommit={(path) => { queue.current = path.slice(1); choose(path[0]); }}
           onLive={(v) => choose(v)}
           onCancel={() => setRadial(null)}
-          onZoom={setZoomCard}
+          detail={
+            <>
+              <CardFace id={radial.card} faceDown={radial.card === CHINA_CARD && !view.china.faceUp} />
+              <CardPreview view={view} card={radial.card} />
+            </>
+          }
         />
       )}
       <Coach view={view} force={tutorial} />
@@ -622,6 +628,9 @@ function FinalScoreTable({ view }: { view: GameView }) {
     </table>
   );
 }
+
+/** 悬停抽牌是否可用（与 .lift-card 的媒体查询一致） */
+const canHover = () => window.matchMedia('(hover: hover)').matches && !window.matchMedia('(max-width: 1000px), (max-height: 620px)').matches;
 
 /** 预选路径：新决策里有队首选项就自动选上；轮盘不再适用时收起 */
 function QueueRunner({ d, queue, choose, onIdle }: { d?: Decision; queue: { current: Choice[] }; choose: (v: Choice) => void; onIdle: () => void }) {

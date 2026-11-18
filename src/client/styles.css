@@ -971,3 +971,8 @@ h1, h2, h3, h4 { font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif; let
 .must-score { color: #ffb4a8; background: #5a1f1a; border: 1px solid #b8231c; padding: 1px 8px; border-radius: 6px; font-weight: 700; animation: mustPulse 1.4s ease-in-out infinite alternate; }
 @keyframes mustPulse { to { box-shadow: 0 0 10px #ff4a3a88; } }
 .turn-status .free-plays b { color: var(--gold); }
+.radial-detail { position: fixed; z-index: 41; width: 290px; display: flex; flex-direction: column; gap: 6px; filter: drop-shadow(0 18px 30px #000c); animation: detailIn 0.22s cubic-bezier(.2,.9,.25,1.1) both; }
+.radial-detail .card-face { width: 100%; }
+.radial-detail .score-preview { width: 100%; }
+@keyframes detailIn { from { opacity: 0; transform: translateX(-24px) scale(0.92); } }
+@media (max-height: 760px) { .radial-detail .cf-art-wrap { display: none; } }
