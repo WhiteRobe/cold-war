@@ -2,7 +2,8 @@ import { useState } from 'preact/hooks';
 import { AI_LEVEL_ZH, type AiLevel } from '../../ai';
 import { DEFAULT_OPTIONS, type Side } from '../../engine/types';
 import { deleteSave, listSaves, newSave } from '../game/offline';
-import { go } from '../store';
+import { go, toast } from '../store';
+import { coachOn, resetCoach, setCoach } from '../game/Coach';
 import { AudioToggles } from '../game/Board';
 
 export function Home() {
@@ -18,6 +19,12 @@ export function Home() {
     go(`/offline/${s.id}`);
   };
 
+  const tutorial = () => {
+    resetCoach();
+    const s = newSave('USSR', 1, { ...DEFAULT_OPTIONS }, true);
+    go(`/offline/${s.id}`);
+  };
+
   return (
     <div class="home">
       <div class="home-audio"><AudioToggles musicOnly /></div>
@@ -28,6 +35,24 @@ export function Home() {
         <h1>冷战热斗</h1>
         <div class="subtitle">Twilight Struggle · 1945–1989 · 双人策略</div>
       </div>
+
+      <section class="panel tutorial-panel">
+        <div>
+          <h2>第一次玩？</h2>
+          <p>
+            开一局新手教程：你执苏联，对手是最简单的 AI。每遇到一个新情况，都会弹出提示讲清楚规则和界面；
+            会让你当场输掉的操作也会先问一句。完整规则可以看<a href="#/rules">规则摘要</a>。
+          </p>
+        </div>
+        <div class="tutorial-actions">
+          <button type="button" class="btn primary big" onClick={tutorial}>开始新手教程</button>
+          <label class="check">
+            <input type="checkbox" checked={coachOn.value} onChange={(e) => setCoach((e.target as HTMLInputElement).checked)} />
+            普通对局也显示新手提示
+          </label>
+          <button type="button" class="btn small ghost" onClick={() => { resetCoach(); toast('新手提示已重置，会从头再显示一遍'); }}>重置新手提示</button>
+        </div>
+      </section>
 
       <div class="home-grid">
         <section class="panel">

@@ -32,11 +32,11 @@ export function deleteSave(id: string) {
   localStorage.setItem(KEY, JSON.stringify(all));
 }
 
-export function newSave(human: Side, ai: AiLevel, options: GameOptions): OfflineSave {
+export function newSave(human: Side, ai: AiLevel, options: GameOptions, tutorial = false): OfflineSave {
   const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   const seed = crypto.getRandomValues(new Uint32Array(1))[0] | 0;
   const now = Date.now();
-  const save: OfflineSave = { id, seed, options, human, ai, history: [], createdAt: now, updatedAt: now, summary: { turn: 1, vp: 0, defcon: 5, over: false } };
+  const save: OfflineSave = { id, seed, options, human, ai, tutorial, history: [], createdAt: now, updatedAt: now, summary: { turn: 1, vp: 0, defcon: 5, over: false } };
   putSave(save);
   return save;
 }

@@ -22,6 +22,8 @@ export interface OfflineSave {
   options: GameOptions;
   human: Side;
   ai: AiLevel;
+  /** 新手教程局：强制显示引导 */
+  tutorial?: boolean;
   history: { side: Side; v: Choice }[];
   createdAt: number;
   updatedAt: number;

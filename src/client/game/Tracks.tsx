@@ -8,7 +8,7 @@ const PHASE_ZH = { setup: '开局布置', headline: '头条阶段', action: '行
 export function Tracks({ view, names, onPile }: { view: GameView; names: Record<Side, string>; onPile: (p: 'discard' | 'removed' | 'deck') => void }) {
   const era = view.turn <= 3 ? '早期' : view.turn <= 7 ? '中期' : '后期';
   return (
-    <div class="tracks">
+    <div class="tracks" data-tour="tracks">
       <div class="trk trk-turn">
         <div class="trk-label">回合</div>
         <div class="trk-big">
@@ -22,18 +22,18 @@ export function Tracks({ view, names, onPile }: { view: GameView; names: Record<
       </div>
       <Defcon d={view.defcon} />
       <Vp vp={view.vp} />
-      <div class="trk trk-mil">
+      <div class="trk trk-mil" data-tour="milops">
         <div class="trk-label">军事行动（需 {view.defcon}）</div>
         <MilRow side="US" n={view.milops.US} need={view.defcon} />
         <MilRow side="USSR" n={view.milops.USSR} need={view.defcon} />
       </div>
-      <div class="trk trk-space">
+      <div class="trk trk-space" data-tour="space">
         <div class="trk-label">太空竞赛</div>
         <SpaceRow side="US" n={view.space.US} />
         <SpaceRow side="USSR" n={view.space.USSR} />
       </div>
       <div class="trk trk-cards">
-        <div class={`china ${view.china.holder.toLowerCase()}${view.china.faceUp ? '' : ' down'}`} title="中国牌：打出后背面朝上交给对手">
+        <div data-tour="china" class={`china ${view.china.holder.toLowerCase()}${view.china.faceUp ? '' : ' down'}`} title="中国牌：打出后背面朝上交给对手">
           中国牌 · {view.china.holder === 'US' ? '美' : '苏'}
           {view.china.faceUp ? '' : '（背面）'}
         </div>
@@ -53,7 +53,7 @@ export function Tracks({ view, names, onPile }: { view: GameView; names: Record<
 
 function Defcon({ d }: { d: number }) {
   return (
-    <div class="trk trk-defcon">
+    <div class="trk trk-defcon" data-tour="defcon">
       <div class="trk-label">DEFCON</div>
       <div class="defcon-row">
         {[5, 4, 3, 2, 1].map((n) => (
@@ -68,7 +68,7 @@ function Defcon({ d }: { d: number }) {
 function Vp({ vp }: { vp: number }) {
   const pct = ((Math.max(-20, Math.min(20, vp)) + 20) / 40) * 100;
   return (
-    <div class="trk trk-vp">
+    <div class="trk trk-vp" data-tour="vp">
       <div class="trk-label">胜利点</div>
       <div class="vp-bar">
         <div class="vp-ussr">苏 20</div>
@@ -155,7 +155,7 @@ export function Effects({ view, onCard }: { view: GameView; onCard: (id: number)
   if (f.missileEnvy) chips.push({ text: `导弹嫉妒：${f.missileEnvy === 'US' ? '美' : '苏'}须用行动点打出`, card: 49, cls: 'neutral' });
   if (!chips.length) return null;
   return (
-    <div class="effects">
+    <div class="effects" data-tour="effects">
       {chips.map((c) => (
         <button type="button" key={c.text} class={`chip ${c.cls}`} onClick={() => onCard(c.card)}>
           {c.text}

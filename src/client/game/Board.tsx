@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { CARDS, CARD_LIST, CHINA_CARD, COUNTRY_LIST, REGION_ZH, type RegionId, type Side } from '../../data';
 import { scoreRegion } from '../../engine/scoring';
-import type { Decision, LogEntry } from '../../engine/types';
+import type { Choice, Decision, LogEntry } from '../../engine/types';
+import { Coach, coachOn, danger, setCoach } from './Coach';
 import type { GameView } from '../../engine/view';
 import { audioPrefs, setAudioPrefs, setMusicTrack, setTension, sfx } from '../audio';
 import { go } from '../store';
@@ -12,7 +13,7 @@ import { Effects, Tracks } from './Tracks';
 
 const SIDE_ZH: Record<Side, string> = { US: '美国', USSR: '苏联' };
 
-export function Board({ session }: { session: GameSession }) {
+export function Board({ session, tutorial }: { session: GameSession; tutorial?: boolean }) {
   const view = session.view.value;
   const names = session.names.value;
   const [zoomCard, setZoomCard] = useState<number | null>(null);
@@ -24,6 +25,7 @@ export function Board({ session }: { session: GameSession }) {
   useGameSounds(view, session.log.value);
   const [overSeen, setOverSeen] = useState(false);
   const [handOpen, setHandOpen] = useState(false);
+  const [confirm, setConfirm] = useState<{ msg: string; v: Choice } | null>(null);
 
   if (!view) return <div class="hero"><div class="empty-hint">正在载入对局…</div></div>;
   const me = view.me;
@@ -31,6 +33,13 @@ export function Board({ session }: { session: GameSession }) {
   const selectable = new Set<string>(d?.kind === 'country' ? d.options.map((o) => String(o.v)).filter((v) => v !== 'done') : []);
   const handChoice = d && d.kind === 'card' && (d.tag === 'play' || d.tag === 'headline' || (d.tag === 'discard' && d.options.every((o) => o.v === 'pass' || (me && view.hands[me].includes(o.v as number)) || o.v === CHINA_CARD)));
   const handOpts = new Set<number>(handChoice ? d!.options.map((o) => o.v).filter((v): v is number => typeof v === 'number') : []);
+
+  /** 会让自己当场输掉的选择先确认一下 */
+  const choose = (v: Choice) => {
+    const msg = d ? danger(view, d, v) : null;
+    if (msg) setConfirm({ msg, v });
+    else session.choose(v);
+  };
 
   const myHand = me ? [...view.hands[me]] : [];
   if (me && view.china.holder === me) myHand.push(CHINA_CARD);
@@ -43,11 +52,12 @@ export function Board({ session }: { session: GameSession }) {
       <header class="board-top">
         <button type="button" class="icon-btn" title="返回" onClick={() => go('/')}>←</button>
         <Tracks view={view} names={names} onPile={setPile} />
+        <button type="button" class={`icon-btn coach-btn${coachOn.value || tutorial ? ' on' : ''}`} title={coachOn.value ? '关闭新手提示' : '打开新手提示'} onClick={() => setCoach(!coachOn.value)}>?</button>
         <AudioToggles />
       </header>
-      <main class="board-map">
+      <main class="board-map" data-tour="map">
         <Effects view={view} onCard={setZoomCard} />
-        <MapView view={view} selectable={selectable} onPick={(c) => session.choose(c)} flash={flash} onRegion={setRegion} />
+        <MapView view={view} selectable={selectable} onPick={(c) => choose(c)} flash={flash} onRegion={setRegion} />
         {popup && (
           <div class="play-popup" onClick={closePopup} title="点击关闭">
             <div class={`pp-who ${popup.side.toLowerCase()}`}>{names[popup.side]}打出</div>
@@ -56,7 +66,7 @@ export function Board({ session }: { session: GameSession }) {
         )}
       </main>
       <aside class="board-side">
-        <DecisionPanel view={view} d={d} names={names} session={session} onZoom={setZoomCard} />
+        <DecisionPanel view={view} d={d} names={names} choose={choose} onZoom={setZoomCard} />
         {view.phase === 'headline' && Object.keys(view.headline).length > 0 && (
           <div class="headline-box">
             <div class="hb-title">头条</div>
@@ -70,7 +80,7 @@ export function Board({ session }: { session: GameSession }) {
             </div>
           </div>
         )}
-        <div class="side-tabs">
+        <div class="side-tabs" data-tour="sidetabs">
           <button type="button" class={tab === 'log' ? 'on' : ''} onClick={() => setTab('log')}>记录</button>
           <button type="button" class={tab === 'help' ? 'on' : ''} onClick={() => setTab('help')}>速查</button>
         </div>
@@ -80,7 +90,7 @@ export function Board({ session }: { session: GameSession }) {
         手牌 {myHand.length}{handOpen ? ' ▾' : ' ▴'}
       </button>
       <footer class={`board-hand${handOpen || handChoice ? ' open' : ''}`}>
-        <div class="hand-main">
+        <div class="hand-main" data-tour="hand">
         <div class="hand-label">
           {me ? `${SIDE_ZH[me]}手牌` : '观战'}
           {session.undo && (
@@ -98,7 +108,7 @@ export function Board({ session }: { session: GameSession }) {
                 active={active}
                 dim={!!handChoice && !active}
                 faceDown={isChina && !view.china.faceUp}
-                onClick={() => (active ? session.choose(c) : setZoomCard(c))}
+                onClick={() => (active ? choose(c) : setZoomCard(c))}
               />
             );
           })}
@@ -115,6 +125,19 @@ export function Board({ session }: { session: GameSession }) {
         )}
       </footer>
 
+      <Coach view={view} force={tutorial} />
+      {confirm && (
+        <div class="modal" onClick={() => setConfirm(null)}>
+          <div class="modal-box danger-box" onClick={(e) => e.stopPropagation()}>
+            <h3>⚠️ 危险操作</h3>
+            <p>{confirm.msg}</p>
+            <div class="row">
+              <button type="button" class="btn primary" onClick={() => setConfirm(null)}>我再想想</button>
+              <button type="button" class="btn" onClick={() => { session.choose(confirm.v); setConfirm(null); }}>坚持执行</button>
+            </div>
+          </div>
+        </div>
+      )}
       {zoomCard !== null && (
         <div class="modal" onClick={() => setZoomCard(null)}>
           <div class="modal-card" onClick={(e) => e.stopPropagation()}>
@@ -142,7 +165,7 @@ export function Board({ session }: { session: GameSession }) {
   );
 }
 
-function DecisionPanel({ view, d, names, session, onZoom }: { view: GameView; d?: Decision; names: Record<Side, string>; session: GameSession; onZoom: (c: number) => void }) {
+function DecisionPanel({ view, d, names, choose, onZoom }: { view: GameView; d?: Decision; names: Record<Side, string>; choose: (v: Choice) => void; onZoom: (c: number) => void }) {
   if (view.phase === 'over') return <div class="decision idle">对局已结束</div>;
   if (!d) {
     const w = view.waitingFor.filter((s) => s !== view.me);
@@ -156,10 +179,9 @@ function DecisionPanel({ view, d, names, session, onZoom }: { view: GameView; d?
       </div>
     );
   }
-  const choose = (v: string | number) => session.choose(v);
   const showCard = d.card && d.tag !== 'play' && d.tag !== 'headline';
   return (
-    <div class={`decision tag-${d.tag}`}>
+    <div class={`decision tag-${d.tag}`} data-tour="decision">
       {showCard && d.tag === 'mode' ? (
         <div class="decision-card" onClick={() => onZoom(d.card!)}>
           <CardFace id={d.card!} />
@@ -236,7 +258,7 @@ function LogView({ log, me }: { log: LogEntry[]; me: Side | null }) {
   }, [log.length]);
   const shown = log.slice(-400);
   return (
-    <div class="log" ref={ref}>
+    <div class="log" ref={ref} data-tour="log">
       {shown.map((e, i) => (
         <div key={log.length - shown.length + i} class={`log-e k-${e.kind ?? 'n'}${e.side ? ` s-${e.side.toLowerCase()}` : ''}${e.to ? ' private' : ''}`}>
           {e.kind === 'turn' ? null : <span class="log-t">{e.turn}.{e.ar}</span>}

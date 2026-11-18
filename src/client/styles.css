@@ -403,3 +403,33 @@ h1, h2, h3, h4 { font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif; let
 @media (max-width: 1000px), (max-height: 620px) {
   .audio-toggles .icon-btn { width: 24px; height: 24px; }
 }
+
+/* ---------------- 新手引导 ---------------- */
+.tutorial-panel { max-width: 1100px; margin: 0 auto 18px; display: flex; gap: 20px; align-items: center; flex-wrap: wrap; border-color: #a8862e; background: linear-gradient(90deg, #2f2a22, var(--bg2)); }
+.tutorial-panel > div:first-child { flex: 1; min-width: 260px; }
+.tutorial-panel p { color: var(--text2); line-height: 1.7; margin: 0; }
+.tutorial-actions { display: flex; flex-direction: column; gap: 4px; min-width: 240px; }
+.tutorial-actions .btn.big { margin-top: 0; }
+.btn.ghost { background: transparent; color: var(--text2); }
+.coach-btn { font-weight: 800; }
+.coach-btn.on { color: var(--gold); border-color: var(--gold); }
+.coach-ring {
+  position: fixed; z-index: 40; pointer-events: none; border: 3px solid var(--gold); border-radius: 8px;
+  box-shadow: 0 0 0 4px #e0a92e44, 0 0 18px #e0a92e88; animation: coachPulse 1.6s infinite;
+}
+@keyframes coachPulse { 50% { box-shadow: 0 0 0 7px #e0a92e22, 0 0 24px #e0a92eaa; } }
+.coach-tip {
+  position: fixed; z-index: 41; width: 340px; max-width: calc(100vw - 16px); background: #2f2a22; border: 1px solid var(--gold);
+  border-radius: 10px; padding: 12px 14px; box-shadow: 0 10px 30px #000a; animation: pop2 0.2s ease-out;
+}
+@keyframes pop2 { from { opacity: 0; transform: translateY(6px); } }
+.coach-tip[style*='translate'] { animation: none; }
+.coach-title { font-weight: 800; color: var(--gold); margin-bottom: 6px; }
+.coach-text { font-size: 13.5px; line-height: 1.7; color: var(--text); }
+.coach-btns { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; }
+.danger-box { border-color: #c9503f; }
+.danger-box h3 { color: #f08a7c; }
+@media (max-width: 1000px), (max-height: 620px) {
+  .coach-tip { width: 280px; padding: 8px 10px; }
+  .coach-text { font-size: 12px; line-height: 1.55; }
+}

@@ -17,18 +17,20 @@ const Replay = lazy<{ id: string }>(() => import('./pages/Replay').then((m) => m
 
 function OfflineGame({ id }: { id: string }) {
   const [session, setSession] = useState<GameSession | null>(null);
+  const [tutorial, setTutorial] = useState(false);
   useEffect(() => {
     const save = getSave(id);
     if (!save) {
       location.hash = '/';
       return;
     }
+    setTutorial(!!save.tutorial);
     const s = offlineSession(save);
     setSession(s);
     return () => s.close();
   }, [id]);
   if (!session) return <div class="hero"><div class="empty-hint">加载中…</div></div>;
-  return <Board session={session} />;
+  return <Board session={session} tutorial={tutorial} />;
 }
 
 function App() {
