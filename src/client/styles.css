@@ -612,3 +612,5 @@ h1, h2, h3, h4 { font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif; let
   .beat-card .card-face { width: 200px; font-size: 11px; }
   .turn-status { gap: 6px; font-size: 10.5px; }
 }
+
+.sub-legend text { font-size: 12px; font-weight: 700; fill: #2b2620; paint-order: stroke; stroke: #e9dfc7dd; stroke-width: 3px; }

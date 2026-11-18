@@ -42,6 +42,15 @@ function STAR_PTS(cx: number, cy: number, r: number) {
 }
 
 /** 方框名称条：按区域着色（比标识色深一些，保证白字清楚） */
+/** 欧洲细分：西欧石板灰、东欧赭褐；奥地利、芬兰两者都是，名称条一半一半 */
+const WE_COLOR = '#5b6177';
+const EE_COLOR = '#7a5a3e';
+function bandFill(c: { region: RegionId; sub: string[] }) {
+  if (c.region !== 'europe') return BAND_COLOR[c.region];
+  const w = c.sub.includes('westernEurope'), e = c.sub.includes('easternEurope');
+  return w && e ? 'url(#bandWE)' : e ? EE_COLOR : WE_COLOR;
+}
+
 const BAND_COLOR: Record<RegionId, string> = {
   europe: '#5b6177', asia: '#9a6f16', middleEast: '#a04d1f', africa: '#4a7429', centralAmerica: '#22796f', southAmerica: '#6a4f99',
 };
@@ -285,6 +294,12 @@ export function MapView({ view, selectable, onPick, flash, onRegion, focus }: Pr
         onPointerUp={onUp}
         onPointerLeave={onUp}
       >
+        <defs>
+          <linearGradient id="bandWE" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0.5" stop-color={WE_COLOR} />
+            <stop offset="0.5" stop-color={EE_COLOR} />
+          </linearGradient>
+        </defs>
         <rect x="0" y="0" width={MAP_W} height={MAP_H} class="ocean" />
         <MapGrid />
         {bg}
@@ -398,6 +413,16 @@ function RegionLabel({ region, view, onClick }: { region: RegionId; view: GameVi
       <text x={x} y={y + 35} class={`rl-vp ${sc.autoWin ? sc.autoWin.toLowerCase() : sc.net > 0 ? 'us' : sc.net < 0 ? 'ussr' : 'even'}`}>
         现在计分：{vpText(sc.net, sc.autoWin)}
       </text>
+      {region === 'europe' && (
+        <g class="sub-legend">
+          <rect x={x} y={y + 45} width="12" height="9" rx="2" fill={WE_COLOR} />
+          <text x={x + 16} y={y + 54}>西欧</text>
+          <rect x={x + 52} y={y + 45} width="12" height="9" rx="2" fill={EE_COLOR} />
+          <text x={x + 68} y={y + 54}>东欧</text>
+          <rect x={x + 104} y={y + 45} width="12" height="9" rx="2" fill="url(#bandWE)" />
+          <text x={x + 120} y={y + 54}>两者</text>
+        </g>
+      )}
       {sea && (
         <text x={x} y={y + 52} class={`rl-vp ${sea.net > 0 ? 'us' : sea.net < 0 ? 'ussr' : 'even'}`}>
           东南亚计分：{vpText(sea.net)}
@@ -422,7 +447,7 @@ function CountryBox({ id, view, selectable, dimmed, flash, adjHl, onPick, onHove
       onPointerLeave={() => onHover(null)}
     >
       <rect class="c-box" x={left} y={top} width={BW} height={BH} rx="3" />
-      <rect class="c-band" x={left} y={top} width={BW} height="17" rx="3" fill={BAND_COLOR[c.region]} />
+      <rect class="c-band" x={left} y={top} width={BW} height="17" rx="3" fill={bandFill(c)} />
       <text class="c-name" x={left + (BW - 13) / 2} y={top + 13.5} textLength={name.length >= 4 ? BW - 16 : undefined} lengthAdjust="spacingAndGlyphs">{name}</text>
       {c.bg ? (
         <>
