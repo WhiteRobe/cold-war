@@ -235,10 +235,11 @@ h1, h2, h3, h4 { font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif; let
 .region-glyph { pointer-events: none; }
 .c-band { stroke: none; }
 .c-name { fill: #fff; font-size: 13px; font-weight: 700; text-anchor: middle; }
-.country.bg .c-name { fill: #ffd76a; }
 .c-stab { fill: #f3ecdb; }
 .c-stab-t { fill: #2b2b2b; font-size: 11px; font-weight: 800; text-anchor: middle; }
-.country.bg .c-stab { fill: #f5d76e; }
+.c-bg-star { fill: #1f1a10; stroke: #f5d76e; stroke-width: 1.4; stroke-linejoin: round; }
+.c-stab-t.bg { fill: #f5d76e; font-size: 10.5px; }
+.country.bg .c-box { stroke-width: 2.2; stroke: #1f1a10; }
 .inf rect { stroke-width: 1.2; }
 .inf-us rect { fill: #fff; stroke: var(--us); }
 .inf-ussr rect { fill: #fff; stroke: var(--ussr); }

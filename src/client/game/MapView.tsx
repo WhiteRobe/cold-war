@@ -30,6 +30,17 @@ export const REGION_COLOR: Record<RegionId, string> = {
   europe: '#6d7490', asia: '#c9962a', middleEast: '#c0622d', africa: '#5f8f3a', centralAmerica: '#2f9c95', southAmerica: '#8a6bbf',
 };
 
+/** 战场国稳定度星章 */
+function STAR_PTS(cx: number, cy: number, r: number) {
+  const pts: string[] = [];
+  for (let i = 0; i < 10; i++) {
+    const a = -Math.PI / 2 + (i * Math.PI) / 5;
+    const rr = i % 2 ? r * 0.55 : r;
+    pts.push(`${(cx + rr * Math.cos(a)).toFixed(1)},${(cy + rr * Math.sin(a)).toFixed(1)}`);
+  }
+  return pts.join(' ');
+}
+
 /** 方框名称条：按区域着色（比标识色深一些，保证白字清楚） */
 const BAND_COLOR: Record<RegionId, string> = {
   europe: '#5b6177', asia: '#9a6f16', middleEast: '#a04d1f', africa: '#4a7429', centralAmerica: '#22796f', southAmerica: '#6a4f99',
@@ -360,10 +371,19 @@ function CountryBox({ id, view, selectable, dimmed, flash, adjHl, onPick, onHove
       <rect class="c-box" x={left} y={top} width={BW} height={BH} rx="3" />
       <rect class="c-band" x={left} y={top} width={BW} height="17" rx="3" fill={BAND_COLOR[c.region]} />
       <text class="c-name" x={left + (BW - 13) / 2} y={top + 13.5} textLength={name.length >= 4 ? BW - 16 : undefined} lengthAdjust="spacingAndGlyphs">{name}</text>
-      <rect class="c-stab" x={left + BW - 13} y={top + 2} width="11.5" height="13" rx="2" />
-      <text class="c-stab-t" x={left + BW - 7.25} y={top + 12.8}>{c.stability}</text>
+      {c.bg ? (
+        <>
+          <polygon class="c-bg-star" points={STAR_PTS(left + BW - 7, top + 6, 11)} />
+          <text class="c-stab-t bg" x={left + BW - 7} y={top + 10.5}>{c.stability}</text>
+        </>
+      ) : (
+        <>
+          <rect class="c-stab" x={left + BW - 13} y={top + 2} width="11.5" height="13" rx="2" />
+          <text class="c-stab-t" x={left + BW - 7.25} y={top + 12.8}>{c.stability}</text>
+        </>
+      )}
       {ctl && <Flag x={left + 3} y={top + 1} side={ctl} h={c.bg ? 20 : 16} />}
-      {ctl && c.bg && <Tank x={left + BW - 9} y={top - 1} side={ctl} s={0.55} />}
+      {ctl && c.bg && <Tank x={left + 21} y={top - 1} side={ctl} s={0.55} />}
       <Inf x={left + 2} y={top + 19.5} n={us} side="US" ctl={ctl === 'US'} />
       <Inf x={left + BW - 26} y={top + 19.5} n={ussr} side="USSR" ctl={ctl === 'USSR'} />
     </g>
