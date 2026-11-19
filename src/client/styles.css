@@ -1159,3 +1159,7 @@ g.links { pointer-events: none; }
 .sa-item.new { animation: saPop 2.2s cubic-bezier(.2,.9,.3,1.2); }
 @keyframes saPop { 0% { transform: scale(0) rotate(-40deg); opacity: 0; } 25% { transform: scale(1.8) rotate(0); opacity: 1; filter: drop-shadow(0 0 10px #f5d76e); } 55% { transform: scale(1); } 100% { transform: scale(1); filter: drop-shadow(0 2px 2px #0007); } }
 @media (prefers-reduced-motion: reduce) { .sa-item.new { animation: none; } }
+/* 太空竞赛表：所在格按阵营染浅蓝 / 浅红，同格时左蓝右红 */
+.pop-table tr.here-us td { background: #3d73a855; }
+.pop-table tr.here-ussr td { background: #c9503f55; }
+.pop-table tr.here-both td { background: linear-gradient(90deg, #3d73a855, #c9503f55); }

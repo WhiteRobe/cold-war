@@ -337,7 +337,7 @@ function SpacePop({ view }: { view: GameView }) {
             const here = [view.space.US === n ? '美' : '', view.space.USSR === n ? '苏' : ''].filter(Boolean).join(' ');
             const owner = b.perk ? perkOwner(n) : null;
             return (
-              <tr key={n} class={here ? 'here' : ''}>
+              <tr key={n} class={view.space.US === n && view.space.USSR === n ? 'here-both' : view.space.US === n ? 'here-us' : view.space.USSR === n ? 'here-ussr' : ''}>
                 <td>{n}</td>
                 <td>{b.name}</td>
                 <td>≥{b.ops}</td>
