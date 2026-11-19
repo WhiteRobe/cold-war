@@ -981,3 +981,33 @@ h1, h2, h3, h4 { font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif; let
 @keyframes nudgeFlash { 50% { box-shadow: inset 0 0 0 3px var(--gold), 0 0 24px #f5d76e88; background: #4a3f22; } }
 .beat-catch { position: fixed; inset: 0; z-index: 8; cursor: pointer; }
 .beat-card { cursor: pointer; }
+
+/* ---------------- 国家闪电标记：点名该国的卡 ---------------- */
+.c-bolt { cursor: pointer; }
+.c-bolt circle { fill: #2b2210; stroke: #f5d76e; stroke-width: 1.4; }
+.c-bolt polygon { fill: #ffd34d; }
+.c-bolt:hover circle { fill: #4a3f22; stroke-width: 2; }
+.bolt-backdrop { position: fixed; inset: 0; z-index: 42; }
+.bolt-pop { position: fixed; z-index: 43; background: #15181cf2; border: 1px solid #f5d76e66; border-radius: 12px; padding: 8px; box-shadow: 0 14px 34px #000c; animation: menuIn 0.16s ease-out both; }
+.bp-title { display: flex; justify-content: space-between; align-items: center; font-weight: 800; color: var(--gold); font-size: 14px; padding: 0 2px 6px; }
+.bp-title button { background: none; border: none; color: var(--text2); cursor: pointer; font-size: 14px; }
+.bp-group + .bp-group { margin-top: 6px; }
+.bp-era { font-size: 11px; color: var(--text2); padding: 2px 2px 4px; }
+.bp-row { display: flex; align-items: center; gap: 8px; width: 100%; padding: 6px 8px; margin-bottom: 4px; border-radius: 8px; background: #2b313a; border: 1px solid #4b5563; color: var(--text); cursor: pointer; text-align: left; }
+.bp-row:hover { border-color: var(--gold); }
+.bp-row.st-removed { opacity: 0.55; }
+.bp-row.st-removed .bp-name { text-decoration: line-through; }
+.bp-ops { flex: none; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-weight: 900; font-size: 12px; color: #fff; }
+.bp-ops.side-us { background: var(--us); }
+.bp-ops.side-ussr { background: var(--ussr); }
+.bp-ops.side-neutral { background: linear-gradient(90deg, var(--us) 50%, var(--ussr) 50%); }
+.bp-name { flex: 1; font-weight: 700; font-size: 13px; }
+.bp-name small { margin-left: 5px; color: var(--text2); font-weight: 400; }
+.bp-st { flex: none; font-size: 11px; font-weight: 800; padding: 1px 7px; border-radius: 999px; background: #3a414c; color: var(--text2); }
+.bp-st.st-active { background: #2f6b3a; color: #d9ffd9; }
+.bp-st.st-removed { background: #444; color: #aaa; }
+.bp-st.st-mine { background: #6b5a1f; color: #ffe9a8; }
+.bp-st.st-theirs { background: #6b2a24; color: #ffc9c0; }
+.bp-st.st-discard { background: #3a4a5a; color: #cfe3f5; }
+.bp-st.st-future { background: #2e2a44; color: #c9bfff; }
+.bp-note { font-size: 11px; color: var(--text2); padding: 4px 2px 0; }

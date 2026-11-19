@@ -5,6 +5,7 @@ import type { GameView } from '../../engine/view';
 import { WORLD } from './worldmap.gen';
 import { remapX, remapY } from '../../data/layout';
 import { Flag, FogLayer, FxLayer, Tank, useMapFx } from './MapFx';
+import { countryCards } from './countryCards';
 
 export const MAP_W = 1880;
 export const MAP_H = 1090;
@@ -124,9 +125,11 @@ interface Props {
   onRegion?: (r: RegionId) => void;
   /** 正在掷骰的目标国（脉冲高亮） */
   focus?: string;
+  /** 点了国家右下角的闪电：列出点名该国的卡 */
+  onBolt?: (id: string, x: number, y: number) => void;
 }
 
-export function MapView({ view, selectable, onPick, flash, onRegion, focus }: Props) {
+export function MapView({ view, selectable, onPick, flash, onRegion, focus, onBolt }: Props) {
   const [hover, setHover] = useState<string | null>(null);
   const { fx, fresh } = useMapFx(view);
   const [zoom, setZoom] = useState({ x: 0, y: 0, k: 1 });
@@ -342,6 +345,8 @@ export function MapView({ view, selectable, onPick, flash, onRegion, focus }: Pr
             flash={flash.has(c.id)}
             onPick={() => !drag.current?.moved && selectable.has(c.id) && onPick(c.id)}
             onHover={onHover}
+            bolt={countryCards(view, c.id).length > 0}
+            onBolt={(x, y) => onBolt?.(c.id, x, y)}
           />
         ))}
         <g class="links">
@@ -500,7 +505,7 @@ function RegionLabel({ region, view, onClick }: { region: RegionId; view: GameVi
   );
 }
 
-function CountryBox({ id, view, selectable, dimmed, flash, adjHl, onPick, onHover }: { id: string; view: GameView; selectable: boolean; dimmed: boolean; flash: boolean; adjHl: boolean; onPick: () => void; onHover: (id: string | null) => void }) {
+function CountryBox({ id, view, selectable, dimmed, flash, adjHl, onPick, onHover, bolt, onBolt }: { id: string; view: GameView; selectable: boolean; dimmed: boolean; flash: boolean; adjHl: boolean; onPick: () => void; onHover: (id: string | null) => void; bolt: boolean; onBolt: (x: number, y: number) => void }) {
   const c = COUNTRIES[id];
   const [x, y] = pos(id);
   const [us, ussr] = view.inf[id];
@@ -534,6 +539,19 @@ function CountryBox({ id, view, selectable, dimmed, flash, adjHl, onPick, onHove
       {ctl && c.bg && <Tank x={left + 21} y={top - 1} side={ctl} s={0.55} />}
       <Inf x={left + 2} y={top + 19.5} n={us} side="US" ctl={ctl === 'US'} />
       <Inf x={left + BW - 26} y={top + 19.5} n={ussr} side="USSR" ctl={ctl === 'USSR'} />
+      {bolt && (
+        <g
+          class="c-bolt"
+          onClick={(e) => {
+            e.stopPropagation();
+            onBolt(e.clientX, e.clientY);
+          }}
+        >
+          <title>有卡牌点名影响这个国家，点击查看</title>
+          <circle cx={left + BW - 1} cy={top + BH + 1} r="7" />
+          <polygon points={`${left + BW},${top + BH - 5} ${left + BW - 4.5},${top + BH + 2} ${left + BW - 1},${top + BH + 2} ${left + BW - 2},${top + BH + 7} ${left + BW + 2.5},${top + BH} ${left + BW - 1},${top + BH}`} />
+        </g>
+      )}
     </g>
   );
 }

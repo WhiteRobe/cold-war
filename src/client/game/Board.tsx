@@ -14,6 +14,7 @@ import { RegionCard, RegionPanel } from './RegionPanel';
 import { SPACE } from '../../engine/space';
 import { MapView } from './MapView';
 import { RADIAL_LIVE_TAGS, Radial, type RadialAnchor } from './Radial';
+import { BoltPopover } from './BoltPopover';
 import type { GameSession } from './session';
 import { Effects, Tracks } from './Tracks';
 
@@ -37,6 +38,7 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
   const [zoomCard, setZoomCard] = useState<number | null>(null);
   const [pile, setPile] = useState<'discard' | 'removed' | 'deck' | null>(null);
   const [region, setRegion] = useState<RegionId | null>(null);
+  const [bolt, setBolt] = useState<{ id: string; x: number; y: number } | null>(null);
   const [tab, setTab] = useState<'log' | 'headlines' | 'cards' | 'regions' | 'help'>('log');
   const flash = useFlash(view);
   useGameSounds(view, view?.log ?? []);
@@ -118,7 +120,7 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
       </header>
       <main class="board-map" data-tour="map">
         <Effects view={view} onCard={setZoomCard} />
-        <MapView view={view} selectable={selectable} onPick={(c) => choose(c)} flash={flash} onRegion={setRegion} focus={paced.beat?.kind === 'roll' ? paced.beat.roll.target : undefined} />
+        <MapView view={view} selectable={selectable} onPick={(c) => choose(c)} flash={flash} onRegion={setRegion} onBolt={(id, x, y) => setBolt({ id, x, y })} focus={paced.beat?.kind === 'roll' ? paced.beat.roll.target : undefined} />
         <BeatOverlay beat={paced.beat} names={names} onNext={paced.next} onSkipAll={paced.skipAll} />
       </main>
       <aside class="board-side">
@@ -247,6 +249,7 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
         </div>
       )}
       {pile && <PileModal view={view} pile={pile} onClose={() => setPile(null)} onCard={setZoomCard} />}
+      {bolt && <BoltPopover view={view} at={bolt} onClose={() => setBolt(null)} onCard={(c) => { setBolt(null); setZoomCard(c); }} />}
       {region && <RegionModal view={view} region={region} onClose={() => setRegion(null)} />}
       {view.phase === 'over' && !overSeen && (
         <VictoryScene winner={view.winner ?? null} me={me}>
