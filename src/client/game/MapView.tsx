@@ -119,19 +119,21 @@ function mix(a: string, b: string, t: number) {
 }
 const PAPER = '#ece3cc';
 /** 底图配色：与国家方框的区域色同色相的浅色调，每个国家在三个相邻色阶里取一个，做出分面感 */
-const tints = (c: string, t = 0.6) => [mix(c, PAPER, t), mix(c, PAPER, t + 0.03), mix(c, PAPER, t - 0.03)];
+const tints = (c: string, t = 0.6, paper = PAPER) => [mix(c, paper, t), mix(c, paper, t + 0.03), mix(c, paper, t - 0.03)];
+// 欧洲的区域色是石板灰，和暖纸色一混就发灰、跟中国撞色；改跟冷蓝纸色混，读出蓝灰调
+const COOL_PAPER = '#d6e0f2';
 const LAND: Record<string, string[]> = {
-  europe: tints(BAND_COLOR.europe),
+  europe: tints(BAND_COLOR.europe, 0.55, COOL_PAPER),
   asia: tints(BAND_COLOR.asia),
   middleEast: tints(BAND_COLOR.middleEast),
   africa: tints(BAND_COLOR.africa),
   centralAmerica: tints(BAND_COLOR.centralAmerica),
   southAmerica: tints(BAND_COLOR.southAmerica),
   // 不属于游戏国家的地区：归到最近的区域，用更浅一档
-  ...Object.fromEntries(Object.entries(BAND_COLOR).map(([k, c]) => [`${k}-x`, tints(c, 0.72)])),
+  ...Object.fromEntries(Object.entries(BAND_COLOR).map(([k, c]) => [`${k}-x`, tints(c, 0.72, k === 'europe' ? COOL_PAPER : PAPER)])),
   usa: ['#6f8fb2'],
   ussr: ['#b8786c'],
-  china: ['#9b968b'],
+  china: ['#8c806b'],
   other: ['#c9c0ab', '#c2b9a3', '#cfc6b2'],
 };
 

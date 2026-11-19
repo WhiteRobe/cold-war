@@ -144,7 +144,7 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
           <button type="button" class={tab === 'regions' ? 'on' : ''} onClick={() => setTab('regions')}>局势</button>
           <button type="button" class={tab === 'help' ? 'on' : ''} onClick={() => setTab('help')}>速查</button>
         </div>
-        {tab === 'log' ? <LogView log={view.log} me={me} onZoom={setZoomCard} /> : tab === 'headlines' ? <HeadlineHistory view={view} names={names} onZoom={setZoomCard} /> : tab === 'cards' ? <CardsPanel view={view} names={names} onZoom={setZoomCard} /> : tab === 'regions' ? <RegionPanel view={view} /> : <QuickRef />}
+        {tab === 'log' ? <LogView log={view.log} me={me} onPeek={(id, el) => peekAt(id, el?.getBoundingClientRect())} /> : tab === 'headlines' ? <HeadlineHistory view={view} names={names} onZoom={setZoomCard} /> : tab === 'cards' ? <CardsPanel view={view} names={names} onZoom={setZoomCard} /> : tab === 'regions' ? <RegionPanel view={view} /> : <QuickRef />}
       </aside>
       <button type="button" class={`hand-toggle${handChoice ? ' need' : ''}`} onClick={() => setHandOpen(!handOpen)}>
         手牌 {myHand.length}{handOpen ? ' ▾' : ' ▴'}
@@ -370,7 +370,7 @@ function PlayingCard({ view, names, onZoom }: { view: GameView; names: Record<Si
 }
 
 /** 日志文字里的「#编号 卡名」变成可点击的卡牌链接 */
-function LogText({ text, onZoom }: { text: string; onZoom: (c: number) => void }) {
+function LogText({ text, onPeek }: { text: string; onPeek: (c: number | null, el?: HTMLElement) => void }) {
   const out: (string | preact.JSX.Element)[] = [];
   const re = /#(\d{1,3})/g;
   let last = 0;
@@ -383,7 +383,14 @@ function LogText({ text, onZoom }: { text: string; onZoom: (c: number) => void }
     const end = text.startsWith(name, m.index + m[0].length) ? m.index + m[0].length + name.length : m.index + m[0].length;
     if (m.index > last) out.push(text.slice(last, m.index));
     out.push(
-      <button type="button" key={m.index} class={`log-card side-${card.side.toLowerCase()}`} onClick={() => onZoom(id)}>
+      <button
+        type="button"
+        key={m.index}
+        class={`log-card side-${card.side.toLowerCase()}`}
+        onPointerEnter={(e) => onPeek(id, e.currentTarget as HTMLElement)}
+        onPointerLeave={() => onPeek(null)}
+        onClick={(e) => onPeek(id, e.currentTarget as HTMLElement)}
+      >
         {text.slice(m.index, end)}
       </button>,
     );
@@ -394,7 +401,7 @@ function LogText({ text, onZoom }: { text: string; onZoom: (c: number) => void }
   return <>{out}</>;
 }
 
-function LogView({ log, me, onZoom }: { log: LogEntry[]; me: Side | null; onZoom: (c: number) => void }) {
+function LogView({ log, me, onPeek }: { log: LogEntry[]; me: Side | null; onPeek: (c: number | null, el?: HTMLElement) => void }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const el = ref.current;
@@ -406,7 +413,7 @@ function LogView({ log, me, onZoom }: { log: LogEntry[]; me: Side | null; onZoom
       {shown.map((e, i) => (
         <div key={log.length - shown.length + i} class={`log-e k-${e.kind ?? 'n'}${e.side ? ` s-${e.side.toLowerCase()}` : ''}${e.to ? ' private' : ''}`}>
           {e.kind === 'turn' ? null : <span class="log-t">{e.turn}.{e.ar}</span>}
-          <LogText text={e.t} onZoom={onZoom} />
+          <LogText text={e.t} onPeek={onPeek} />
           {e.to && e.to === me && <span class="log-private">（仅你可见）</span>}
         </div>
       ))}
