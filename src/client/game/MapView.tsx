@@ -95,14 +95,38 @@ export function RegionGlyph({ region, x, y, r = 7, sub }: { region: RegionId; x:
   );
 }
 
-/** 底图配色：按游戏区域着色，每个国家在两三个相邻色阶里取一个，做出分面感 */
+/** DEFCON 锁住的区域（双方都不能政变 / 调整） */
+export function defconLocked(defcon: number, region: RegionId): boolean {
+  return (defcon <= 4 && region === 'europe') || (defcon <= 3 && region === 'asia') || (defcon <= 2 && region === 'middleEast');
+}
+
+/** 我方不能对这个国家政变 / 调整的原因（与引擎 canTarget 一致，不看对方影响力） */
+function coupLock(view: GameView, id: string): string | null {
+  const c = COUNTRIES[id];
+  if (defconLocked(view.defcon, c.region)) return `DEFCON ${view.defcon}：${REGION_ZH[c.region]}禁止政变和调整阵营`;
+  if (view.me !== 'USSR') return null;
+  const f = view.flags;
+  if (f.usJapan && id === 'japan') return '美日共同防卫协定：苏联不能对日本政变或调整';
+  if (f.nato && c.region === 'europe' && controller(view as never, id) === 'US' && !(id === 'france' && f.deGaulle) && !(id === 'westGermany' && f.willyBrandt)) return '北约：苏联不能对美国控制的欧洲国家政变或调整';
+  if (f.reformer && c.region === 'europe') return '改革者：苏联不能在欧洲政变';
+  return null;
+}
+
+/** 两色按比例混合（t 为 b 的占比） */
+function mix(a: string, b: string, t: number) {
+  const p = (h: string, i: number) => parseInt(h.slice(1 + i * 2, 3 + i * 2), 16);
+  return '#' + [0, 1, 2].map((i) => Math.round(p(a, i) * (1 - t) + p(b, i) * t).toString(16).padStart(2, '0')).join('');
+}
+const PAPER = '#ece3cc';
+/** 底图配色：与国家方框的区域色同色相的浅色调，每个国家在三个相邻色阶里取一个，做出分面感 */
+const tints = (c: string) => [mix(c, PAPER, 0.58), mix(c, PAPER, 0.64), mix(c, PAPER, 0.52)];
 const LAND: Record<string, string[]> = {
-  europe: ['#a3afc0', '#98a5b8', '#aeb9c8'],
-  asia: ['#cdb488', '#c4aa7c', '#d4bc92'],
-  middleEast: ['#dbc290', '#d2b884', '#e0c99a'],
-  africa: ['#c0a577', '#b69b6d', '#c8ae82'],
-  centralAmerica: ['#a9b89a', '#9faf90', '#b2c0a3'],
-  southAmerica: ['#b4c093', '#aab788', '#bcc89d'],
+  europe: tints(BAND_COLOR.europe),
+  asia: tints(BAND_COLOR.asia),
+  middleEast: tints(BAND_COLOR.middleEast),
+  africa: tints(BAND_COLOR.africa),
+  centralAmerica: tints(BAND_COLOR.centralAmerica),
+  southAmerica: tints(BAND_COLOR.southAmerica),
   usa: ['#6f8fb2'],
   ussr: ['#b8786c'],
   china: ['#9b968b'],
@@ -200,7 +224,12 @@ export function MapView({ view, selectable, onPick, flash, onRegion, focus, onBo
             class={`edge${inter ? ' inter' : ''}${sp ? ` sp-${b}` : ''}`}
           />
         );
-      }),
+      }).concat(
+        // 另一半：美国向左通到地图左边缘（太平洋两岸相连）
+        edges.some(({ a, b }) => a === 'japan' && b === 'usa')
+          ? [<line key="usa-wrap" x1={pos('usa')[0]} y1={pos('usa')[1]} x2={4} y2={pos('usa')[1]} class="edge inter sp-usa" />]
+          : [],
+      ),
     [edges],
   );
 
@@ -318,6 +347,11 @@ export function MapView({ view, selectable, onPick, flash, onRegion, focus, onBo
         onPointerLeave={onUp}
       >
         <defs>
+          <pattern id="lockStripes" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)">
+            <rect width="10" height="10" fill="#c8102e10" />
+            <rect width="4" height="10" fill="#c8102e55" />
+            <animateTransform attributeName="patternTransform" type="translate" from="0 0" to="10 0" dur="1.6s" repeatCount="indefinite" additive="sum" />
+          </pattern>
           <pattern id="bandSEA" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
             <rect width="8" height="8" fill="#9a6f16" />
             <rect width="3.5" height="8" fill="#6e4f0d" />
@@ -334,6 +368,7 @@ export function MapView({ view, selectable, onPick, flash, onRegion, focus, onBo
         <Superpower id="usa" />
         <Superpower id="ussr" />
         <text x={MAP_W - 8} y={pos('japan')[1] + 38} class="edge-label" text-anchor="end">→ 美国</text>
+        <text x={8} y={pos('usa')[1] - 10} class="edge-label">日本 ←</text>
         {COUNTRY_LIST.map((c) => (
           <CountryBox
             key={c.id}
@@ -471,6 +506,13 @@ function RegionLabel({ region, view, onClick }: { region: RegionId; view: GameVi
   const sea = region === 'asia' ? scoreSEA(view as never) : null;
   return (
     <g class="region-label" onClick={onClick}>
+      {defconLocked(view.defcon, region) && (
+        <g class="region-lock" transform={`translate(${x - 26},${y + (region === 'asia' ? 78 : region === 'europe' ? 60 : 42)})`}>
+          <title>DEFCON {view.defcon}：{REGION_ZH[region]}禁止政变和调整阵营</title>
+          <rect width="136" height="18" rx="4" />
+          <text x="68" y="13">禁止政变 / 调整 · DEFCON {view.defcon}</text>
+        </g>
+      )}
       <RegionGlyph region={region} x={x - 16} y={y - 8} r={11} />
       <text x={x} y={y} class="rl-name">{REGION_ZH[region]}</text>
       <text x={x} y={y + 18} class="rl-score">
@@ -512,6 +554,7 @@ function CountryBox({ id, view, selectable, dimmed, flash, adjHl, onPick, onHove
   const ctl = controller(view as never, id);
   const left = x - BW / 2, top = y - BH / 2;
   const name = SHORT[id] ?? c.zh;
+  const lock = coupLock(view, id);
   return (
     <g
       class={`country${c.bg ? ' bg' : ''}${adjHl ? ' adj-hl' : ''}${selectable ? ' selectable' : ''}${dimmed ? ' dimmed' : ''}${flash ? ' flash' : ''}${ctl ? ` ctl-${ctl.toLowerCase()}` : ''}`}
@@ -539,6 +582,17 @@ function CountryBox({ id, view, selectable, dimmed, flash, adjHl, onPick, onHove
       {ctl && c.bg && <Tank x={left + 21} y={top - 1} side={ctl} s={0.55} />}
       <Inf x={left + 2} y={top + 19.5} n={us} side="US" ctl={ctl === 'US'} />
       <Inf x={left + BW - 26} y={top + 19.5} n={ussr} side="USSR" ctl={ctl === 'USSR'} />
+      {lock && (
+        <g class="c-lock">
+          <title>{lock}</title>
+          <rect class="lock-stripes" x={left + 0.5} y={top + 17} width={BW - 1} height={BH - 17.5} rx="2" fill="url(#lockStripes)" />
+          <rect class="lock-frame" x={left - 1} y={top - 1} width={BW + 2} height={BH + 2} rx="4" />
+          <g transform={`translate(${left + BW / 2},${top + BH})`}>
+            <rect x="-6" y="-3" width="12" height="9" rx="2" class="lock-body" />
+            <path d="M-3.5,-3 v-2.5 a3.5,3.5 0 0 1 7,0 v2.5" class="lock-shackle" />
+          </g>
+        </g>
+      )}
       {bolt && (
         <g
           class="c-bolt"
