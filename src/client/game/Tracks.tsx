@@ -242,6 +242,12 @@ function Vp({ vp, view }: { vp: number; view: GameView }) {
           <thead><tr><th>项目</th><th class="us">美国</th><th class="ussr">苏联</th><th>净得</th></tr></thead>
           <tbody>
             <tr><td>当前胜利点</td><td colSpan={2} class="dim">（已含之前所有得分）</td><td>{leadShort(vp)}</td></tr>
+            <tr>
+              <td>军事行动</td>
+              <td>{view.milops.US}/{view.defcon}{view.milops.US < view.defcon ? `（−${view.defcon - view.milops.US}）` : ''}</td>
+              <td>{view.milops.USSR}/{view.defcon}{view.milops.USSR < view.defcon ? `（−${view.defcon - view.milops.USSR}）` : ''}</td>
+              <td>{leadShort(pj.milops)}</td>
+            </tr>
             {pj.regions.map((r) => (
               <tr key={r.region}>
                 <td>{REGION_ZH[r.region]}</td>
@@ -254,7 +260,7 @@ function Vp({ vp, view }: { vp: number; view: GameView }) {
             <tr class="total"><td>合计</td><td colSpan={2} /><td>{pj.autoWin ? '欧洲控制获胜' : leadShort(pj.total)}</td></tr>
           </tbody>
         </table>
-        <div class="pop-note">东南亚并入亚洲算。终局时控制欧洲直接获胜。</div>
+        <div class="pop-note">军事行动按此刻的数值和 DEFCON 算，回合结束先扣分再终局计分；不足的差额算给对手。东南亚并入亚洲算。终局时控制欧洲直接获胜。</div>
       </div>
     </div>
   );
