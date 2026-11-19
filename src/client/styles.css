@@ -177,6 +177,9 @@ h1, h2, h3, h4 { font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif; let
 .vp-marker { position: absolute; top: 0; transform: translateX(-50%); min-width: 22px; height: 18px; border-radius: 3px; background: #666; color: #fff; font-weight: 800; font-size: 12px; display: grid; place-items: center; transition: left 0.5s; }
 .vp-marker.us { background: var(--us2); }
 .vp-marker.ussr { background: var(--ussr2); }
+.vp-track.over-us { background: linear-gradient(90deg, #2f5d8a33, #2f5d8acc); }
+.vp-track.over-ussr { background: linear-gradient(90deg, #8f2c23cc, #8f2c2333); }
+.vp-track.over .vp-marker { box-shadow: 0 0 8px #f5d76e; outline: 1px solid #f5d76e; }
 .mil-row, .space-row { display: flex; gap: 2px; align-items: center; margin: 2px 0; }
 .mil-side { font-size: 11px; width: 14px; }
 .mil-cell { width: 13px; height: 11px; background: var(--bg2); border-radius: 2px; }

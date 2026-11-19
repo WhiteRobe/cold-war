@@ -230,9 +230,10 @@ function Vp({ vp, view }: { vp: number; view: GameView }) {
         <div class="trk-label">胜利点</div>
         <div class="vp-bar">
           <div class="vp-ussr">苏 20</div>
-          <div class="vp-track">
+          {/* 结束后进度条按胜负画：胜方一侧铺满，标记推到胜方端写「胜」，平局停在中间 */}
+          <div class={`vp-track over${w ? ` over-${w.toLowerCase()}` : ''}`}>
             <div class="vp-mid" />
-            <div class={`vp-marker ${vp > 0 ? 'us' : vp < 0 ? 'ussr' : ''}`} style={{ left: `${pct}%` }}>{Math.abs(vp)}</div>
+            <div class={`vp-marker ${w ? w.toLowerCase() : ''}`} style={{ left: w === 'US' ? 'calc(100% - 13px)' : w === 'USSR' ? '13px' : '50%' }}>{w ? '胜' : '平'}</div>
           </div>
           <div class="vp-us">美 20</div>
         </div>
