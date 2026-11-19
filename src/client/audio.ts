@@ -4,7 +4,7 @@ import { signal } from '@preact/signals';
 export type Sfx =
   | 'card' | 'place' | 'dice' | 'coupWin' | 'coupFail' | 'defconDown' | 'defconUp'
   | 'vpGood' | 'vpBad' | 'space' | 'scoring' | 'headline' | 'turn' | 'win' | 'lose' | 'click'
-  | 'controlGain' | 'controlLose' | 'fog' | 'launch' | 'spaceFail';
+  | 'controlGain' | 'controlLose' | 'fog' | 'launch' | 'spaceFail' | 'regionControl';
 
 export type Track = 'menu' | 'game';
 
@@ -246,6 +246,12 @@ export function sfx(name: Sfx) {
       noise(0.5, { freq: 300, q: 0.5, vol: 0.35, type: 'lowpass' });
       noise(0.9, { freq: 900, q: 0.6, vol: 0.12, at: now + 0.05 });
       tone(160, 0.8, { type: 'sawtooth', vol: 0.06, slide: 0.4, filter: 800, at: now + 0.05 });
+      break;
+    case 'regionControl':
+      // 定音鼓滚奏 + 铜管和弦长音
+      for (let i = 0; i < 12; i++) tone(73.4, 0.12, { type: 'sine', vol: 0.06 + i * 0.012, at: now + i * 0.05 });
+      noise(0.5, { freq: 140, vol: 0.35, type: 'lowpass', at: now + 0.6 });
+      [220, 277, 330, 440].forEach((f) => tone(f, 1.6, { type: 'sawtooth', vol: 0.04, filter: 2000, attack: 0.05, at: now + 0.6 }));
       break;
     case 'fog':
       noise(1.6, { freq: 380, q: 0.5, vol: 0.14, type: 'lowpass', attack: 0.5 });

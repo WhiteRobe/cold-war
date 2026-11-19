@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
-import { COUNTRIES, COUNTRY_LIST, REGIONS, REGION_ZH, type RegionId, type Side } from '../../data';
+import { COUNTRIES, COUNTRY_LIST, REGIONS, REGION_ZH, countriesIn, type RegionId, type Side } from '../../data';
 import { controller, scoreRegion, scoreSEA } from '../../engine/scoring';
 import type { GameView } from '../../engine/view';
 import { WORLD } from './worldmap.gen';
@@ -137,6 +137,8 @@ const LAND: Record<string, string[]> = {
   other: ['#c9c0ab', '#c2b9a3', '#cfc6b2'],
 };
 
+const CHINA_PATHS = WORLD.filter((w) => w.kind === 'china').map((w) => w.d);
+
 function shade(id: string, kind: string) {
   const list = LAND[kind] ?? LAND.other;
   let h = 0;
@@ -160,7 +162,7 @@ interface Props {
 
 export function MapView({ view, selectable, onPick, flash, onRegion, focus, onBolt, onBoltLeave }: Props) {
   const [hover, setHover] = useState<string | null>(null);
-  const { fx, fresh } = useMapFx(view);
+  const { fx, fresh, regionCtl } = useMapFx(view);
   const [zoom, setZoom] = useState({ x: 0, y: 0, k: 1 });
   const drag = useRef<{ x: number; y: number; zx: number; zy: number; moved: boolean } | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -175,6 +177,14 @@ export function MapView({ view, selectable, onPick, flash, onRegion, focus, onBo
       </g>
     ),
     [],
+  );
+
+  // 中国牌在谁手里，中国本土就染上谁的光晕（背面朝上暂不能用时淡一些）
+  const chinaGlow = (
+    <g class={`china-glow china-${view.china.holder.toLowerCase()}${view.china.faceUp ? '' : ' facedown'}`}>
+      <title>中国牌在{view.china.holder === 'US' ? '美国' : '苏联'}手中{view.china.faceUp ? '' : '（背面朝上，本回合不能用）'}</title>
+      {CHINA_PATHS.map((d, i) => <path key={i} d={d} />)}
+    </g>
   );
 
   const edges = useMemo(() => {
@@ -360,6 +370,7 @@ export function MapView({ view, selectable, onPick, flash, onRegion, focus, onBo
         <rect x="0" y="0" width={MAP_W} height={MAP_H} class="ocean" />
         <MapGrid />
         {bg}
+        {chinaGlow}
         <FogLayer view={view} fresh={fresh} pos={pos} />
         <g class="edges">{lines}</g>
         {REGIONS.map((r) => (
@@ -413,7 +424,16 @@ export function MapView({ view, selectable, onPick, flash, onRegion, focus, onBo
           </g>
         )}
         <FxLayer fx={fx} pos={pos} />
+        {regionCtl && (
+          <g class={`rc-wave rc-${regionCtl.side.toLowerCase()}`} key={regionCtl.key}>
+            {countriesIn(regionCtl.region).map((c, i) => (
+              <circle key={c.id} cx={pos(c.id)[0]} cy={pos(c.id)[1]} r="20" style={{ animationDelay: `${0.15 + (i % 7) * 0.08}s` }} />
+            ))}
+          </g>
+        )}
       </svg>
+      {regionCtl && <RegionCtlBanner key={regionCtl.key} region={regionCtl.region} side={regionCtl.side} />}
+      <WinAlerts view={view} />
       <div class="map-zoom">
         <button type="button" onClick={() => setZoom(clampZoom({ ...live.current, k: Math.min(4, live.current.k * 1.3) }))}>＋</button>
         <button type="button" onClick={() => setZoom({ x: 0, y: 0, k: 1 })}>⟲</button>
@@ -515,6 +535,46 @@ function ScoredMark({ x, y, note }: { x: number; y: number; note: string }) {
   );
 }
 
+const EUROPE_WIN = '欧洲控制即胜：打出「欧洲计分」或第 10 回合终局计分时，若一方控制欧洲（占全部战场国，且控制的国家数多于对手），这一方直接获胜，不再比胜利点。';
+
+/** 整洲达到控制：地图中央横幅 + 阵营色闪光 */
+function RegionCtlBanner({ region, side }: { region: RegionId; side: Side }) {
+  return (
+    <div class={`rc-banner-wrap rc-${side.toLowerCase()}`}>
+      <div class="rc-flash" />
+      <div class="rc-banner">
+        <div class="rc-title">{side === 'US' ? '美国' : '苏联'}控制{REGION_ZH[region]}</div>
+        <div class="rc-sub">{region === 'europe' ? '打出欧洲计分或终局计分时直接获胜' : '该洲计分按「控制」级结算'}</div>
+      </div>
+    </div>
+  );
+}
+
+/** 地图右上角：当前存在的直接获胜 / 直接判负威胁 */
+function WinAlerts({ view }: { view: GameView }) {
+  if (view.phase === 'over' || view.phase === 'setup') return null;
+  const items: { key: string; cls: string; text: string; tip: string }[] = [];
+  const eu = scoreRegion(view as never, 'europe').autoWin;
+  if (eu) items.push({ key: 'eu', cls: eu.toLowerCase(), text: `${eu === 'US' ? '美国' : '苏联'}控制欧洲：打出欧洲计分即获胜`, tip: EUROPE_WIN });
+  const a = Math.abs(view.vp);
+  if (a >= 15) {
+    const sd = view.vp > 0 ? '美国' : '苏联';
+    items.push({ key: 'vp', cls: view.vp > 0 ? 'us' : 'ussr', text: `${sd} ${a} VP：再得 ${20 - a} 分直接获胜`, tip: '任何时候胜利点达到 20，这一方立即获胜。' });
+  }
+  if (view.defcon === 2) items.push({ key: 'dc', cls: 'warn', text: 'DEFCON 2：再降一级，行动方直接输', tip: '在战场国政变或某些事件会让 DEFCON 降到 1，引发核战争；输的是当时正在行动的一方，哪怕是对手的事件。' });
+  if (!items.length) return null;
+  return (
+    <div class="win-alerts">
+      {items.map((it) => (
+        <div key={it.key} class={`wa-item wa-${it.cls}`} title={it.tip}>
+          <span class="wa-icon">!</span>
+          {it.text}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function RegionLabel({ region, view, onClick }: { region: RegionId; view: GameView; onClick: () => void }) {
   const anchor: Record<RegionId, [number, number]> = {
     europe: [rx(405), ry(405, 215)],
@@ -528,7 +588,7 @@ function RegionLabel({ region, view, onClick }: { region: RegionId; view: GameVi
   const shuttle = !!view.flags.shuttle && (region === 'asia' || region === 'middleEast');
   const sc = scoreRegion(view as never, region, { formosan: view.flags.formosan, shuttle });
   const vpText = (net: number, win?: Side) =>
-    win ? `${win === 'US' ? '美' : '苏'}控制欧洲即胜` : net > 0 ? `美 +${net} VP` : net < 0 ? `苏 +${-net} VP` : '打平 0 VP';
+    win ? `${win === 'US' ? '美' : '苏'}直接获胜` : net > 0 ? `美 +${net} VP` : net < 0 ? `苏 +${-net} VP` : '打平 0 VP';
   const sea = region === 'asia' ? scoreSEA(view as never) : null;
   return (
     <g class="region-label" onClick={onClick}>
@@ -547,6 +607,7 @@ function RegionLabel({ region, view, onClick }: { region: RegionId; view: GameVi
         <tspan dx="10" class="ussr">苏 {LV_ZH[sc.USSR.level]} {sc.points.USSR}</tspan>
       </text>
       <text x={x} y={y + 35} class={`rl-vp ${sc.autoWin ? sc.autoWin.toLowerCase() : sc.net > 0 ? 'us' : sc.net < 0 ? 'ussr' : 'even'}`}>
+        {sc.autoWin && <title>{EUROPE_WIN}</title>}
         现在计分：{vpText(sc.net, sc.autoWin)}
       </text>
       {region === 'europe' && (

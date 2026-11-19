@@ -1,6 +1,6 @@
 // 地图特效：放影响力插旗、取得控制的冲击波、按「现在计分」实时着色的阵营雾气。
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { COUNTRY_LIST, REGIONS, countriesIn, type Side } from '../../data';
+import { COUNTRY_LIST, REGIONS, countriesIn, type RegionId, type Side } from '../../data';
 import { controller, scoreRegion, scoreSEA } from '../../engine/scoring';
 import type { GameView } from '../../engine/view';
 import { sfx } from '../audio';
@@ -22,6 +22,7 @@ export function useMapFx(view: GameView) {
   const prev = useRef<GameView | null>(null);
   const [fx, setFx] = useState<Fx[]>([]);
   const [fresh, setFresh] = useState<Set<string>>(new Set());
+  const [regionCtl, setRegionCtl] = useState<{ key: number; region: RegionId; side: Side } | null>(null);
 
   useEffect(() => {
     const p = prev.current;
@@ -44,6 +45,19 @@ export function useMapFx(view: GameView) {
         if (b[i] > a[i] && !(after && after !== before && after === side)) out.push({ key: ++fxSeq, id: c.id, side, kind: 'add', n: b[i] - a[i] });
       }
     }
+    // 整洲达到「控制」：全局动画
+    const levels = (v: GameView) => REGIONS.map((r) => {
+      const sc = scoreRegion(v as never, r, { formosan: v.flags.formosan });
+      return (sc.US.level === 'control' ? 'US' : sc.USSR.level === 'control' ? 'USSR' : null) as Side | null;
+    });
+    const before = levels(p), after = levels(view);
+    const ri = after.findIndex((s, i) => s && s !== before[i]);
+    if (ri >= 0) {
+      const rc = { key: ++fxSeq, region: REGIONS[ri], side: after[ri]! };
+      setRegionCtl(rc);
+      setTimeout(() => sfx('regionControl'), 350);
+      setTimeout(() => setRegionCtl((cur) => (cur === rc ? null : cur)), 3400);
+    }
     if (gain) sfx('controlGain');
     else if (lose) sfx('controlLose');
     // 区域计分：新的计分结果冒出雾气
@@ -64,7 +78,7 @@ export function useMapFx(view: GameView) {
     setTimeout(() => setFx((cur) => cur.filter((f) => !keys.has(f.key))), 1900);
   }, [view]);
 
-  return { fx, fresh };
+  return { fx, fresh, regionCtl };
 }
 
 const FILL: Record<Side, string> = { US: '#2f5d8a', USSR: '#b23a2e' };
@@ -167,14 +181,14 @@ export function FxLayer({ fx, pos }: { fx: Fx[]; pos: Pos }) {
 
 /** 每个区域此刻打出计分卡谁领先、领先多少；领先越多雾越浓。
  *  双方在区域里都控制了国家时不再整片铺色，只在各自控制的国家周围起雾，红蓝交错；
- *  但领先方已经支配或控制该区域时，仍然整片铺领先方的颜色。 */
-interface FogEntry { key: string; region: string; side: Side; k: number; ids: string[]; r: number }
+ *  但领先方已经支配或控制该区域时，仍然整片铺领先方的颜色；控制时雾最浓、范围更大并缓慢脉动。 */
+interface FogEntry { key: string; region: string; side: Side; k: number; ids: string[]; r: number; strong?: boolean }
 function liveFog(view: GameView): FogEntry[] {
   const out: FogEntry[] = [];
   const sea = new Set(countriesIn('southeastAsia').map((c) => c.id));
   const radius = (r: string) => (r === 'europe' || r === 'southeastAsia' ? 70 : 95);
   /** whole：领先方已支配 / 控制整个区域，不管对手控制了几国都整片铺色 */
-  const push = (region: string, ids: string[], side: Side | null, k: number, whole = false) => {
+  const push = (region: string, ids: string[], side: Side | null, k: number, whole = false, strong = false) => {
     if (!ids.length) return;
     const ctl = { US: [] as string[], USSR: [] as string[] };
     for (const id of ids) {
@@ -186,7 +200,7 @@ function liveFog(view: GameView): FogEntry[] {
       for (const sd of ['US', 'USSR'] as const) {
         out.push({ key: `${region}-${sd}`, region, side: sd, k: sd === side ? Math.max(0.5, k) : 0.45, ids: ctl[sd], r: radius(region) * 0.72 });
       }
-    } else if (side) out.push({ key: region, region, side, k, ids, r: radius(region) });
+    } else if (side) out.push({ key: region, region, side, k: strong ? 1 : k, ids, r: radius(region) * (strong ? 1.2 : 1), strong });
   };
   for (const r of REGIONS) {
     const shuttle = !!view.flags.shuttle && (r === 'asia' || r === 'middleEast');
@@ -194,8 +208,9 @@ function liveFog(view: GameView): FogEntry[] {
     const side = sc.autoWin ?? (sc.net > 0 ? 'US' : sc.net < 0 ? 'USSR' : null);
     const ids = countriesIn(r as never).map((c) => c.id);
     // 亚洲的雾不盖到东南亚（东南亚单独计分）
-    const whole = !!sc.autoWin || (!!side && (sc[side].level === 'domination' || sc[side].level === 'control'));
-    push(r, r === 'asia' ? ids.filter((id) => !sea.has(id)) : ids, side, sc.autoWin ? 1 : Math.min(1, 0.22 + Math.abs(sc.net) * 0.12), whole);
+    const strong = !!side && sc[side].level === 'control';
+    const whole = !!sc.autoWin || strong || (!!side && sc[side].level === 'domination');
+    push(r, r === 'asia' ? ids.filter((id) => !sea.has(id)) : ids, side, sc.autoWin ? 1 : Math.min(1, 0.22 + Math.abs(sc.net) * 0.12), whole, strong);
   }
   const s = scoreSEA(view as never);
   push('southeastAsia', [...sea], s.net > 0 ? 'US' : s.net < 0 ? 'USSR' : null, Math.min(1, 0.22 + Math.abs(s.net) * 0.16));
@@ -218,8 +233,8 @@ export function FogLayer({ view, fresh, pos }: { view: GameView; fresh: Set<stri
           <stop offset="1" stop-color="#c9503f" stop-opacity="0" />
         </radialGradient>
       </defs>
-      {entries.map(({ key, region: r, side, k, ids, r: rad }) => (
-        <g key={key} opacity={k.toFixed(2)} class="fog-wrap">
+      {entries.map(({ key, region: r, side, k, ids, r: rad, strong }) => (
+        <g key={key} opacity={k.toFixed(2)} class={`fog-wrap${strong ? ' strong' : ''}`}>
           <g class={`fog fog-${side.toLowerCase()}${fresh.has(r) ? ' fresh' : ''}`}>
             {ids.map((id, i) => {
               const [x, y] = pos(id);

@@ -44,6 +44,8 @@ export function Radial({ view, anchor, d, onCommit, onLive, onCancel, detail }: 
   const [stage, setStage] = useState<'root' | 'ops'>('root');
   const live = !!d && RADIAL_LIVE_TAGS.has(d.tag) && d.kind === 'option';
   const ops = effectiveOps(view, me, card).ops;
+  // 花之力生效：美国打战争牌（事件或行动点）苏联 +2 VP，太空竞赛除外
+  const flower = me === 'US' && !!def.war && !!view.flags.flowerPower && !(d?.tag === 'headline');
 
   let petals: Petal[] = [];
   let title = def.zh;
@@ -56,18 +58,19 @@ export function Radial({ view, anchor, d, onCommit, onLive, onCancel, detail }: 
   } else if (def.scoring && card !== CHINA_CARD) {
     petals = [{ key: 's', label: '打出计分', sub: '立即结算该区域', icon: 'score', cls: 'gold', run: () => onCommit([card]) }];
   } else if (stage === 'root') {
+    const fp = flower ? '花之力：苏联 +2 VP' : '';
     const own = def.side === me || def.side === 'NEUTRAL';
     const sp = canSpace(view, me, card);
-    if (own && card !== CHINA_CARD) petals.push({ key: 'event', label: '事件', sub: '发动牌上事件', icon: 'event', cls: 'gold', run: () => onCommit([card, 'event']) });
+    if (own && card !== CHINA_CARD) petals.push({ key: 'event', label: '事件', sub: fp || '发动牌上事件', icon: 'event', cls: fp ? 'warn' : 'gold', run: () => onCommit([card, 'event']) });
     petals.push({
       key: 'ops',
       label: `行动点 ${ops}`,
-      sub: def.side !== 'NEUTRAL' && !own ? '对手事件也会发动' : card === CHINA_CARD ? '全用在亚洲 +1' : '放置 / 政变 / 调整',
+      sub: fp || (def.side !== 'NEUTRAL' && !own ? '对手事件也会发动' : card === CHINA_CARD ? '全用在亚洲 +1' : '放置 / 政变 / 调整'),
       icon: 'ops',
-      cls: def.side !== 'NEUTRAL' && !own ? 'warn' : '',
+      cls: fp || (def.side !== 'NEUTRAL' && !own) ? 'warn' : '',
       run: () => setStage('ops'),
     });
-    if (sp) petals.push({ key: 'space', label: '太空竞赛', sub: `掷 ≤${sp.roll} 成功`, icon: 'space', cls: 'violet', run: () => onCommit([card, 'space']) });
+    if (sp) petals.push({ key: 'space', label: '太空竞赛', sub: `掷 ≤${sp.roll} 成功${fp ? '，不触发花之力' : ''}`, icon: 'space', cls: 'violet', run: () => onCommit([card, 'space']) });
   } else {
     title = `行动点 ${ops}：做什么？`;
     petals = [
@@ -108,6 +111,7 @@ export function Radial({ view, anchor, d, onCommit, onLive, onCancel, detail }: 
       {detail && <div class="radial-detail" style={{ left: `${dx}px`, bottom: `${bottom - 4}px` }}>{detail}</div>}
       <div class={`radial-menu${live ? ' live' : ''}`} style={{ left: `${left}px`, bottom: `${bottom}px`, width: `${MW}px` }} key={`${stage}-${live ? d!.tag : 'p'}`}>
         <div class="rm-title">{title}</div>
+        {flower && !live && <div class="rm-warn">花之力生效中：用这张战争牌打事件或行动点，苏联 +2 VP；拿去太空竞赛不算</div>}
         {petals.map((p, i) => (
           <button type="button" key={p.key} class={`petal ${p.cls ?? ''}`} style={{ animationDelay: `${i * 0.035}s` }} onClick={(e) => { e.stopPropagation(); p.run(); }}>
             <PetalIcon k={p.icon} />

@@ -1067,3 +1067,45 @@ h1, h2, h3, h4 { font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif; let
 @keyframes dcDove { 0% { opacity: 0; transform: translate(0, 0) scale(0.5); } 12% { opacity: 1; transform: translate(calc(var(--dx) * 0.1), calc(var(--dy) * 0.1)) scale(1); } 80% { opacity: 1; } 100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(1.1); } }
 .dc-dove.dv1 { scale: -1 1; }
 @media (prefers-reduced-motion: reduce) { .dc-fx { display: none; } .trk-defcon.dc-shake .defcon-row { animation: none; } }
+
+/* 中国牌持有方：中国本土染色 */
+.china-glow path { stroke: none; transition: fill 0.8s ease, opacity 0.8s ease; }
+.china-glow.china-us path { fill: #3d73a8; filter: drop-shadow(0 0 10px #3d73a8); }
+.china-glow.china-ussr path { fill: #c9503f; filter: drop-shadow(0 0 10px #c9503f); }
+.china-glow { opacity: 0.38; pointer-events: visibleFill; }
+.china-glow.facedown { opacity: 0.2; }
+
+/* 整洲控制：雾气最浓并缓慢脉动 */
+.fog-wrap.strong .fog { animation: fogStrong 3.2s ease-in-out infinite alternate; }
+@keyframes fogStrong { from { filter: saturate(1.1); opacity: 0.9; } to { filter: saturate(1.5) brightness(1.05); opacity: 1; } }
+
+/* 整洲控制：地图冲击波 + 横幅 */
+.rc-wave circle { fill: none; stroke-width: 5; opacity: 0; transform-box: fill-box; transform-origin: center; animation: rcWave 1.6s ease-out forwards; }
+.rc-wave.rc-us circle { stroke: #7fb0e0; }
+.rc-wave.rc-ussr circle { stroke: #f08a7c; }
+@keyframes rcWave { 0% { opacity: 1; transform: scale(0.4); } 100% { opacity: 0; transform: scale(5); } }
+.rc-banner-wrap { position: absolute; inset: 0; pointer-events: none; z-index: 6; display: grid; place-items: center; }
+.rc-flash { position: absolute; inset: 0; opacity: 0; animation: rcFlash 1.4s ease-out forwards; }
+.rc-us .rc-flash { background: radial-gradient(ellipse at center, transparent 30%, #3d73a8aa 100%); }
+.rc-ussr .rc-flash { background: radial-gradient(ellipse at center, transparent 30%, #c9503faa 100%); }
+@keyframes rcFlash { 0% { opacity: 0; } 20% { opacity: 1; } 100% { opacity: 0; } }
+.rc-banner { position: relative; padding: 14px 44px; border: 2px solid #f5d76e; border-radius: 8px; text-align: center; box-shadow: 0 10px 40px #000c; animation: rcBanner 3.2s cubic-bezier(.2,.8,.3,1) forwards; }
+.rc-us .rc-banner { background: linear-gradient(180deg, #2f5d8a, #1d3d5e); }
+.rc-ussr .rc-banner { background: linear-gradient(180deg, #b23a2e, #7a2219); }
+.rc-title { font-size: 34px; font-weight: 900; color: #fff; letter-spacing: 6px; text-shadow: 0 2px 0 #0008; }
+.rc-sub { margin-top: 4px; font-size: 14px; color: #f5d76e; }
+@keyframes rcBanner { 0% { opacity: 0; transform: scale(2.2); } 12% { opacity: 1; transform: scale(0.95); } 18% { transform: scale(1); } 82% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(1) translateY(-20px); } }
+
+/* 地图右上角：直接获胜 / 判负威胁 */
+.win-alerts { position: absolute; top: 8px; right: 48px; z-index: 3; display: flex; flex-direction: column; align-items: flex-end; gap: 5px; pointer-events: auto; }
+.wa-item { display: flex; align-items: center; gap: 7px; padding: 5px 12px 5px 6px; border-radius: 6px; font-size: 13px; font-weight: 700; color: #fff; box-shadow: 0 3px 10px #0007; cursor: help; animation: waIn 0.4s ease-out, waPulse 2s ease-in-out 0.4s infinite; }
+.wa-us { background: #2f5d8aee; border: 1px solid #7fb0e0; }
+.wa-ussr { background: #b23a2eee; border: 1px solid #f08a7c; }
+.wa-warn { background: #1f1a10ee; border: 1px solid #f5d76e; color: #f5d76e; }
+.wa-icon { width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; background: #f5d76e; color: #1f1a10; font-weight: 900; font-size: 12px; }
+@keyframes waIn { from { opacity: 0; transform: translateX(20px); } }
+@keyframes waPulse { 50% { box-shadow: 0 3px 16px #f5d76e88; } }
+
+/* 出牌菜单里的警告（花之力等） */
+.rm-warn { margin: 0 0 6px; padding: 5px 8px; border-radius: 5px; background: #5a1f17; border: 1px solid #f08a7c; color: #ffd9d2; font-size: 12px; line-height: 1.45; }
+@media (prefers-reduced-motion: reduce) { .rc-banner, .rc-flash, .rc-wave circle, .wa-item, .fog-wrap.strong .fog { animation-duration: 0.01s !important; animation-iteration-count: 1 !important; } }
