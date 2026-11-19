@@ -1,3 +1,4 @@
+import { CONTINENT_GEN } from './continents.gen';
 import { C, S, at, disc, facet, line, ngon, poly, prng, rect, type At, type Shades } from './core';
 
 /** 地球（八边形分面 + 大陆块） */
@@ -172,10 +173,17 @@ export const CONTINENTS: Record<string, number[][]> = {
   ],
 };
 
-/** 画大陆：分面 + 少量高光三角 */
+/** 画大陆：真实国界生成的 low poly 三角面，周边国家浅色衬底；没有生成数据时退回手绘轮廓 */
 export function continent(key: string, land: Shades = S.green): string {
+  const g = CONTINENT_GEN[key];
+  if (!g) {
+    let s = '';
+    for (const pts of CONTINENTS[key]) s += facet(pts, land, 1);
+    return s;
+  }
   let s = '';
-  for (const pts of CONTINENTS[key]) s += facet(pts, land, 1);
+  for (const pts of g.ctx) s += poly(pts, '#b9b19a');
+  for (const t of g.tris) s += poly(t.slice(0, 6), land[t[6]]);
   return s;
 }
 

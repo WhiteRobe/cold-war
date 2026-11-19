@@ -1,11 +1,13 @@
 import { C, S, continent, grid, pin, poly, rect, type Shades } from '../kit';
+import { CONTINENT_GEN } from '../kit/continents.gen';
 
 /** 计分卡统一样式：纸底海图 + 格网 + 区域大陆 + 红蓝据点 */
 function scoringMap(key: string, land: Shades, pins: [number, number, 'us' | 'su'][]): string {
   let s = rect(0, 0, 240, 150, C.sea2) + grid(C.sea, 20);
   s += poly([0, 0, 240, 0, 240, 18, 0, 10], C.sea);
   s += continent(key, land);
-  for (const [x, y, side] of pins) s += pin(x, y, side === 'us' ? C.us : C.su);
+  // 据点落在真实战场国位置
+  for (const [x, y, side] of CONTINENT_GEN[key]?.pins ?? pins) s += pin(x, y, side === 'us' ? C.us : C.su);
   // 角标：计分卡统一的档案标签
   s += poly([0, 150, 0, 128, 22, 150], C.gold) + poly([240, 0, 218, 0, 240, 22], C.gold);
   return s;

@@ -6,7 +6,7 @@ import { WORLD } from './worldmap.gen';
 import { remapX } from '../../data/layout';
 import { Flag, FogLayer, FxLayer, Tank, useMapFx } from './MapFx';
 
-export const MAP_W = 1600;
+export const MAP_W = 1880;
 export const MAP_H = 975;
 const S = 1.5;
 const BW = 58;
@@ -15,8 +15,8 @@ const BH = 40;
 /** 地图上的简称（最多 4 个字） */
 const SHORT: Record<string, string> = {
   benelux: '比荷卢', spainPortugal: '西葡', czechoslovakia: '捷克', saudiArabia: '沙特', laosCambodia: '老柬',
-  indonesia: '印尼', algeria: '阿尔及利', westAfricanStates: '西非', saharanStates: '撒哈拉', ethiopia: '埃塞',
-  seAfricanStates: '东南非', dominicanRep: '多米尼加', costaRica: '哥斯达', gulfStates: '海湾国家',
+  indonesia: '印尼', westAfricanStates: '西非', saharanStates: '撒哈拉',
+  seAfricanStates: '东南非', dominicanRep: '多米尼加', gulfStates: '海湾国家',
 };
 
 export const pos = (id: string): [number, number] => {
@@ -328,7 +328,7 @@ export function MapView({ view, selectable, onPick, flash, onRegion, focus }: Pr
         ))}
         <Superpower id="usa" />
         <Superpower id="ussr" />
-        <text x={MAP_W - 8} y={pos('japan')[1] - 6} class="edge-label" text-anchor="end">→ 美国</text>
+        <text x={MAP_W - 8} y={pos('japan')[1] + 38} class="edge-label" text-anchor="end">→ 美国</text>
         {COUNTRY_LIST.map((c) => (
           <CountryBox
             key={c.id}
@@ -516,7 +516,7 @@ function CountryBox({ id, view, selectable, dimmed, flash, adjHl, onPick, onHove
       <rect class="c-band" x={left} y={top} width={BW} height="17" rx="3" fill={bandFill(c)} />
       {c.sub.includes('westernEurope') && <SubBadge x={left} y={top + BH - 10} kind="w" />}
       {c.sub.includes('easternEurope') && <SubBadge x={left + BW} y={top + BH - 10} kind="e" />}
-      <text class="c-name" x={left + (BW - 13) / 2} y={top + 13.5} textLength={name.length >= 4 ? BW - 16 : undefined} lengthAdjust="spacingAndGlyphs">{name}</text>
+      <text class="c-name" x={left + (BW - 13) / 2} y={top + (name.length >= 5 ? 12.8 : 13.5)} style={name.length >= 5 ? { fontSize: '9.6px' } : undefined} textLength={name.length >= 4 ? BW - 16 : undefined} lengthAdjust="spacingAndGlyphs">{name}</text>
       {c.bg ? (
         <>
           <polygon class="c-bg-star" points={STAR_PTS(left + BW - 7, top + 6, 11)} />
