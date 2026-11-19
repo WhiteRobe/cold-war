@@ -7,7 +7,7 @@ import { ERA_ZH, STATUS_ZH, cardStatus, countryCards, eraNow } from './countryCa
 const ERA_IDX = { early: 0, mid: 1, late: 2 } as const;
 const SIDE_CLS = { US: 'us', USSR: 'ussr', NEUTRAL: 'neutral' } as const;
 
-export function BoltPopover({ view, at, onClose, onCard }: { view: GameView; at: { id: string; x: number; y: number }; onClose: () => void; onCard: (c: number) => void }) {
+export function BoltPopover({ view, at, onClose, onEnter, onLeave, onPeek }: { view: GameView; at: { id: string; x: number; y: number }; onClose: () => void; onEnter: () => void; onLeave: () => void; onPeek: (c: number | null, rect?: { left: number; right: number; top: number; bottom: number }) => void }) {
   useEffect(() => {
     const k = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
     window.addEventListener('keydown', k);
@@ -21,8 +21,7 @@ export function BoltPopover({ view, at, onClose, onCard }: { view: GameView; at:
   const top = Math.max(8, Math.min(window.innerHeight - 60 - cards.length * 44 - groups.length * 24, at.y - 20));
   return (
     <>
-      <div class="bolt-backdrop" onClick={onClose} />
-      <div class="bolt-pop" style={{ left: `${left}px`, top: `${top}px`, width: `${W}px` }}>
+      <div class="bolt-pop" style={{ left: `${left}px`, top: `${top}px`, width: `${W}px` }} onPointerEnter={onEnter} onPointerLeave={() => { onPeek(null); onLeave(); }}>
         <div class="bp-title">
           <span>⚡ 点名{COUNTRIES[at.id].zh}的卡</span>
           <button type="button" onClick={onClose}>✕</button>
@@ -34,7 +33,16 @@ export function BoltPopover({ view, at, onClose, onCard }: { view: GameView; at:
               const st = cardStatus(view, c);
               const def = CARDS[c];
               return (
-                <button type="button" key={c} class={`bp-row st-${st}`} onClick={() => onCard(c)}>
+                <button
+                  type="button"
+                  key={c}
+                  class={`bp-row st-${st}`}
+                  onPointerEnter={(e) => {
+                    const pop = (e.currentTarget as HTMLElement).closest('.bolt-pop')!.getBoundingClientRect();
+                    const row = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                    onPeek(c, { left: pop.left, right: pop.right, top: row.top, bottom: row.bottom });
+                  }}
+                >
                   <span class={`bp-ops side-${SIDE_CLS[def.side]}`}>{def.scoring ? '计' : def.ops}</span>
                   <span class="bp-name">{def.zh}<small>#{c}</small></span>
                   <span class={`bp-st st-${st}`}>{STATUS_ZH[st]}</span>
@@ -43,7 +51,7 @@ export function BoltPopover({ view, at, onClose, onCard }: { view: GameView; at:
             })}
           </div>
         ))}
-        <div class="bp-note">点一张卡查看完整效果</div>
+        <div class="bp-note">鼠标移到卡上看完整效果</div>
       </div>
     </>
   );

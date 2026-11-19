@@ -1020,3 +1020,6 @@ h1, h2, h3, h4 { font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif; let
 .scored-mark { cursor: help; }
 .scored-mark circle { fill: #6b5a1f; stroke: #f5d76e; stroke-width: 1.5; }
 .scored-mark path { fill: none; stroke: #fff3c4; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.peek-card { position: fixed; z-index: 46; width: 280px; display: flex; flex-direction: column; gap: 6px; pointer-events: none; filter: drop-shadow(0 18px 30px #000c); animation: detailIn 0.18s cubic-bezier(.2,.9,.25,1.1) both; }
+.peek-card .card-face, .peek-card .score-preview { width: 100%; }
+.effects .chip { pointer-events: auto; cursor: help; }

@@ -15,6 +15,7 @@ import { SPACE } from '../../engine/space';
 import { MapView } from './MapView';
 import { RADIAL_LIVE_TAGS, Radial, type RadialAnchor } from './Radial';
 import { BoltPopover } from './BoltPopover';
+import { PeekCard, type PeekAnchor } from './PeekCard';
 import type { GameSession } from './session';
 import { Effects, Tracks } from './Tracks';
 
@@ -39,6 +40,14 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
   const [pile, setPile] = useState<'discard' | 'removed' | 'deck' | null>(null);
   const [region, setRegion] = useState<RegionId | null>(null);
   const [bolt, setBolt] = useState<{ id: string; x: number; y: number } | null>(null);
+  const [peek, setPeek] = useState<PeekAnchor | null>(null);
+  const boltTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const holdBolt = () => clearTimeout(boltTimer.current);
+  const leaveBolt = () => {
+    clearTimeout(boltTimer.current);
+    boltTimer.current = setTimeout(() => { setBolt(null); setPeek(null); }, 260);
+  };
+  const peekAt = (id: number | null, r?: { left: number; right: number; top: number; bottom: number }) => setPeek(id === null || !r ? null : { id, left: r.left, right: r.right, top: r.top, bottom: r.bottom });
   const [tab, setTab] = useState<'log' | 'headlines' | 'cards' | 'regions' | 'help'>('log');
   const flash = useFlash(view);
   useGameSounds(view, view?.log ?? []);
@@ -119,8 +128,8 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
         <AudioToggles />
       </header>
       <main class="board-map" data-tour="map">
-        <Effects view={view} onCard={setZoomCard} />
-        <MapView view={view} selectable={selectable} onPick={(c) => choose(c)} flash={flash} onRegion={setRegion} onBolt={(id, x, y) => setBolt({ id, x, y })} focus={paced.beat?.kind === 'roll' ? paced.beat.roll.target : undefined} />
+        <Effects view={view} onPeek={(id, el) => peekAt(id, el?.getBoundingClientRect())} />
+        <MapView view={view} selectable={selectable} onPick={(c) => choose(c)} flash={flash} onRegion={setRegion} onBolt={(id, x, y) => { holdBolt(); setBolt((b) => (b?.id === id ? b : { id, x, y })); }} onBoltLeave={leaveBolt} focus={paced.beat?.kind === 'roll' ? paced.beat.roll.target : undefined} />
         <BeatOverlay beat={paced.beat} names={names} onNext={paced.next} onSkipAll={paced.skipAll} />
       </main>
       <aside class="board-side">
@@ -249,7 +258,13 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
         </div>
       )}
       {pile && <PileModal view={view} pile={pile} onClose={() => setPile(null)} onCard={setZoomCard} />}
-      {bolt && <BoltPopover view={view} at={bolt} onClose={() => setBolt(null)} onCard={(c) => { setBolt(null); setZoomCard(c); }} />}
+      {bolt && <BoltPopover view={view} at={bolt} onClose={() => { setBolt(null); setPeek(null); }} onEnter={holdBolt} onLeave={leaveBolt} onPeek={peekAt} />}
+      {peek && (
+        <PeekCard at={peek}>
+          <CardFace id={peek.id} />
+          <CardPreview view={view} card={peek.id} />
+        </PeekCard>
+      )}
       {region && <RegionModal view={view} region={region} onClose={() => setRegion(null)} />}
       {view.phase === 'over' && !overSeen && (
         <VictoryScene winner={view.winner ?? null} me={me}>

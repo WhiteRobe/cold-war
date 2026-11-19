@@ -153,9 +153,10 @@ interface Props {
   focus?: string;
   /** 点了国家右下角的闪电：列出点名该国的卡 */
   onBolt?: (id: string, x: number, y: number) => void;
+  onBoltLeave?: () => void;
 }
 
-export function MapView({ view, selectable, onPick, flash, onRegion, focus, onBolt }: Props) {
+export function MapView({ view, selectable, onPick, flash, onRegion, focus, onBolt, onBoltLeave }: Props) {
   const [hover, setHover] = useState<string | null>(null);
   const { fx, fresh } = useMapFx(view);
   const [zoom, setZoom] = useState({ x: 0, y: 0, k: 1 });
@@ -379,6 +380,7 @@ export function MapView({ view, selectable, onPick, flash, onRegion, focus, onBo
             onHover={onHover}
             bolt={countryCards(view, c.id).length > 0}
             onBolt={(x, y) => onBolt?.(c.id, x, y)}
+            onBoltLeave={() => onBoltLeave?.()}
           />
         ))}
         <g class="links">
@@ -569,7 +571,7 @@ function RegionLabel({ region, view, onClick }: { region: RegionId; view: GameVi
   );
 }
 
-function CountryBox({ id, view, selectable, dimmed, flash, adjHl, onPick, onHover, bolt, onBolt }: { id: string; view: GameView; selectable: boolean; dimmed: boolean; flash: boolean; adjHl: boolean; onPick: () => void; onHover: (id: string | null) => void; bolt: boolean; onBolt: (x: number, y: number) => void }) {
+function CountryBox({ id, view, selectable, dimmed, flash, adjHl, onPick, onHover, bolt, onBolt, onBoltLeave }: { id: string; view: GameView; selectable: boolean; dimmed: boolean; flash: boolean; adjHl: boolean; onPick: () => void; onHover: (id: string | null) => void; bolt: boolean; onBolt: (x: number, y: number) => void; onBoltLeave: () => void }) {
   const c = COUNTRIES[id];
   const [x, y] = pos(id);
   const [us, ussr] = view.inf[id];
@@ -614,12 +616,16 @@ function CountryBox({ id, view, selectable, dimmed, flash, adjHl, onPick, onHove
       {bolt && (
         <g
           class="c-bolt"
+          onPointerEnter={(e) => {
+            const r = (e.currentTarget as SVGGElement).getBoundingClientRect();
+            onBolt(r.right, r.top + r.height / 2);
+          }}
+          onPointerLeave={onBoltLeave}
           onClick={(e) => {
             e.stopPropagation();
             onBolt(e.clientX, e.clientY);
           }}
         >
-          <title>有卡牌点名影响这个国家，点击查看</title>
           <circle cx={left + BW - 1} cy={top + BH + 1} r="7" />
           <polygon points={`${left + BW},${top + BH - 5} ${left + BW - 4.5},${top + BH + 2} ${left + BW - 1},${top + BH + 2} ${left + BW - 2},${top + BH + 7} ${left + BW + 2.5},${top + BH} ${left + BW - 1},${top + BH}`} />
         </g>
