@@ -20,3 +20,11 @@ export function remapX(x: number): number {
   }
   return x;
 }
+
+/** 欧洲—中东—非洲这一列纵向拉长；美洲、亚洲不动，中间按横坐标平滑过渡。输入是 DeepStruggle 坐标（x 为重排前的值）。 */
+const Y_TOP = 45;
+const Y_K = 1.2;
+export function remapY(x: number, y: number): number {
+  const w = x <= 300 ? 0 : x < 340 ? (x - 300) / 40 : x <= 640 ? 1 : x < 672 ? (672 - x) / 32 : 0;
+  return y + w * (y - Y_TOP) * (Y_K - 1);
+}

@@ -46,6 +46,9 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
   // 出牌轮盘与预选路径
   const [radial, setRadial] = useState<RadialAnchor | null>(null);
   const queue = useRef<Choice[]>([]);
+  // 不该出牌时点了手牌：提示先完成当前步骤
+  const [nudge, setNudge] = useState<string | null>(null);
+  const nudgeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   // 手牌悬浮：牌原地抽出放大，显示完整卡面和预估
   const [lift, setLift] = useState<{ id: number; x: number; top: number } | null>(null);
   const liftTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -85,11 +88,16 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
   const radialLive = !!radial && !!d && RADIAL_LIVE_TAGS.has(d.tag) && (d.card === radial.card || d.card === undefined);
   const radialPick = !!radial && !!d && (d.tag === 'play' || d.tag === 'headline') && handOpts.has(radial.card) && !queue.current.length;
   const showRadial = radial && (radialLive || radialPick);
+  const myTurnToAct = !!d;
   const openCard = (c: number, el: HTMLElement) => {
     if (d && (d.tag === 'play' || d.tag === 'headline') && handOpts.has(c)) {
       const r = el.getBoundingClientRect();
       setLift(null);
       setRadial({ card: c, x: r.left + r.width / 2, top: r.top });
+    } else if (d && d.kind === 'country' && myTurnToAct) {
+      clearTimeout(nudgeTimer.current);
+      setNudge(view.phase === 'setup' ? `先布置开局影响力：${d.prompt.replace(/^开局布置：/, '')}，布置完才能出牌` : `先完成当前操作：${d.prompt}`);
+      nudgeTimer.current = setTimeout(() => setNudge(null), 2600);
     } else if (!canHover()) setZoomCard(c);
     // 能悬停的设备上，悬停已经展开了完整卡面，单击不再弹窗
   };
@@ -114,7 +122,9 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
         <BeatOverlay beat={paced.beat} names={names} onNext={paced.next} onSkipAll={paced.skipAll} />
       </main>
       <aside class="board-side">
-        <DecisionPanel view={view} d={d} names={names} choose={choose} onZoom={setZoomCard} />
+        <div class={nudge ? 'nudge-flash' : ''} key={nudge ?? 'n'}>
+          <DecisionPanel view={view} d={d} names={names} choose={choose} onZoom={setZoomCard} />
+        </div>
         <CurrentHeadline view={view} names={names} onZoom={setZoomCard} />
         <div class="side-tabs" data-tour="sidetabs">
           <button type="button" class={tab === 'log' ? 'on' : ''} onClick={() => setTab('log')}>记录</button>
@@ -133,11 +143,13 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
         <div class="hand-label">
           {me ? `${SIDE_ZH[me]}手牌` : '观战'}
           {me && <TurnStatus view={view} me={me} />}
+          {view.phase === 'setup' && d?.kind === 'country' && <span class="setup-banner">开局布置中：先在地图上点亮的国家放影响力，再出牌</span>}
           {mustScore && <span class="must-score">只能打计分牌：手里 {scoringInHand} 张计分牌，只剩 {arsLeft(view, me!)} 次出牌机会，留到回合结束直接判负</span>}
           {session.undo && (
             <button type="button" class="undo-btn" disabled={!session.canUndo.value} onClick={() => session.undo!()}>撤销</button>
           )}
         </div>
+        {nudge && <div class="hand-nudge" key={nudge}>{nudge}</div>}
         <div class="hand-cards">
           {myHand.map((c) => {
             const isChina = c === CHINA_CARD;

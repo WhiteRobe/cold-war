@@ -3,11 +3,11 @@ import { COUNTRIES, COUNTRY_LIST, REGIONS, REGION_ZH, type RegionId, type Side }
 import { controller, scoreRegion, scoreSEA } from '../../engine/scoring';
 import type { GameView } from '../../engine/view';
 import { WORLD } from './worldmap.gen';
-import { remapX } from '../../data/layout';
+import { remapX, remapY } from '../../data/layout';
 import { Flag, FogLayer, FxLayer, Tank, useMapFx } from './MapFx';
 
 export const MAP_W = 1880;
-export const MAP_H = 975;
+export const MAP_H = 1090;
 const S = 1.5;
 const BW = 58;
 const BH = 40;
@@ -21,13 +21,15 @@ const SHORT: Record<string, string> = {
 
 export const pos = (id: string): [number, number] => {
   if (id === 'usa') return [remapX(85) * S, 230 * S];
-  if (id === 'ussr') return [remapX(635) * S, 112 * S];
+  if (id === 'ussr') return [remapX(635) * S, remapY(635, 112) * S];
   const p = COUNTRIES[id].pos;
-  return [remapX(p[0]) * S, p[1] * S];
+  return [remapX(p[0]) * S, remapY(p[0], p[1]) * S];
 };
 
 /** 1500 宽坐标系下的横坐标按同样规则重排（区域标签等手摆位置用） */
 const rx = (x: number) => remapX(x / S) * S;
+/** 同上，纵坐标按所在列拉伸（x 传重排前的值） */
+const ry = (x: number, y: number) => remapY(x / S, y / S) * S;
 
 /** 区域标识色与图标：方框边缘色条 + 挂件 */
 export const REGION_COLOR: Record<RegionId, string> = {
@@ -449,10 +451,10 @@ const LV_ZH = { none: '—', presence: '存在', domination: '支配', control: 
 
 function RegionLabel({ region, view, onClick }: { region: RegionId; view: GameView; onClick: () => void }) {
   const anchor: Record<RegionId, [number, number]> = {
-    europe: [rx(405), 215],
+    europe: [rx(405), ry(405, 215)],
     asia: [rx(1110), 760],
-    middleEast: [rx(985), 660],
-    africa: [rx(560), 870],
+    middleEast: [rx(985), ry(985, 660)],
+    africa: [rx(560), ry(560, 870)],
     centralAmerica: [rx(40), 640],
     southAmerica: [rx(120), 880],
   };
