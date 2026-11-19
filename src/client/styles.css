@@ -1029,3 +1029,6 @@ h1, h2, h3, h4 { font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif; let
 .c-oil { cursor: help; }
 .c-oil circle { fill: #f3ecdb; stroke: #1b1712; stroke-width: 1.2; }
 .c-oil path { fill: #111; }
+.c-crescent { cursor: help; }
+.c-crescent circle { fill: #2f6b3a; stroke: #f3ecdb; stroke-width: 1.2; }
+.c-crescent path { fill: #f5d76e; }

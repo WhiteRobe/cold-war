@@ -489,6 +489,8 @@ function Superpower({ id }: { id: 'usa' | 'ussr' }) {
 }
 
 /** 石油输出国组织（#61）计分的产油国 */
+/** 穆斯林革命（#56）可选的国家 */
+const MUSLIM_REV = new Set(['sudan', 'iran', 'iraq', 'egypt', 'libya', 'saudiArabia', 'syria', 'jordan']);
 const OPEC = new Set(['egypt', 'iran', 'libya', 'saudiArabia', 'iraq', 'gulfStates', 'venezuela']);
 const LV_ZH = { none: '—', presence: '存在', domination: '支配', control: '控制' };
 const SCORING_CARD: Record<string, number> = { asia: 1, europe: 2, middleEast: 3, centralAmerica: 37, southeastAsia: 38, africa: 79, southAmerica: 81 };
@@ -615,6 +617,13 @@ function CountryBox({ id, view, selectable, dimmed, flash, adjHl, onPick, onHove
           <title>{lock}</title>
           <circle r="6" />
           <line x1="-3.9" y1="-3.9" x2="3.9" y2="3.9" />
+        </g>
+      )}
+      {MUSLIM_REV.has(id) && !view.flags.awacs && (
+        <g class="c-crescent" transform={`translate(${left + (OPEC.has(id) && !view.flags.northSeaOil ? 16 : 1)},${top + BH + 1})`}>
+          <title>穆斯林革命目标国：「穆斯林革命」（#56）打出时，苏联可从这些国家里选两个清空美国影响力（向沙特出售预警机发动后失效）</title>
+          <circle r="7" />
+          <path d="M1.8,-4.6 A4.8,4.8 0 1 0 1.8,4.6 A3.8,3.8 0 1 1 1.8,-4.6Z" />
         </g>
       )}
       {OPEC.has(id) && !view.flags.northSeaOil && (
