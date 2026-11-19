@@ -585,9 +585,12 @@ function CountryBox({ id, view, selectable, dimmed, flash, adjHl, onPick, onHove
   const left = x - BW / 2, top = y - BH / 2;
   const name = SHORT[id] ?? c.zh;
   const lock = coupLock(view, id);
+  // 台湾决议生效：台湾按战场国显示，但星和边框用虚线（只在美国控制时、只对计分算战场国）
+  const formosan = id === 'taiwan' && !!view.flags.formosan;
+  const bg = c.bg || formosan;
   return (
     <g
-      class={`country${c.bg ? ' bg' : ''}${adjHl ? ' adj-hl' : ''}${selectable ? ' selectable' : ''}${dimmed ? ' dimmed' : ''}${flash ? ' flash' : ''}${ctl ? ` ctl-${ctl.toLowerCase()}` : ''}`}
+      class={`country${bg ? ' bg' : ''}${formosan ? ' formosan' : ''}${adjHl ? ' adj-hl' : ''}${selectable ? ' selectable' : ''}${dimmed ? ' dimmed' : ''}${flash ? ' flash' : ''}${ctl ? ` ctl-${ctl.toLowerCase()}` : ''}`}
       onClick={onPick}
       onPointerEnter={() => onHover(id)}
       onPointerLeave={() => onHover(null)}
@@ -597,9 +600,9 @@ function CountryBox({ id, view, selectable, dimmed, flash, adjHl, onPick, onHove
       {c.sub.includes('westernEurope') && <SubBadge x={left} y={top + BH - 10} kind="w" />}
       {c.sub.includes('easternEurope') && <SubBadge x={left + BW} y={top + BH - 10} kind="e" />}
       <text class="c-name" x={left + (BW - 13) / 2} y={top + (name.length >= 5 ? 12.8 : 13.5)} style={name.length >= 5 ? { fontSize: '9.6px' } : undefined} textLength={name.length >= 4 ? BW - 16 : undefined} lengthAdjust="spacingAndGlyphs">{name}</text>
-      {c.bg ? (
+      {bg ? (
         <>
-          <polygon class="c-bg-star" points={STAR_PTS(left + BW - 7, top + 6, 11)} />
+          <polygon class="c-bg-star" points={STAR_PTS(left + BW - 7, top + 6, 11)}>{formosan && <title>台湾决议生效：美国控制台湾时，亚洲计分把台湾算作战场国</title>}</polygon>
           <text class="c-stab-t bg" x={left + BW - 7} y={top + 10.5}>{c.stability}</text>
         </>
       ) : (
@@ -608,8 +611,8 @@ function CountryBox({ id, view, selectable, dimmed, flash, adjHl, onPick, onHove
           <text class="c-stab-t" x={left + BW - 7.25} y={top + 12.8}>{c.stability}</text>
         </>
       )}
-      {ctl && <Flag x={left + 3} y={top + 1} side={ctl} h={c.bg ? 20 : 16} />}
-      {ctl && c.bg && <Tank x={left + 21} y={top - 1} side={ctl} s={0.55} />}
+      {ctl && <Flag x={left + 3} y={top + 1} side={ctl} h={bg ? 20 : 16} />}
+      {ctl && bg && <Tank x={left + 21} y={top - 1} side={ctl} s={0.55} />}
       <Inf x={left + 2} y={top + 19.5} n={us} side="US" ctl={ctl === 'US'} />
       <Inf x={left + BW - 26} y={top + 19.5} n={ussr} side="USSR" ctl={ctl === 'USSR'} />
       {lock && (
@@ -743,6 +746,7 @@ function CountryTip({ id, view }: { id: string; view: GameView }) {
         {REGION_ZH[c.region]}
         {c.sub.map((s) => ` · ${REGION_ZH[s]}`)} · 稳定度 {c.stability}
         {c.bg && <b class="ct-bg"> · 战场国</b>}
+        {id === 'taiwan' && !c.bg && view.flags.formosan && <b class="ct-bg"> · 战场国（台湾决议：美国控制时计分算战场国）</b>}
       </div>
       <div>
         影响力：<span class="us">美 {us}</span> / <span class="ussr">苏 {ussr}</span>
