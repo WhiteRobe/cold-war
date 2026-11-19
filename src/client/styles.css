@@ -1080,10 +1080,13 @@ g.links { pointer-events: none; }
 
 /* 中国牌持有方：中国本土染色 */
 .china-glow path { stroke: none; transition: fill 0.8s ease, opacity 0.8s ease; }
-.china-glow.china-us path { fill: #3d73a8; filter: drop-shadow(0 0 10px #3d73a8); }
+.china-glow.china-us path { fill: #4f8fd6; filter: drop-shadow(0 0 10px #4f8fd6); }
 .china-glow.china-ussr path { fill: #c9503f; filter: drop-shadow(0 0 10px #c9503f); }
 .china-glow { opacity: 0.38; pointer-events: visibleFill; }
-.china-glow.facedown { opacity: 0.2; }
+.china-glow.facedown { opacity: 0.24; }
+/* 中国底色偏暖褐，蓝色盖上去容易发灰：美方用更亮的蓝、更高的浓度 */
+.china-glow.china-us { opacity: 0.6; }
+.china-glow.china-us.facedown { opacity: 0.45; }
 
 /* 整洲控制：雾气最浓并缓慢脉动 */
 .fog-wrap.strong .fog { animation: fogStrong 3.2s ease-in-out infinite alternate; }
