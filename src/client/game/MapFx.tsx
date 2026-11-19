@@ -165,24 +165,42 @@ export function FxLayer({ fx, pos }: { fx: Fx[]; pos: Pos }) {
   );
 }
 
-/** 区域计分后的阵营雾气：一直留到该区域下次计分 */
-/** 每个区域此刻打出计分卡谁领先、领先多少；领先越多雾越浓 */
-function liveFog(view: GameView): { region: string; side: Side; k: number }[] {
-  const out: { region: string; side: Side; k: number }[] = [];
+/** 每个区域此刻打出计分卡谁领先、领先多少；领先越多雾越浓。
+ *  双方在区域里都控制了国家时不再整片铺色，只在各自控制的国家周围起雾，红蓝交错。 */
+interface FogEntry { key: string; region: string; side: Side; k: number; ids: string[]; r: number }
+function liveFog(view: GameView): FogEntry[] {
+  const out: FogEntry[] = [];
+  const sea = new Set(countriesIn('southeastAsia').map((c) => c.id));
+  const radius = (r: string) => (r === 'europe' || r === 'southeastAsia' ? 70 : 95);
+  const push = (region: string, ids: string[], side: Side | null, k: number) => {
+    if (!ids.length) return;
+    const ctl = { US: [] as string[], USSR: [] as string[] };
+    for (const id of ids) {
+      const w = controller(view as never, id);
+      if (w) ctl[w].push(id);
+    }
+    if (ctl.US.length && ctl.USSR.length) {
+      // 交错：领先方用原浓度（不低于 0.5），落后方 / 平手固定 0.45；半径收小，避免两色糊成紫
+      for (const sd of ['US', 'USSR'] as const) {
+        out.push({ key: `${region}-${sd}`, region, side: sd, k: sd === side ? Math.max(0.5, k) : 0.45, ids: ctl[sd], r: radius(region) * 0.72 });
+      }
+    } else if (side) out.push({ key: region, region, side, k, ids, r: radius(region) });
+  };
   for (const r of REGIONS) {
     const shuttle = !!view.flags.shuttle && (r === 'asia' || r === 'middleEast');
     const sc = scoreRegion(view as never, r, { formosan: view.flags.formosan, shuttle });
     const side = sc.autoWin ?? (sc.net > 0 ? 'US' : sc.net < 0 ? 'USSR' : null);
-    if (side) out.push({ region: r, side, k: sc.autoWin ? 1 : Math.min(1, 0.22 + Math.abs(sc.net) * 0.12) });
+    const ids = countriesIn(r as never).map((c) => c.id);
+    // 亚洲的雾不盖到东南亚（东南亚单独计分）
+    push(r, r === 'asia' ? ids.filter((id) => !sea.has(id)) : ids, side, sc.autoWin ? 1 : Math.min(1, 0.22 + Math.abs(sc.net) * 0.12));
   }
-  const sea = scoreSEA(view as never);
-  if (sea.net) out.push({ region: 'southeastAsia', side: sea.net > 0 ? 'US' : 'USSR', k: Math.min(1, 0.22 + Math.abs(sea.net) * 0.16) });
+  const s = scoreSEA(view as never);
+  push('southeastAsia', [...sea], s.net > 0 ? 'US' : s.net < 0 ? 'USSR' : null, Math.min(1, 0.22 + Math.abs(s.net) * 0.16));
   return out;
 }
 
 export function FogLayer({ view, fresh, pos }: { view: GameView; fresh: Set<string>; pos: Pos }) {
   const entries = liveFog(view);
-  const sea = new Set(countriesIn('southeastAsia').map((c) => c.id));
   return (
     <g class="fog-layer">
       <defs>
@@ -197,31 +215,26 @@ export function FogLayer({ view, fresh, pos }: { view: GameView; fresh: Set<stri
           <stop offset="1" stop-color="#c9503f" stop-opacity="0" />
         </radialGradient>
       </defs>
-      {entries.map(({ region: r, side, k }) => {
-        const ids = countriesIn(r as never).map((c) => c.id);
-        // 亚洲的雾不盖到东南亚（东南亚单独计分）
-        const list = r === 'asia' ? ids.filter((id) => !sea.has(id)) : ids;
-        return (
-          <g key={r} opacity={k.toFixed(2)} class="fog-wrap">
-            <g class={`fog fog-${side.toLowerCase()}${fresh.has(r) ? ' fresh' : ''}`}>
-              {list.map((id, i) => {
-                const [x, y] = pos(id);
-                return (
-                  <circle
-                    key={id}
-                    cx={x}
-                    cy={y}
-                    r={r === 'europe' ? 70 : r === 'southeastAsia' ? 70 : 95}
-                    fill={`url(#fog${side})`}
-                    class="fog-puff"
-                    style={{ animationDelay: `${-((i * 1.7) % 9)}s`, animationDuration: `${8 + (i % 5)}s` }}
-                  />
-                );
-              })}
-            </g>
+      {entries.map(({ key, region: r, side, k, ids, r: rad }) => (
+        <g key={key} opacity={k.toFixed(2)} class="fog-wrap">
+          <g class={`fog fog-${side.toLowerCase()}${fresh.has(r) ? ' fresh' : ''}`}>
+            {ids.map((id, i) => {
+              const [x, y] = pos(id);
+              return (
+                <circle
+                  key={id}
+                  cx={x}
+                  cy={y}
+                  r={rad}
+                  fill={`url(#fog${side})`}
+                  class="fog-puff"
+                  style={{ animationDelay: `${-((i * 1.7) % 9)}s`, animationDuration: `${8 + (i % 5)}s` }}
+                />
+              );
+            })}
           </g>
-        );
-      })}
+        </g>
+      ))}
     </g>
   );
 }
