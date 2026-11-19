@@ -7,6 +7,7 @@ import { remapX, remapY } from '../../data/layout';
 import { Flag, FogLayer, FxLayer, Tank, useMapFx } from './MapFx';
 import { countryCards, type CardKind } from './countryCards';
 import { STAR_PTS, SubBadge } from './SubBadge';
+import { SpaceArsenal } from './SpaceArsenal';
 
 export const MAP_W = 1880;
 export const MAP_H = 1090;
@@ -21,11 +22,22 @@ const SHORT: Record<string, string> = {
   seAfricanStates: '东南非', dominicanRep: '多米尼加', gulfStates: '海湾国家',
 };
 
+/** 原始坐标里挤在一起的方框，南北拉开一点，让中间的连线露出来（1500 宽坐标系） */
+const NUDGE: Record<string, [number, number]> = {
+  guatemala: [0, -4],
+  elSalvador: [0, 5],
+  honduras: [0, 5],
+  nicaragua: [0, 5],
+  costaRica: [0, 14],
+  panama: [0, 14],
+};
+
 export const pos = (id: string): [number, number] => {
   if (id === 'usa') return [remapX(85) * S, 230 * S];
   if (id === 'ussr') return [remapX(635) * S, remapY(635, 112) * S];
   const p = COUNTRIES[id].pos;
-  return [remapX(p[0]) * S, remapY(p[0], p[1]) * S];
+  const [dx, dy] = NUDGE[id] ?? [0, 0];
+  return [remapX(p[0] + dx) * S, remapY(p[0] + dx, p[1] + dy) * S];
 };
 
 /** 1500 宽坐标系下的横坐标按同样规则重排（区域标签等手摆位置用） */
@@ -351,6 +363,7 @@ export function MapView({ view, selectable, onPick, flash, onRegion, focus, onBo
         ))}
         <Superpower id="usa" />
         <Superpower id="ussr" />
+        <SpaceArsenal view={view} />
         <text x={MAP_W - 8} y={pos('japan')[1] + 38} class="edge-label" text-anchor="end">→ 美国</text>
         <text x={8} y={pos('usa')[1] - 10} class="edge-label">日本 ←</text>
         {COUNTRY_LIST.map((c) => (

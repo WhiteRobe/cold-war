@@ -1141,3 +1141,21 @@ g.links { pointer-events: none; }
 .c-missile .ms-fin { fill: #8a96a2; }
 .c-missile .ms-flame { fill: #f5a540; }
 .c-missile:hover circle { fill: #5c6874; stroke-width: 1.8; }
+
+/* 太空竞赛成果：本土上的装备徽章 */
+.space-arsenal { pointer-events: none; }
+.sa-item { pointer-events: visiblePainted; cursor: help; transform-box: fill-box; transform-origin: center; filter: drop-shadow(0 2px 2px #0007); }
+.sa-us .sa-bg { fill: #24447a; stroke: #f5d76e; stroke-width: 1.4; }
+.sa-ussr .sa-bg { fill: #8f2c23; stroke: #f5d76e; stroke-width: 1.4; }
+.sa-fill { fill: #f3efe6; }
+.sa-gold { fill: #f5d76e; }
+.sa-dark { fill: #2a2d33; }
+.sa-flame { fill: #f5a540; }
+.sa-hi { fill: none; stroke: #fff; stroke-width: 0.8; stroke-linecap: round; }
+.sa-line { fill: none; stroke: #f3efe6; stroke-width: 1.1; stroke-linecap: round; }
+.sa-dark-line { fill: none; stroke: #2a2d33; stroke-width: 0.8; stroke-linecap: round; }
+.sa-ring { fill: none; stroke: #f5d76e; stroke-width: 1; }
+.sa-orbit { fill: none; stroke: #f5d76e; stroke-width: 0.9; stroke-dasharray: 1.6 1.2; }
+.sa-item.new { animation: saPop 2.2s cubic-bezier(.2,.9,.3,1.2); }
+@keyframes saPop { 0% { transform: scale(0) rotate(-40deg); opacity: 0; } 25% { transform: scale(1.8) rotate(0); opacity: 1; filter: drop-shadow(0 0 10px #f5d76e); } 55% { transform: scale(1); } 100% { transform: scale(1); filter: drop-shadow(0 2px 2px #0007); } }
+@media (prefers-reduced-motion: reduce) { .sa-item.new { animation: none; } }
