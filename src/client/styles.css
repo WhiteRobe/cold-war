@@ -1112,3 +1112,6 @@ h1, h2, h3, h4 { font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif; let
 /* 出牌菜单里的警告（花之力等） */
 .rm-warn { margin: 0 0 6px; padding: 5px 8px; border-radius: 5px; background: #5a1f17; border: 1px solid #f08a7c; color: #ffd9d2; font-size: 12px; line-height: 1.45; }
 @media (prefers-reduced-motion: reduce) { .rc-banner, .rc-flash, .rc-wave circle, .wa-item, .fog-wrap.strong .fog { animation-duration: 0.01s !important; animation-iteration-count: 1 !important; } }
+
+/* 对局结束弹窗：计分明细小标题 */
+.pop-sub-title { margin: 10px 0 4px; font-size: 13px; font-weight: 700; color: var(--gold); }

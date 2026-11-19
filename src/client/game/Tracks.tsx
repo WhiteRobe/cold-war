@@ -225,6 +225,8 @@ function Vp({ vp, view }: { vp: number; view: GameView }) {
     const end = [...view.log].reverse().find((e) => e.kind === 'end')?.t ?? '';
     const w = view.winner;
     const res = w ? `${w === 'US' ? '美国' : '苏联'}获胜` : '平局';
+    // 回合末 / 终局计分时结束的，军事行动已经结算进胜利点
+    const settled = /回合末|终局计分/.test(end);
     return (
       <div class="trk trk-vp has-pop" data-tour="vp">
         <div class="trk-label">胜利点</div>
@@ -244,6 +246,8 @@ function Vp({ vp, view }: { vp: number; view: GameView }) {
           <div class="pop-title">对局结束：{res}</div>
           <p>{end.replace(/^[^：]*：/, '') || res}</p>
           <div class="pop-note">胜利点最终停在 {vp === 0 ? '0' : vp > 0 ? `美 ${vp}` : `苏 ${-vp}`}。{/VP|胜利点/.test(end) ? '' : '这局不是靠胜利点决出的，所以胜负和胜利点对不上。'}</div>
+          <div class="pop-sub-title">结束那一刻的计分明细（假如此时进行终局计分）</div>
+          <ScoreTable view={view} vp={vp} pj={pj} milops={!settled} />
         </div>
       </div>
     );
@@ -266,31 +270,38 @@ function Vp({ vp, view }: { vp: number; view: GameView }) {
       </div>
       <div class="trk-pop">
         <div class="pop-title">若现在进行终局计分</div>
-        <table class="pop-table">
-          <thead><tr><th>项目</th><th class="us">美国</th><th class="ussr">苏联</th><th>净得</th></tr></thead>
-          <tbody>
-            <tr><td>当前胜利点</td><td colSpan={2} class="dim">（已含之前所有得分）</td><td>{leadShort(vp)}</td></tr>
-            <tr>
-              <td>军事行动</td>
-              <td>{view.milops.US}/{view.defcon}{view.milops.US < view.defcon ? `（−${view.defcon - view.milops.US}）` : ''}</td>
-              <td>{view.milops.USSR}/{view.defcon}{view.milops.USSR < view.defcon ? `（−${view.defcon - view.milops.USSR}）` : ''}</td>
-              <td>{leadShort(pj.milops)}</td>
-            </tr>
-            {pj.regions.map((r) => (
-              <tr key={r.region}>
-                <td>{REGION_ZH[r.region]}</td>
-                <td>{LV_ZH[r.US.level]} {r.points.US}</td>
-                <td>{LV_ZH[r.USSR.level]} {r.points.USSR}</td>
-                <td>{r.autoWin ? '获胜' : leadShort(r.net)}</td>
-              </tr>
-            ))}
-            <tr><td>中国牌</td><td colSpan={2} class="dim">持有者 +1（{view.china.holder === 'US' ? '美国' : '苏联'}）</td><td>{leadShort(pj.china)}</td></tr>
-            <tr class="total"><td>合计</td><td colSpan={2} /><td>{pj.autoWin ? '欧洲控制获胜' : leadShort(pj.total)}</td></tr>
-          </tbody>
-        </table>
+        <ScoreTable view={view} vp={vp} pj={pj} milops />
         <div class="pop-note">军事行动按此刻的数值和 DEFCON 算，回合结束先扣分再终局计分；不足的差额算给对手。东南亚并入亚洲算。终局时控制欧洲直接获胜。</div>
       </div>
     </div>
+  );
+}
+
+/** 终局计分明细表；milops=false 时不列军事行动（对局在回合结束后才结束，已经结算过） */
+function ScoreTable({ view, vp, pj, milops }: { view: GameView; vp: number; pj: ReturnType<typeof projectFinal>; milops: boolean }) {
+  return (
+    <table class="pop-table">
+      <thead><tr><th>项目</th><th class="us">美国</th><th class="ussr">苏联</th><th>净得</th></tr></thead>
+      <tbody>
+        <tr><td>当前胜利点</td><td colSpan={2} class="dim">（已含之前所有得分）</td><td>{leadShort(vp)}</td></tr>
+        <tr>
+          <td>军事行动</td>
+          <td>{view.milops.US}/{view.defcon}{view.milops.US < view.defcon ? `（−${view.defcon - view.milops.US}）` : ''}</td>
+          <td>{view.milops.USSR}/{view.defcon}{view.milops.USSR < view.defcon ? `（−${view.defcon - view.milops.USSR}）` : ''}</td>
+          <td>{leadShort(pj.milops)}</td>
+        </tr>
+        {pj.regions.map((r) => (
+          <tr key={r.region}>
+            <td>{REGION_ZH[r.region]}</td>
+            <td>{LV_ZH[r.US.level]} {r.points.US}</td>
+            <td>{LV_ZH[r.USSR.level]} {r.points.USSR}</td>
+            <td>{r.autoWin ? '获胜' : leadShort(r.net)}</td>
+          </tr>
+        ))}
+        <tr><td>中国牌</td><td colSpan={2} class="dim">持有者 +1（{view.china.holder === 'US' ? '美国' : '苏联'}）</td><td>{leadShort(pj.china)}</td></tr>
+        <tr class="total"><td>合计</td><td colSpan={2} /><td>{pj.autoWin ? '欧洲控制获胜' : leadShort(milops ? pj.total : pj.total - pj.milops)}</td></tr>
+      </tbody>
+    </table>
   );
 }
 
