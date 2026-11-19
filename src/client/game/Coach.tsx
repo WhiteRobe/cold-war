@@ -155,7 +155,7 @@ const TIPS: Tip[] = [
   {
     id: 'defcon2', title: '危险：DEFCON 2', target: 'defcon',
     text: () =>
-      '现在任何让 DEFCON 再降一级的行动（在战场国政变、某些事件）都会让当时的行动方直接输掉。即使是对手的事件，只要发生在你的行动轮里，输的也是你。下手前看清楚，危险操作会弹出确认。',
+      '现在任何让 DEFCON 再降一级的行动（在战场国政变、某些事件）都会让当时的行动方直接输掉。即使是对手的事件，只要发生在你的行动轮里，输的也是你。在战场国政变会被直接禁止，其他危险操作会弹出确认。',
     when: (v) => v.defcon === 2,
   },
   {
@@ -250,6 +250,16 @@ export function Coach({ view, force }: { view: GameView; force?: boolean }) {
 /** DEFCON 2 时发动会再降一级的事件 */
 const DEGRADE = new Set([4, 50, 89]);
 
+/** 直接禁止的自杀操作：DEFCON 2 时在战场国政变（核潜艇等免降级的情况除外） */
+export function suicide(v: GameView, d: Decision, choice: Choice): string | null {
+  const me = v.me;
+  if (!me || d.tag !== 'coupTarget' || typeof choice !== 'string' || !COUNTRIES[choice]) return null;
+  const free = d.card === 47 || d.card === 91 || d.card === 96;
+  const subs = me === 'US' && v.flags.nuclearSubs && !free && d.card !== 107;
+  if (v.defcon === 2 && COUNTRIES[choice].bg && !subs) return `${COUNTRIES[choice].zh}是战场国，DEFCON 2 时在这里政变会降到 1，你会直接输掉，已禁止。换个非战场国，或者用左下角「撤销」改选别的行动。`;
+  return null;
+}
+
 export function danger(v: GameView, d: Decision, choice: Choice): string | null {
   const me = v.me;
   if (!me) return null;
@@ -258,7 +268,6 @@ export function danger(v: GameView, d: Decision, choice: Choice): string | null 
     if (f.cmc === me) return '古巴导弹危机期间你发动政变，如果不解除危机就会直接输掉。确定吗？';
     const free = d.card === 47 || d.card === 91 || d.card === 96;
     const subs = me === 'US' && f.nuclearSubs && !free && d.card !== 107;
-    if (v.defcon === 2 && COUNTRIES[choice].bg && !subs) return `${COUNTRIES[choice].zh}是战场国。现在 DEFCON 为 2，在这里政变会降到 DEFCON 1，你会直接输掉。确定吗？`;
   }
   if (d.tag === 'opsMode' && choice === 'coup' && f.cmc === me) return '古巴导弹危机期间你发动政变，如果不解除危机就会直接输掉。确定吗？';
   if (v.defcon === 2 && d.card) {

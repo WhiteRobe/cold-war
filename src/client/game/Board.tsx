@@ -2,10 +2,10 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { CARDS, CARD_LIST, CHINA_CARD, COUNTRY_LIST, REGION_ZH, type RegionId, type Side } from '../../data';
 import { REGION_POINTS, scoreRegion } from '../../engine/scoring';
 import type { Choice, Decision, LogEntry } from '../../engine/types';
-import { Coach, coachOn, danger, setCoach } from './Coach';
+import { Coach, coachOn, danger, setCoach, suicide } from './Coach';
 import type { GameView } from '../../engine/view';
 import { audioPrefs, setAudioPrefs, setMood, setMusicTrack, sfx } from '../audio';
-import { go } from '../store';
+import { go, toast } from '../store';
 import { CardFace, MiniCard } from './CardFace';
 import { cardPreview } from './preview';
 import { BeatOverlay, useEventPacing } from './Dice';
@@ -94,7 +94,7 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
   const me = view.me;
   // 掷骰动画播放时旧局面里的选择已经过期，先不让操作
   const d = paced.beat ? undefined : view.decision;
-  const selectable = new Set<string>(d?.kind === 'country' ? d.options.map((o) => String(o.v)).filter((v) => v !== 'done') : []);
+  const selectable = new Set<string>(d?.kind === 'country' ? d.options.map((o) => String(o.v)).filter((v) => v !== 'done' && !suicide(view, d, v)) : []);
   const handChoice = d && d.kind === 'card' && (d.tag === 'play' || d.tag === 'headline' || (d.tag === 'discard' && d.options.every((o) => o.v === 'pass' || (me && view.hands[me].includes(o.v as number)) || o.v === CHINA_CARD)));
   const scoringInHand = me ? view.hands[me].filter((c) => CARDS[c].scoring).length : 0;
   // 剩余出牌机会不比手里的计分牌多：只能打计分牌，否则回合结束判负
@@ -105,6 +105,8 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
 
   /** 会让自己当场输掉的选择先确认一下 */
   const choose = (v: Choice) => {
+    const ban = d ? suicide(view, d, v) : null;
+    if (ban) return toast(ban);
     const msg = d ? danger(view, d, v) : null;
     if (msg) setConfirm({ msg, v });
     else session.choose(v);
