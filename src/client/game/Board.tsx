@@ -142,7 +142,12 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
         <AudioToggles />
       </header>
       <main class="board-map" data-tour="map">
-        <Effects view={view} onPeek={peekLater} />
+        <div class="map-tl">
+          <Effects view={view} onPeek={peekLater} />
+          {session.undo && (
+            <button type="button" class="undo-btn" disabled={!session.canUndo.value} onClick={() => session.undo!()} title="撤销上一步（离线模式）">↶ 撤销</button>
+          )}
+        </div>
         <MapView view={view} selectable={selectable} onPick={(c) => choose(c)} flash={flash} onRegion={setRegion} onBolt={(id, x, y, now) => {
           holdBolt();
           clearTimeout(boltOpenTimer.current);
@@ -176,9 +181,6 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
           {me && <TurnStatus view={view} me={me} />}
           {view.phase === 'setup' && d?.kind === 'country' && <span class="setup-banner">开局布置中：先在地图上点亮的国家放影响力，再出牌</span>}
           {mustScore && <span class="must-score">只能打计分牌：手里 {scoringInHand} 张计分牌，只剩 {arsLeft(view, me!)} 次出牌机会，留到回合结束直接判负</span>}
-          {session.undo && (
-            <button type="button" class="undo-btn" disabled={!session.canUndo.value} onClick={() => session.undo!()}>撤销</button>
-          )}
         </div>
         {nudge && <div class="hand-nudge" key={nudge}>{nudge}</div>}
         <div class="hand-cards">

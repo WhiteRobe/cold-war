@@ -153,7 +153,8 @@ h1, h2, h3, h4 { font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif; let
 .hand-main { min-width: 0; flex: 1; }
 .known-opp { min-width: 0; max-width: 40%; }
 .hand-cards.small .mini-card { width: 92px; }
-.undo-btn { background: var(--bg3); border: 1px solid var(--line); border-radius: 4px; padding: 1px 8px; font-size: 12px; color: var(--text); }
+.undo-btn { pointer-events: auto; background: #1f2328e6; border: 1px solid var(--line); border-radius: 8px; padding: 5px 12px; font-size: 13px; font-weight: 700; color: var(--text); cursor: pointer; box-shadow: 0 3px 10px #0007; }
+.undo-btn:hover:not(:disabled) { border-color: var(--gold); color: var(--gold); }
 .undo-btn:disabled { opacity: 0.4; }
 
 .tracks { display: flex; gap: 6px; flex: 1; min-width: 0; overflow: visible; }
@@ -194,7 +195,8 @@ h1, h2, h3, h4 { font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif; let
 .piles button { background: var(--bg2); border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; font-size: 11px; }
 .hand-counts { display: flex; gap: 8px; font-size: 11px; }
 
-.effects { display: flex; flex-wrap: wrap; gap: 4px; padding: 4px 8px; position: absolute; z-index: 2; left: 0; top: 0; right: 60px; pointer-events: none; }
+.map-tl { position: absolute; z-index: 2; left: 0; top: 0; right: 60px; padding: 4px 8px; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; pointer-events: none; }
+.effects { display: flex; flex-wrap: wrap; gap: 4px; pointer-events: none; }
 .chip { pointer-events: auto; background: var(--bg3); border: 1px solid var(--line); border-radius: 12px; padding: 2px 9px; font-size: 12px; color: var(--text); }
 .chip.us { border-color: var(--us2); background: #24486bcc; }
 .chip.ussr { border-color: var(--ussr2); background: #8f2c23cc; }

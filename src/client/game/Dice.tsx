@@ -62,16 +62,26 @@ export function useEventPacing(incoming: GameView | null, aiOpponent: boolean): 
     else if (!b.needConfirm) timer.current = setTimeout(next, HUMAN_CARD_MS);
   };
 
+  // 已经排进动画队列的日志条数 / 出牌条数（播放期间新到的局面接着往后排，不会丢）
+  const scannedLog = useRef(incoming?.log.length ?? 0);
+  const scannedPlays = useRef(incoming?.plays?.length ?? 0);
+
   useEffect(() => {
     latest.current = incoming;
-    if (!incoming || busy.current) return;
-    const prev = shownRef.current;
-    if (!prev || prev.log.length > incoming.log.length) {
+    if (!incoming) return;
+    // 第一次拿到局面，或读档、撤销等让日志变短：直接跳到新局面
+    if (!shownRef.current || incoming.log.length < scannedLog.current) {
+      clearTimeout(timer.current);
+      busy.current = false;
+      queue.current = [];
+      setBeat(null);
+      scannedLog.current = incoming.log.length;
+      scannedPlays.current = incoming.plays?.length ?? 0;
       shownRef.current = incoming;
       setShown(incoming);
       return;
     }
-    const from = prev.log.length;
+    const from = scannedLog.current;
     const items: { at: number; beat: Beat }[] = [];
     incoming.log.forEach((e: LogEntry, i: number) => {
       if (i < from) return;
@@ -79,8 +89,7 @@ export function useEventPacing(incoming: GameView | null, aiOpponent: boolean): 
       if (e.roll) items.push({ at: i, beat: { key: ++seq.current, kind: 'roll', roll: e.roll } });
     });
     const me = incoming.me;
-    const prevPlays = prev.plays?.length ?? 0;
-    for (const p of (incoming.plays ?? []).slice(prevPlays)) {
+    for (const p of (incoming.plays ?? []).slice(scannedPlays.current)) {
       if (p.side === me) {
         // 自己打出的事件也播动画（行动点 / 太空不必再提示）
         if (p.how === 'event' || p.how === 'headline') items.push({ at: p.at ?? Infinity, beat: { key: ++seq.current, kind: 'card', card: p.card, side: p.side, how: p.how, needConfirm: false, own: true } });
@@ -88,15 +97,23 @@ export function useEventPacing(incoming: GameView | null, aiOpponent: boolean): 
       }
       items.push({ at: p.at ?? Infinity, beat: { key: ++seq.current, kind: 'card', card: p.card, side: p.side, how: p.how, needConfirm: aiOpponent } });
     }
-    if (!items.length) {
+    scannedLog.current = incoming.log.length;
+    scannedPlays.current = incoming.plays?.length ?? 0;
+    items.sort((a, b) => a.at - b.at);
+    const beats = items.map((x) => x.beat);
+    if (busy.current) {
+      // 正在播放：接到队尾，播完再切到最新局面
+      queue.current.push(...beats);
+      return;
+    }
+    if (!beats.length) {
       shownRef.current = incoming;
       setShown(incoming);
       return;
     }
-    items.sort((a, b) => a.at - b.at);
     busy.current = true;
     // 一次太多（读档、跳转）就只展示最后几项
-    queue.current = items.map((x) => x.beat).slice(-6);
+    queue.current = beats.length > 12 ? beats.slice(-6) : beats;
     next();
   }, [incoming]);
 
