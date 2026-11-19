@@ -984,9 +984,9 @@ h1, h2, h3, h4 { font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif; let
 
 /* ---------------- 国家闪电标记：点名该国的卡 ---------------- */
 .c-bolt { cursor: pointer; }
-.c-bolt circle { fill: #2b2210; stroke: #f5d76e; stroke-width: 1.4; }
-.c-bolt polygon { fill: #ffd34d; }
-.c-bolt:hover circle { fill: #4a3f22; stroke-width: 2; }
+.c-bolt circle { fill: #2b2f36; stroke: #ffffffcc; stroke-width: 1.2; }
+.c-bolt polygon { fill: #fff; }
+.c-bolt:hover circle { fill: #454b55; stroke-width: 1.8; }
 .bolt-backdrop { position: fixed; inset: 0; z-index: 42; }
 .bolt-pop { position: fixed; z-index: 43; background: #15181cf2; border: 1px solid #f5d76e66; border-radius: 12px; padding: 8px; box-shadow: 0 14px 34px #000c; animation: menuIn 0.16s ease-out both; }
 .bp-title { display: flex; justify-content: space-between; align-items: center; font-weight: 800; color: var(--gold); font-size: 14px; padding: 0 2px 6px; }
