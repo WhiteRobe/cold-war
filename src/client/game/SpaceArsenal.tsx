@@ -82,9 +82,9 @@ const GLYPH: Record<number, JSX.Element> = {
   ),
 };
 
-/** 摆放位置（地图坐标）：美国放在加拿大一带的空地，苏联放在西伯利亚、徽章右侧 */
+/** 摆放位置（地图坐标）：美国放在本土徽章上方的蓝色国土里，苏联放在西伯利亚、徽章右侧 */
 const SLOTS: Record<Side, (i: number) => [number, number]> = {
-  US: (i) => [78 + (i % 4) * 30, 168 + Math.floor(i / 4) * 30],
+  US: (i) => [158 + (i % 4) * 26, 236 + Math.floor(i / 4) * 26],
   USSR: (i) => [1262 + i * 30, 146],
 };
 
