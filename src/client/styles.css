@@ -1012,15 +1012,7 @@ h1, h2, h3, h4 { font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif; let
 .bp-st.st-future { background: #2e2a44; color: #c9bfff; }
 .bp-note { font-size: 11px; color: var(--text2); padding: 4px 2px 0; }
 
-/* ---------------- 禁止政变的国家 / 区域 ---------------- */
-.c-lock { pointer-events: auto; animation: lockIn 0.6s ease-out both; transform-box: fill-box; transform-origin: center; }
-.lock-stripes { pointer-events: none; }
-.lock-frame { fill: none; stroke: #e0302a; stroke-width: 1.6; stroke-dasharray: 5 3; animation: lockDash 1.2s linear infinite; pointer-events: none; }
-.lock-body { fill: #c8102e; stroke: #3a0d0a; stroke-width: 0.8; }
-.lock-shackle { fill: none; stroke: #c8102e; stroke-width: 1.8; }
-@keyframes lockIn { from { opacity: 0; transform: scale(1.06); } }
-@keyframes lockDash { to { stroke-dashoffset: -16; } }
-.region-lock rect { fill: #8f1010e6; stroke: #ff6a5a; stroke-width: 1; }
-.region-lock text { fill: #fff; font-size: 11px; font-weight: 800; text-anchor: middle; letter-spacing: 1px; }
-.region-lock { animation: regionLockPulse 1.6s ease-in-out infinite alternate; }
-@keyframes regionLockPulse { from { opacity: 0.8; } to { opacity: 1; } }
+/* ---------------- 禁止政变的国家 / 区域：左上角禁止图标 ---------------- */
+.ban-icon { cursor: help; }
+.ban-icon circle { fill: #fff; stroke: #c8102e; stroke-width: 2; }
+.ban-icon line { stroke: #c8102e; stroke-width: 2; stroke-linecap: round; }

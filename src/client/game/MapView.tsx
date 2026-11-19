@@ -119,7 +119,7 @@ function mix(a: string, b: string, t: number) {
 }
 const PAPER = '#ece3cc';
 /** 底图配色：与国家方框的区域色同色相的浅色调，每个国家在三个相邻色阶里取一个，做出分面感 */
-const tints = (c: string) => [mix(c, PAPER, 0.58), mix(c, PAPER, 0.64), mix(c, PAPER, 0.52)];
+const tints = (c: string, t = 0.6) => [mix(c, PAPER, t), mix(c, PAPER, t + 0.03), mix(c, PAPER, t - 0.03)];
 const LAND: Record<string, string[]> = {
   europe: tints(BAND_COLOR.europe),
   asia: tints(BAND_COLOR.asia),
@@ -127,6 +127,8 @@ const LAND: Record<string, string[]> = {
   africa: tints(BAND_COLOR.africa),
   centralAmerica: tints(BAND_COLOR.centralAmerica),
   southAmerica: tints(BAND_COLOR.southAmerica),
+  // 不属于游戏国家的地区：归到最近的区域，用更浅一档
+  ...Object.fromEntries(Object.entries(BAND_COLOR).map(([k, c]) => [`${k}-x`, tints(c, 0.72)])),
   usa: ['#6f8fb2'],
   ussr: ['#b8786c'],
   china: ['#9b968b'],
@@ -347,11 +349,6 @@ export function MapView({ view, selectable, onPick, flash, onRegion, focus, onBo
         onPointerLeave={onUp}
       >
         <defs>
-          <pattern id="lockStripes" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)">
-            <rect width="10" height="10" fill="#c8102e10" />
-            <rect width="4" height="10" fill="#c8102e55" />
-            <animateTransform attributeName="patternTransform" type="translate" from="0 0" to="10 0" dur="1.6s" repeatCount="indefinite" additive="sum" />
-          </pattern>
           <pattern id="bandSEA" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
             <rect width="8" height="8" fill="#9a6f16" />
             <rect width="3.5" height="8" fill="#6e4f0d" />
@@ -506,14 +503,14 @@ function RegionLabel({ region, view, onClick }: { region: RegionId; view: GameVi
   const sea = region === 'asia' ? scoreSEA(view as never) : null;
   return (
     <g class="region-label" onClick={onClick}>
+      <RegionGlyph region={region} x={x - 16} y={y - 8} r={11} />
       {defconLocked(view.defcon, region) && (
-        <g class="region-lock" transform={`translate(${x - 26},${y + (region === 'asia' ? 78 : region === 'europe' ? 60 : 42)})`}>
+        <g class="ban-icon" transform={`translate(${x - 6},${y - 18})`}>
           <title>DEFCON {view.defcon}：{REGION_ZH[region]}禁止政变和调整阵营</title>
-          <rect width="136" height="18" rx="4" />
-          <text x="68" y="13">禁止政变 / 调整 · DEFCON {view.defcon}</text>
+          <circle r="6.5" />
+          <line x1="-4.2" y1="-4.2" x2="4.2" y2="4.2" />
         </g>
       )}
-      <RegionGlyph region={region} x={x - 16} y={y - 8} r={11} />
       <text x={x} y={y} class="rl-name">{REGION_ZH[region]}</text>
       <text x={x} y={y + 18} class="rl-score">
         <tspan class="us">美 {LV_ZH[sc.US.level]} {sc.points.US}</tspan>
@@ -583,14 +580,10 @@ function CountryBox({ id, view, selectable, dimmed, flash, adjHl, onPick, onHove
       <Inf x={left + 2} y={top + 19.5} n={us} side="US" ctl={ctl === 'US'} />
       <Inf x={left + BW - 26} y={top + 19.5} n={ussr} side="USSR" ctl={ctl === 'USSR'} />
       {lock && (
-        <g class="c-lock">
+        <g class="ban-icon" transform={`translate(${left},${top})`}>
           <title>{lock}</title>
-          <rect class="lock-stripes" x={left + 0.5} y={top + 17} width={BW - 1} height={BH - 17.5} rx="2" fill="url(#lockStripes)" />
-          <rect class="lock-frame" x={left - 1} y={top - 1} width={BW + 2} height={BH + 2} rx="4" />
-          <g transform={`translate(${left + BW / 2},${top + BH})`}>
-            <rect x="-6" y="-3" width="12" height="9" rx="2" class="lock-body" />
-            <path d="M-3.5,-3 v-2.5 a3.5,3.5 0 0 1 7,0 v2.5" class="lock-shackle" />
-          </g>
+          <circle r="6" />
+          <line x1="-3.9" y1="-3.9" x2="3.9" y2="3.9" />
         </g>
       )}
       {bolt && (

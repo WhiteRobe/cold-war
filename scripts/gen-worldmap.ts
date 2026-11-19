@@ -277,6 +277,18 @@ for (const f of geo.features) {
     id = gameOf.get(n)!;
     kind = COUNTRIES[id].region;
   }
+  if (kind === 'other') {
+    // 不属于游戏国家的地区：按变形后位置归到最近的游戏国家所在区域
+    const big = rings.sort((x, y) => Math.abs(area(y)) - Math.abs(area(x)))[0];
+    const [cx, cy] = warp(centroid([big]));
+    let best = '', bd = Infinity;
+    for (const c of COUNTRY_LIST) {
+      const [bx, by] = board(c.id);
+      const dd = (bx - cx) ** 2 + (by - cy) ** 2;
+      if (dd < bd) { bd = dd; best = c.region; }
+    }
+    if (bd < 260 ** 2) kind = `${best}-x`;
+  }
   const d = toPath(rings);
   if (d) shapes.push({ id, kind, d });
   if (n === 'Germany') {
