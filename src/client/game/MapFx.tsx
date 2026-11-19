@@ -1,7 +1,7 @@
-// 地图特效：放影响力插旗、取得控制的冲击波、区域计分后的阵营雾气。
+// 地图特效：放影响力插旗、取得控制的冲击波、按「现在计分」实时着色的阵营雾气。
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { COUNTRY_LIST, countriesIn, type Side } from '../../data';
-import { controller } from '../../engine/scoring';
+import { COUNTRY_LIST, REGIONS, countriesIn, type Side } from '../../data';
+import { controller, scoreRegion, scoreSEA } from '../../engine/scoring';
 import type { GameView } from '../../engine/view';
 import { sfx } from '../audio';
 
@@ -166,8 +166,23 @@ export function FxLayer({ fx, pos }: { fx: Fx[]; pos: Pos }) {
 }
 
 /** 区域计分后的阵营雾气：一直留到该区域下次计分 */
+/** 每个区域此刻打出计分卡谁领先、领先多少；领先越多雾越浓 */
+function liveFog(view: GameView): { region: string; side: Side; k: number }[] {
+  const out: { region: string; side: Side; k: number }[] = [];
+  for (const r of REGIONS) {
+    const shuttle = !!view.flags.shuttle && (r === 'asia' || r === 'middleEast');
+    const sc = scoreRegion(view as never, r, { formosan: view.flags.formosan, shuttle });
+    const side = sc.autoWin ?? (sc.net > 0 ? 'US' : sc.net < 0 ? 'USSR' : null);
+    if (side) out.push({ region: r, side, k: sc.autoWin ? 1 : Math.min(1, 0.22 + Math.abs(sc.net) * 0.12) });
+  }
+  const sea = scoreSEA(view as never);
+  if (sea.net) out.push({ region: 'southeastAsia', side: sea.net > 0 ? 'US' : 'USSR', k: Math.min(1, 0.22 + Math.abs(sea.net) * 0.16) });
+  return out;
+}
+
 export function FogLayer({ view, fresh, pos }: { view: GameView; fresh: Set<string>; pos: Pos }) {
-  const entries = Object.entries(view.lastScore ?? {}).filter(([, v]) => v.side);
+  const entries = liveFog(view);
+  const sea = new Set(countriesIn('southeastAsia').map((c) => c.id));
   return (
     <g class="fog-layer">
       <defs>
@@ -182,26 +197,28 @@ export function FogLayer({ view, fresh, pos }: { view: GameView; fresh: Set<stri
           <stop offset="1" stop-color="#c9503f" stop-opacity="0" />
         </radialGradient>
       </defs>
-      {entries.map(([r, v]) => {
+      {entries.map(({ region: r, side, k }) => {
         const ids = countriesIn(r as never).map((c) => c.id);
         // 亚洲的雾不盖到东南亚（东南亚单独计分）
-        const list = r === 'asia' ? ids.filter((id) => !countriesIn('southeastAsia').some((c) => c.id === id)) : ids;
+        const list = r === 'asia' ? ids.filter((id) => !sea.has(id)) : ids;
         return (
-          <g key={r} class={`fog fog-${v.side!.toLowerCase()}${fresh.has(r) ? ' fresh' : ''}`}>
-            {list.map((id, i) => {
-              const [x, y] = pos(id);
-              return (
-                <circle
-                  key={id}
-                  cx={x}
-                  cy={y}
-                  r={r === 'europe' ? 70 : 95}
-                  fill={`url(#fog${v.side})`}
-                  class="fog-puff"
-                  style={{ animationDelay: `${-((i * 1.7) % 9)}s`, animationDuration: `${8 + (i % 5)}s` }}
-                />
-              );
-            })}
+          <g key={r} opacity={k.toFixed(2)} class="fog-wrap">
+            <g class={`fog fog-${side.toLowerCase()}${fresh.has(r) ? ' fresh' : ''}`}>
+              {list.map((id, i) => {
+                const [x, y] = pos(id);
+                return (
+                  <circle
+                    key={id}
+                    cx={x}
+                    cy={y}
+                    r={r === 'europe' ? 70 : r === 'southeastAsia' ? 70 : 95}
+                    fill={`url(#fog${side})`}
+                    class="fog-puff"
+                    style={{ animationDelay: `${-((i * 1.7) % 9)}s`, animationDuration: `${8 + (i % 5)}s` }}
+                  />
+                );
+              })}
+            </g>
           </g>
         );
       })}

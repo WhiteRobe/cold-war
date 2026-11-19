@@ -485,6 +485,27 @@ function Superpower({ id }: { id: 'usa' | 'ussr' }) {
 }
 
 const LV_ZH = { none: '—', presence: '存在', domination: '支配', control: '控制' };
+const SCORING_CARD: Record<string, number> = { asia: 1, europe: 2, middleEast: 3, centralAmerica: 37, southeastAsia: 38, africa: 79, southAmerica: 81 };
+
+/** 本回合已经计过分（计分卡进了弃牌堆，本回合摸不回来）；东南亚计分卡打出后直接移出游戏 */
+function scoredNote(view: GameView, region: string): string | null {
+  const card = SCORING_CARD[region];
+  const name = region === 'southeastAsia' ? '东南亚' : REGION_ZH[region as RegionId];
+  if (region === 'southeastAsia' && view.removed.includes(card)) return '东南亚计分已打出并移出游戏，之后不会再单独计分（终局时并入亚洲）';
+  const p = (view.plays ?? []).find((x) => x.card === card && x.turn === view.turn);
+  if (!p) return null;
+  return `${name}本回合已计分（${p.side === 'US' ? '美国' : '苏联'}打出），计分卡在弃牌堆，本回合不会再计分`;
+}
+
+function ScoredMark({ x, y, note }: { x: number; y: number; note: string }) {
+  return (
+    <g class="scored-mark" transform={`translate(${x},${y})`}>
+      <title>{note}</title>
+      <circle r="8" />
+      <path d="M-4,0 l2.8,3 l5.2,-6" />
+    </g>
+  );
+}
 
 function RegionLabel({ region, view, onClick }: { region: RegionId; view: GameView; onClick: () => void }) {
   const anchor: Record<RegionId, [number, number]> = {
@@ -512,6 +533,7 @@ function RegionLabel({ region, view, onClick }: { region: RegionId; view: GameVi
         </g>
       )}
       <text x={x} y={y} class="rl-name">{REGION_ZH[region]}</text>
+      {scoredNote(view, region) && <ScoredMark x={x + REGION_ZH[region].length * 27.6 + 8} y={y - 8} note={scoredNote(view, region)!} />}
       <text x={x} y={y + 18} class="rl-score">
         <tspan class="us">美 {LV_ZH[sc.US.level]} {sc.points.US}</tspan>
         <tspan dx="10" class="ussr">苏 {LV_ZH[sc.USSR.level]} {sc.points.USSR}</tspan>
@@ -534,6 +556,9 @@ function RegionLabel({ region, view, onClick }: { region: RegionId; view: GameVi
           <rect x={x + 52} y={y + 62} width="12" height="9" rx="2" fill="url(#bandSEA)" />
           <text x={x + 68} y={y + 71}>东南亚（单独计分，泰国 2 分）</text>
         </g>
+      )}
+      {sea && (
+        <>{scoredNote(view, 'southeastAsia') && <ScoredMark x={x - 12} y={y + 47} note={scoredNote(view, 'southeastAsia')!} />}</>
       )}
       {sea && (
         <text x={x} y={y + 52} class={`rl-vp ${sea.net > 0 ? 'us' : sea.net < 0 ? 'ussr' : 'even'}`}>

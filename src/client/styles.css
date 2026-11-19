@@ -1016,3 +1016,7 @@ h1, h2, h3, h4 { font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif; let
 .ban-icon { cursor: help; }
 .ban-icon circle { fill: #fff; stroke: #c8102e; stroke-width: 2; }
 .ban-icon line { stroke: #c8102e; stroke-width: 2; stroke-linecap: round; }
+.fog-wrap { transition: opacity 0.8s ease; }
+.scored-mark { cursor: help; }
+.scored-mark circle { fill: #6b5a1f; stroke: #f5d76e; stroke-width: 1.5; }
+.scored-mark path { fill: none; stroke: #fff3c4; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
