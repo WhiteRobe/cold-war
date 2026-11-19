@@ -142,6 +142,17 @@ function Die({ value, side, delay }: { value: number; side?: Side; delay: number
 
 export function BeatOverlay({ beat, names, onNext, onSkipAll }: { beat: Beat | null; names: Record<Side, string>; onNext: () => void; onSkipAll: () => void }) {
   useEffect(() => {
+    if (beat?.kind !== 'card') return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape') {
+        e.preventDefault();
+        onNext();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [beat?.key]);
+  useEffect(() => {
     if (beat?.kind === 'roll') sfx('dice');
     if (beat?.kind === 'card') sfx('card');
   }, [beat?.key]);
@@ -149,6 +160,8 @@ export function BeatOverlay({ beat, names, onNext, onSkipAll }: { beat: Beat | n
   if (beat.kind === 'move') return <MoveOverlay move={beat.move} key={beat.key} onNext={onNext} />;
   if (beat.kind === 'card') {
     const c = CARDS[beat.card];
+    // 点屏幕任意处继续
+    const catcher = <div class="beat-catch" onClick={onNext} title="点击任意处继续" />;
     const isEvent = beat.how === 'event' || beat.how === 'headline';
     const other: Side = beat.side === 'US' ? 'USSR' : 'US';
     // 用行动点打出对方阵营的事件牌时，事件仍会为对方发动
@@ -163,26 +176,26 @@ export function BeatOverlay({ beat, names, onNext, onSkipAll }: { beat: Beat | n
     );
     const confirm = beat.own ? (
       <div class="row">
-        <button type="button" class="btn" onClick={onNext}>跳过</button>
+        <span class="beat-auto">点击任意处跳过</span>
       </div>
     ) : (
       <div class="row">
         <button type="button" class="btn primary" onClick={onNext}>确定</button>
-        {!beat.needConfirm && <span class="beat-auto">几秒后自动关闭</span>}
+        <span class="beat-auto">{beat.needConfirm ? '点击任意处继续' : '点击任意处继续，几秒后自动关闭'}</span>
       </div>
     );
     if (isEvent) {
       return (
-        <div class="beat-card event" key={beat.key}>
+        <>{catcher}<div class="beat-card event" key={beat.key} onClick={onNext}>
           {who}
           <EventStage card={beat.card} side={beat.side} />
           <CardFace id={beat.card} />
           {confirm}
-        </div>
+        </div></>
       );
     }
     return (
-      <div class="beat-card" key={beat.key}>
+      <>{catcher}<div class="beat-card" key={beat.key} onClick={onNext}>
         {who}
         <div class="beat-ops-wrap">
           <CardFace id={beat.card} />
@@ -193,7 +206,7 @@ export function BeatOverlay({ beat, names, onNext, onSkipAll }: { beat: Beat | n
         </div>
         {firesForOther && <div class="beat-note">这是<b>{SIDE_ZH[other]}</b>的事件牌，用作行动点时事件照样为{SIDE_ZH[other]}发动。</div>}
         {confirm}
-      </div>
+      </div></>
     );
   }
   return <DiceOverlay roll={beat.roll} key={beat.key} onSkip={onNext} onSkipAll={onSkipAll} />;

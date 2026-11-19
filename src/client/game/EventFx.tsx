@@ -1141,7 +1141,7 @@ export function EventStage({ card, side }: { card: number; side: Side }) {
   const spec = eventSpec(card);
   const owner = CARDS[card].side;
   const c = COL[owner === "NEUTRAL" ? side : owner];
-  const [n, setN] = useState(0);
+  const n = 0;
   useEffect(() => {
     const s = SOUND[spec.fx];
     if (!s) return;
@@ -1152,8 +1152,6 @@ export function EventStage({ card, side }: { card: number; side: Side }) {
     <div
       class={`event-stage ev-${spec.fx}`}
       key={n}
-      onClick={() => setN(n + 1)}
-      title="点击重播"
     >
       <svg viewBox="0 0 240 150" preserveAspectRatio="xMidYMid slice">
         <g class="es-art" dangerouslySetInnerHTML={{ __html: cardArt(card) }} />
