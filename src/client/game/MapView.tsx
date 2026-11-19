@@ -619,7 +619,7 @@ function CountryBox({ id, view, selectable, dimmed, flash, adjHl, onPick, onHove
       )}
       {OPEC.has(id) && !view.flags.northSeaOil && (
         <g class="c-oil" transform={`translate(${left + 1},${top + BH + 1})`}>
-          <title>石油输出国组织：苏联每控制一个产油国 +1 VP（北海油田发动后失效）</title>
+          <title>产油国：「石油输出国组织」（#61）打出时，苏联每控制一个产油国 +1 VP（北海油田发动后失效）</title>
           <circle r="7" />
           <path d="M0,-4.6 C2.6,-1.2 3.6,0.6 3.6,1.9 A3.6,3.6 0 0 1 -3.6,1.9 C-3.6,0.6 -2.6,-1.2 0,-4.6Z" />
         </g>
