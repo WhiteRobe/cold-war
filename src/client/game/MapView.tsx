@@ -364,7 +364,7 @@ export function MapView({ view, selectable, onPick, flash, onRegion, focus, onBo
             flash={flash.has(c.id)}
             onPick={() => !drag.current?.moved && selectable.has(c.id) && onPick(c.id)}
             onHover={onHover}
-            marks={(['bolt', 'missile', 'war', 'score'] as const).filter((k) => countryCards(view, c.id, k).length > 0)}
+            marks={(['bolt', 'war', 'score', 'missile'] as const).filter((k) => countryCards(view, c.id, k).length > 0)}
             groups={(['oil', 'muslim', 'canal'] as const).filter(
               (k) => countryCards(view, c.id, k).length > 0 && !(k === 'oil' ? view.flags.northSeaOil : k === 'muslim' ? view.flags.awacs : view.removed.includes(64)),
             )}
@@ -679,7 +679,7 @@ function CountryBox({ id, view, selectable, dimmed, flash, adjHl, onPick, onHove
           {k === 'canal' && <path class="cn-wave" d="M-4.6,-2.2 q1.15,-1.4 2.3,0 t2.3,0 t2.3,0 t2.3,0 M-4.6,1 q1.15,-1.4 2.3,0 t2.3,0 t2.3,0 t2.3,0 M-4.6,4.2 q1.15,-1.4 2.3,0 t2.3,0 t2.3,0 t2.3,0" />}
         </g>
       ))}
-      {/* 点名该国的卡：闪电（一般事件）永远在最右，往左依次是导弹（古巴导弹危机）、航弹（战争卡）、皇冠（计分卡） */}
+      {/* 点名该国的卡：闪电（一般事件）永远在最右，往左依次是航弹（战争卡）、皇冠（计分卡），导弹（古巴导弹危机）在最左 */}
       {marks.map((k, i) => (
         <g
           key={k}

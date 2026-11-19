@@ -1132,9 +1132,9 @@ g.links { pointer-events: none; }
 /* 卡牌文字里「西欧」「东欧」后的徽记 */
 .sub-word { white-space: nowrap; }
 .sub-icon { display: inline-block; vertical-align: -0.15em; margin: 0 1px 0 2px; }
-/* 古巴导弹危机：深灰底导弹 */
-.c-missile circle { fill: #33302a; stroke: #f08a7c; stroke-width: 1.2; }
-.c-missile .ms-body { fill: #e8e4da; }
-.c-missile .ms-fin { fill: #c9503f; }
-.c-missile .ms-flame { fill: #f5a540; }
-.c-missile:hover circle { fill: #4a463e; stroke-width: 1.8; }
+/* 古巴导弹危机：深紫底导弹，和战争卡的深红区分开 */
+.c-missile circle { fill: #3a2a5c; stroke: #c9b2f2; stroke-width: 1.2; }
+.c-missile .ms-body { fill: #f3effa; }
+.c-missile .ms-fin { fill: #9b7fd6; }
+.c-missile .ms-flame { fill: #f5d76e; }
+.c-missile:hover circle { fill: #4e3a78; stroke-width: 1.8; }
