@@ -1126,10 +1126,10 @@ g.links { pointer-events: none; }
 /* 对局结束弹窗：计分明细小标题 */
 .pop-sub-title { margin: 10px 0 4px; font-size: 13px; font-weight: 700; color: var(--gold); }
 
-/* 战争卡标记：深红底航弹 */
+/* 战争卡标记：深红底交叉步枪 */
 .c-war circle { fill: #5a1f17; stroke: #f08a7c; stroke-width: 1.2; }
-.c-war .wb-body { fill: #e8e4da; }
-.c-war .wb-fin { fill: #c9c3b4; }
+.c-war .war-guns rect { fill: #e8e4da; }
+.c-war .war-guns .wg-stock { fill: #c79a62; }
 .c-war:hover circle { fill: #7a2a20; stroke-width: 1.8; }
 
 /* 卡牌文字里「西欧」「东欧」后的徽记 */

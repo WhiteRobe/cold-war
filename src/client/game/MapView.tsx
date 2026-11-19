@@ -679,7 +679,7 @@ function CountryBox({ id, view, selectable, dimmed, flash, adjHl, onPick, onHove
           {k === 'canal' && <path class="cn-wave" d="M-4.6,-2.2 q1.15,-1.4 2.3,0 t2.3,0 t2.3,0 t2.3,0 M-4.6,1 q1.15,-1.4 2.3,0 t2.3,0 t2.3,0 t2.3,0 M-4.6,4.2 q1.15,-1.4 2.3,0 t2.3,0 t2.3,0 t2.3,0" />}
         </g>
       ))}
-      {/* 点名该国的卡：闪电（一般事件）永远在最右，往左依次是航弹（战争卡）、皇冠（计分卡），导弹（古巴导弹危机）在最左 */}
+      {/* 点名该国的卡：闪电（一般事件）永远在最右，往左依次是交叉步枪（战争卡）、皇冠（计分卡），导弹（古巴导弹危机）在最左 */}
       {marks.map((k, i) => (
         <g
           key={k}
@@ -698,9 +698,14 @@ function CountryBox({ id, view, selectable, dimmed, flash, adjHl, onPick, onHove
           <circle r="7" />
           {k === 'bolt' && <polygon points="1,-6 -3.5,1 0,1 -1,6 3.5,-1 0,-1" />}
           {k === 'war' && (
-            <g transform="rotate(35)">
-              <path class="wb-body" d="M0,-4.8 C1.9,-4.8 2.3,-1.5 2.3,0.8 L1.4,3 L-1.4,3 L-2.3,0.8 C-2.3,-1.5 -1.9,-4.8 0,-4.8Z" />
-              <path class="wb-fin" d="M-1.4,3 L-2.9,5.4 L2.9,5.4 L1.4,3Z" />
+            <g class="war-guns">
+              {[-40, 40].map((r) => (
+                <g key={r} transform={`rotate(${r})`}>
+                  {/* 枪管 + 枪身 + 枪托 */}
+                  <rect x="-0.55" y="-5.8" width="1.1" height="6.4" rx="0.3" />
+                  <path d="M-0.9,0.2 L0.9,0.2 L1.5,4.2 L1.8,5.6 L-1.3,5.6 L-1,3.6Z" class="wg-stock" />
+                </g>
+              ))}
             </g>
           )}
           {k === 'missile' && (

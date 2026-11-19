@@ -7,7 +7,7 @@ import { ERA_ZH, GROUP_NOTE, STATUS_ZH, cardStatus, countryCards, eraNow, type C
 const ERA_IDX = { early: 0, mid: 1, late: 2 } as const;
 const TITLE: Record<CardKind, (n: string) => string> = {
   bolt: (n) => `⚡ 点名${n}的卡`,
-  war: (n) => `💣 牵涉${n}的战争卡`,
+  war: (n) => `⚔️ 牵涉${n}的战争卡`,
   score: (n) => `👑 ${n}有特殊分值的计分卡`,
   missile: (n) => `🚀 ${n}与古巴导弹危机`,
   oil: (n) => `🛢 ${n}是产油国`,
