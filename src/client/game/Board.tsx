@@ -15,6 +15,7 @@ import { SPACE } from '../../engine/space';
 import { MapView } from './MapView';
 import { RADIAL_LIVE_TAGS, Radial, type RadialAnchor } from './Radial';
 import { BoltPopover } from './BoltPopover';
+import type { CardKind } from './countryCards';
 import { PeekCard, type PeekAnchor } from './PeekCard';
 import type { GameSession } from './session';
 import { Effects, Tracks } from './Tracks';
@@ -39,7 +40,7 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
   const [zoomCard, setZoomCard] = useState<number | null>(null);
   const [pile, setPile] = useState<'discard' | 'removed' | 'deck' | null>(null);
   const [region, setRegion] = useState<RegionId | null>(null);
-  const [bolt, setBolt] = useState<{ id: string; x: number; y: number } | null>(null);
+  const [bolt, setBolt] = useState<{ id: string; x: number; y: number; kind: CardKind } | null>(null);
   const [peek, setPeek] = useState<PeekAnchor | null>(null);
   const boltTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const holdBolt = () => clearTimeout(boltTimer.current);
@@ -150,11 +151,11 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
         {session.undo && (
           <button type="button" class="undo-btn" disabled={!session.canUndo.value} onClick={() => session.undo!()} title="撤销上一步（离线模式）">↶ 撤销</button>
         )}
-        <MapView view={view} selectable={selectable} onPick={(c) => choose(c)} flash={flash} onRegion={setRegion} onBolt={(id, x, y, now) => {
+        <MapView view={view} selectable={selectable} onPick={(c) => choose(c)} flash={flash} onRegion={setRegion} onBolt={(id, x, y, now, kind = 'bolt') => {
           holdBolt();
           clearTimeout(boltOpenTimer.current);
-          const open = () => setBolt((b) => (b?.id === id ? b : { id, x, y }));
-          if (now || bolt?.id === id) open();
+          const open = () => setBolt((b) => (b?.id === id && b.kind === kind ? b : { id, x, y, kind }));
+          if (now || (bolt?.id === id && bolt.kind === kind)) open();
           else boltOpenTimer.current = setTimeout(open, HOVER_MS);
         }} onBoltLeave={() => { clearTimeout(boltOpenTimer.current); leaveBolt(); }} focus={paced.beat?.kind === 'roll' ? paced.beat.roll.target : undefined} />
         <BeatOverlay beat={paced.beat} names={names} onNext={paced.next} onSkipAll={paced.skipAll} />

@@ -1,0 +1,50 @@
+// 西欧 / 东欧徽记和战场国星章：地图方框和卡牌文字里共用，保持一致。
+
+/** 战场国稳定度星章 */
+export function STAR_PTS(cx: number, cy: number, r: number) {
+  const pts: string[] = [];
+  for (let i = 0; i < 10; i++) {
+    const a = -Math.PI / 2 + (i * Math.PI) / 5;
+    const rr = i % 2 ? r * 0.55 : r;
+    pts.push(`${(cx + rr * Math.cos(a)).toFixed(1)},${(cy + rr * Math.sin(a)).toFixed(1)}`);
+  }
+  return pts.join(' ');
+}
+
+/** 西欧 / 东欧标记：框左侧星章、右侧镰刀锤子 */
+export function SubBadge({ x, y, kind }: { x: number; y: number; kind: 'w' | 'e' }) {
+  return (
+    <g class={`sub-badge ${kind}`} transform={`translate(${x},${y})`}>
+      <circle r="6" />
+      {kind === 'w' ? (
+        <polygon points={STAR_PTS(0, 0.3, 4.2)} class="sb-glyph" />
+      ) : (
+        <>
+          <path d="M-2.4,-3 A3.6,3.6 0 1 0 3,1.4 L1.9,0.9 A2.4,2.4 0 1 1 -1.5,-2.1Z" class="sb-glyph" />
+          <line x1="-2.6" y1="2.8" x2="1.4" y2="-1.2" class="sb-line" />
+          <line x1="0.2" y1="-2.4" x2="2.6" y2="0" class="sb-line" />
+        </>
+      )}
+    </g>
+  );
+}
+
+/** 卡牌文字里跟在「西欧」「东欧」后面的小徽记 */
+export function SubIcon({ kind }: { kind: 'w' | 'e' }) {
+  return (
+    <svg class="sub-icon" viewBox="-6.6 -6.6 13.2 13.2" width="1em" height="1em" aria-hidden="true">
+      <SubBadge x={0} y={0} kind={kind} />
+    </svg>
+  );
+}
+
+/** 把文字里的「西欧」「东欧」后面接上对应徽记 */
+export function withSubIcons(text: string) {
+  return text.split(/(西欧|东欧)/).map((part, i) =>
+    part === '西欧' || part === '东欧' ? (
+      <span key={i} class="sub-word">{part}<SubIcon kind={part === '西欧' ? 'w' : 'e'} /></span>
+    ) : (
+      part
+    ),
+  );
+}

@@ -5,7 +5,8 @@ import type { GameView } from '../../engine/view';
 import { WORLD } from './worldmap.gen';
 import { remapX, remapY } from '../../data/layout';
 import { Flag, FogLayer, FxLayer, Tank, useMapFx } from './MapFx';
-import { countryCards } from './countryCards';
+import { countryCards, type CardKind } from './countryCards';
+import { STAR_PTS, SubBadge } from './SubBadge';
 
 export const MAP_W = 1880;
 export const MAP_H = 1090;
@@ -37,39 +38,11 @@ export const REGION_COLOR: Record<RegionId, string> = {
   europe: '#6d7490', asia: '#c9962a', middleEast: '#5f8f3a', africa: '#b24d93', centralAmerica: '#2f9c95', southAmerica: '#7072c4',
 };
 
-/** 战场国稳定度星章 */
-function STAR_PTS(cx: number, cy: number, r: number) {
-  const pts: string[] = [];
-  for (let i = 0; i < 10; i++) {
-    const a = -Math.PI / 2 + (i * Math.PI) / 5;
-    const rr = i % 2 ? r * 0.55 : r;
-    pts.push(`${(cx + rr * Math.cos(a)).toFixed(1)},${(cy + rr * Math.sin(a)).toFixed(1)}`);
-  }
-  return pts.join(' ');
-}
 
 /** 方框名称条：按区域着色（比标识色深一些，保证白字清楚） */
 function bandFill(c: { region: RegionId; sub: string[] }) {
   if (c.sub.includes('southeastAsia')) return 'url(#bandSEA)';
   return BAND_COLOR[c.region];
-}
-
-/** 西欧 / 东欧标记：框左侧星章、右侧镰刀锤子 */
-function SubBadge({ x, y, kind }: { x: number; y: number; kind: 'w' | 'e' }) {
-  return (
-    <g class={`sub-badge ${kind}`} transform={`translate(${x},${y})`}>
-      <circle r="6" />
-      {kind === 'w' ? (
-        <polygon points={STAR_PTS(0, 0.3, 4.2)} class="sb-glyph" />
-      ) : (
-        <>
-          <path d="M-2.4,-3 A3.6,3.6 0 1 0 3,1.4 L1.9,0.9 A2.4,2.4 0 1 1 -1.5,-2.1Z" class="sb-glyph" />
-          <line x1="-2.6" y1="2.8" x2="1.4" y2="-1.2" class="sb-line" />
-          <line x1="0.2" y1="-2.4" x2="2.6" y2="0" class="sb-line" />
-        </>
-      )}
-    </g>
-  );
 }
 
 const BAND_COLOR: Record<RegionId, string> = {
@@ -156,7 +129,7 @@ interface Props {
   /** 正在掷骰的目标国（脉冲高亮） */
   focus?: string;
   /** 点了国家右下角的闪电：列出点名该国的卡 */
-  onBolt?: (id: string, x: number, y: number, now?: boolean) => void;
+  onBolt?: (id: string, x: number, y: number, now?: boolean, kind?: CardKind) => void;
   onBoltLeave?: () => void;
 }
 
@@ -391,8 +364,11 @@ export function MapView({ view, selectable, onPick, flash, onRegion, focus, onBo
             flash={flash.has(c.id)}
             onPick={() => !drag.current?.moved && selectable.has(c.id) && onPick(c.id)}
             onHover={onHover}
-            bolt={countryCards(view, c.id).length > 0}
-            onBolt={(x, y, now) => onBolt?.(c.id, x, y, now)}
+            marks={(['bolt', 'missile', 'war', 'score'] as const).filter((k) => countryCards(view, c.id, k).length > 0)}
+            groups={(['oil', 'muslim', 'canal'] as const).filter(
+              (k) => countryCards(view, c.id, k).length > 0 && !(k === 'oil' ? view.flags.northSeaOil : k === 'muslim' ? view.flags.awacs : view.removed.includes(64)),
+            )}
+            onBolt={(x, y, now, kind) => onBolt?.(c.id, x, y, now, kind)}
             onBoltLeave={() => onBoltLeave?.()}
           />
         ))}
@@ -510,8 +486,6 @@ function Superpower({ id }: { id: 'usa' | 'ussr' }) {
 
 /** 石油输出国组织（#61）计分的产油国 */
 /** 穆斯林革命（#56）可选的国家 */
-const MUSLIM_REV = new Set(['sudan', 'iran', 'iraq', 'egypt', 'libya', 'saudiArabia', 'syria', 'jordan']);
-const OPEC = new Set(['egypt', 'iran', 'libya', 'saudiArabia', 'iraq', 'gulfStates', 'venezuela']);
 const LV_ZH = { none: '—', presence: '存在', domination: '支配', control: '控制' };
 const SCORING_CARD: Record<string, number> = { asia: 1, europe: 2, middleEast: 3, centralAmerica: 37, southeastAsia: 38, africa: 79, southAmerica: 81 };
 
@@ -638,7 +612,7 @@ function RegionLabel({ region, view, onClick }: { region: RegionId; view: GameVi
   );
 }
 
-function CountryBox({ id, view, selectable, dimmed, flash, adjHl, onPick, onHover, bolt, onBolt, onBoltLeave }: { id: string; view: GameView; selectable: boolean; dimmed: boolean; flash: boolean; adjHl: boolean; onPick: () => void; onHover: (id: string | null) => void; bolt: boolean; onBolt: (x: number, y: number, now?: boolean) => void; onBoltLeave: () => void }) {
+function CountryBox({ id, view, selectable, dimmed, flash, adjHl, onPick, onHover, marks, groups, onBolt, onBoltLeave }: { id: string; view: GameView; selectable: boolean; dimmed: boolean; flash: boolean; adjHl: boolean; onPick: () => void; onHover: (id: string | null) => void; marks: CardKind[]; groups: CardKind[]; onBolt: (x: number, y: number, now?: boolean, kind?: CardKind) => void; onBoltLeave: () => void }) {
   const c = COUNTRIES[id];
   const [x, y] = pos(id);
   const [us, ussr] = view.inf[id];
@@ -683,37 +657,62 @@ function CountryBox({ id, view, selectable, dimmed, flash, adjHl, onPick, onHove
           <line x1="-3.9" y1="-3.9" x2="3.9" y2="3.9" />
         </g>
       )}
-      {MUSLIM_REV.has(id) && !view.flags.awacs && (
-        <g class="c-crescent" transform={`translate(${left + (OPEC.has(id) && !view.flags.northSeaOil ? 16 : 1)},${top + BH + 1})`}>
-          <title>穆斯林革命目标国：「穆斯林革命」（#56）打出时，苏联可从这些国家里选两个清空美国影响力（向沙特出售预警机发动后失效）</title>
-          <circle r="7" />
-          <path d="M1.8,-4.6 A4.8,4.8 0 1 0 1.8,4.6 A3.8,3.8 0 1 1 1.8,-4.6Z" />
-        </g>
-      )}
-      {OPEC.has(id) && !view.flags.northSeaOil && (
-        <g class="c-oil" transform={`translate(${left + 1},${top + BH + 1})`}>
-          <title>产油国：「石油输出国组织」（#61）打出时，苏联每控制一个产油国 +1 VP（北海油田发动后失效）</title>
-          <circle r="7" />
-          <path d="M0,-4.6 C2.6,-1.2 3.6,0.6 3.6,1.9 A3.6,3.6 0 0 1 -3.6,1.9 C-3.6,0.6 -2.6,-1.2 0,-4.6Z" />
-        </g>
-      )}
-      {bolt && (
+      {/* 成组国家卡：油滴 / 新月 / 河流，从左往右并排在方框左下角；悬停和闪电一样展开卡列表 */}
+      {groups.map((k, i) => (
         <g
-          class="c-bolt"
+          key={k}
+          class={`c-mark c-${k}`}
+          transform={`translate(${left + 1 + i * 15},${top + BH + 1})`}
           onPointerEnter={(e) => {
             const r = (e.currentTarget as SVGGElement).getBoundingClientRect();
-            onBolt(r.right, r.top + r.height / 2);
+            onBolt(r.right, r.top + r.height / 2, false, k);
           }}
           onPointerLeave={onBoltLeave}
           onClick={(e) => {
             e.stopPropagation();
-            onBolt(e.clientX, e.clientY, true);
+            onBolt(e.clientX, e.clientY, true, k);
           }}
         >
-          <circle cx={left + BW - 1} cy={top + BH + 1} r="7" />
-          <polygon points={`${left + BW},${top + BH - 5} ${left + BW - 4.5},${top + BH + 2} ${left + BW - 1},${top + BH + 2} ${left + BW - 2},${top + BH + 7} ${left + BW + 2.5},${top + BH} ${left + BW - 1},${top + BH}`} />
+          <circle r="7" />
+          {k === 'oil' && <path d="M0,-4.6 C2.6,-1.2 3.6,0.6 3.6,1.9 A3.6,3.6 0 0 1 -3.6,1.9 C-3.6,0.6 -2.6,-1.2 0,-4.6Z" />}
+          {k === 'muslim' && <path d="M1.8,-4.6 A4.8,4.8 0 1 0 1.8,4.6 A3.8,3.8 0 1 1 1.8,-4.6Z" />}
+          {k === 'canal' && <path class="cn-wave" d="M-4.6,-2.2 q1.15,-1.4 2.3,0 t2.3,0 t2.3,0 t2.3,0 M-4.6,1 q1.15,-1.4 2.3,0 t2.3,0 t2.3,0 t2.3,0 M-4.6,4.2 q1.15,-1.4 2.3,0 t2.3,0 t2.3,0 t2.3,0" />}
         </g>
-      )}
+      ))}
+      {/* 点名该国的卡：闪电（一般事件）永远在最右，往左依次是导弹（古巴导弹危机）、航弹（战争卡）、皇冠（计分卡） */}
+      {marks.map((k, i) => (
+        <g
+          key={k}
+          class={`c-mark c-${k}`}
+          transform={`translate(${left + BW - 1 - i * 16},${top + BH + 1})`}
+          onPointerEnter={(e) => {
+            const r = (e.currentTarget as SVGGElement).getBoundingClientRect();
+            onBolt(r.right, r.top + r.height / 2, false, k);
+          }}
+          onPointerLeave={onBoltLeave}
+          onClick={(e) => {
+            e.stopPropagation();
+            onBolt(e.clientX, e.clientY, true, k);
+          }}
+        >
+          <circle r="7" />
+          {k === 'bolt' && <polygon points="1,-6 -3.5,1 0,1 -1,6 3.5,-1 0,-1" />}
+          {k === 'war' && (
+            <g transform="rotate(35)">
+              <path class="wb-body" d="M0,-4.8 C1.9,-4.8 2.3,-1.5 2.3,0.8 L1.4,3 L-1.4,3 L-2.3,0.8 C-2.3,-1.5 -1.9,-4.8 0,-4.8Z" />
+              <path class="wb-fin" d="M-1.4,3 L-2.9,5.4 L2.9,5.4 L1.4,3Z" />
+            </g>
+          )}
+          {k === 'missile' && (
+            <g transform="rotate(45)">
+              <path class="ms-body" d="M0,-5.6 C1.3,-4.4 1.5,-2.8 1.5,-1.6 L1.5,3 L-1.5,3 L-1.5,-1.6 C-1.5,-2.8 -1.3,-4.4 0,-5.6Z" />
+              <path class="ms-fin" d="M-1.5,1 L-3.2,4.4 L-1.5,3.6Z M1.5,1 L3.2,4.4 L1.5,3.6Z" />
+              <path class="ms-flame" d="M-1,3.2 L0,5.8 L1,3.2Z" />
+            </g>
+          )}
+          {k === 'score' && <path class="cr-body" d="M-4.6,3 L-5,-2.6 L-2.4,-0.4 L0,-4.2 L2.4,-0.4 L5,-2.6 L4.6,3Z" />}
+        </g>
+      ))}
     </g>
   );
 }

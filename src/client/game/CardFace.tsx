@@ -1,5 +1,6 @@
 import { CARDS, CHINA_CARD } from '../../data';
 import { cardArt } from '../../art';
+import { withSubIcons } from './SubBadge';
 
 const SIDE_CLASS = { US: 'us', USSR: 'ussr', NEUTRAL: 'neutral' } as const;
 const ERA_ZH = { early: '冷战早期', mid: '冷战中期', late: '冷战后期' } as const;
@@ -47,7 +48,7 @@ export function CardFace({ id, faceDown }: { id: number; faceDown?: boolean }) {
         {c.war && <span class="tag-war">战争</span>}
         {id === CHINA_CARD && <span>不计入手牌</span>}
       </div>
-      <div class="cf-text">{c.text}</div>
+      <div class="cf-text">{withSubIcons(c.text)}</div>
       <div class="cf-foot">
         <span>{ERA_ZH[c.era]}</span>
         {c.optional && <span>可选卡</span>}
