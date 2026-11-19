@@ -47,9 +47,18 @@ const DevEvent = import.meta.env.DEV ? lazy<{ ids: string }>(() => import('./gam
   </div>
 ))) : null;
 
+/** 仅开发环境：#/dev-defcon 预览 DEFCON 升降动画（5→2 逐级下降，再逐级回升） */
+const DevDefcon = import.meta.env.DEV ? lazy(() => import('./game/Tracks').then((m) => () => {
+  const seq = [5, 4, 3, 2, 3, 4, 5];
+  const [i, setI] = useState(0);
+  useEffect(() => { const t = setInterval(() => setI((x) => (x + 1) % seq.length), 3000); return () => clearInterval(t); }, []);
+  return <div style={{ margin: 80 }}><div class="tracks"><m.Defcon d={seq[i]} /></div></div>;
+})) : null;
+
 function App() {
   const r = route.value;
   if (DevVictory && location.hash.startsWith('#/dev-victory/')) return <DevVictory w={location.hash.split('/')[2]} />;
+  if (DevDefcon && location.hash.startsWith('#/dev-defcon')) return <DevDefcon />;
   if (DevEvent && location.hash.startsWith('#/dev-event/')) return <DevEvent ids={location.hash.split('/')[2]} />;
   // 对局页面由 Board 自己切换到对局音乐；其余页面放首页音乐
   useEffect(() => {

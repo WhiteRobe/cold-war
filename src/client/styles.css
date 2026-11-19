@@ -1032,3 +1032,33 @@ h1, h2, h3, h4 { font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif; let
 .c-crescent { cursor: help; }
 .c-crescent circle { fill: #2f6b3a; stroke: #f3ecdb; stroke-width: 1.2; }
 .c-crescent path { fill: #f5d76e; }
+
+/* DEFCON 变化：下降轰炸机投弹爆炸，回升鸽子起飞 */
+.dc-fx { position: absolute; inset: 0; pointer-events: none; z-index: 60; overflow: visible; }
+.dc-fly { position: absolute; top: -2px; left: -70px; animation: dcFly 1.6s cubic-bezier(.3,.1,.6,1) forwards; }
+.dc-bomber { display: block; fill: #c9ced6; stroke: #1a1c20; stroke-width: 1.2; filter: drop-shadow(0 3px 3px #000a); }
+.dc-fly::before { content: ""; position: absolute; right: 100%; top: 11px; width: 90px; height: 3px; background: linear-gradient(90deg, transparent, #e8ecf0aa); border-radius: 2px; }
+.dc-bomber .dc-eng { fill: #f0a040; animation: dcEng 0.12s steps(2) infinite; }
+@keyframes dcFly { from { transform: translateX(0) translateY(6px); } to { transform: translateX(calc(100% + 240px)) translateY(-4px); } }
+@keyframes dcEng { 50% { opacity: 0.3; } }
+.dc-bomb { position: absolute; left: var(--x); top: 6px; width: 5px; height: 9px; margin-left: -2.5px; border-radius: 50% 50% 40% 40%; background: #222; opacity: 0; animation: dcDrop 0.45s ease-in forwards; }
+.dc-bomb.b1 { animation-delay: 0.42s; margin-left: -8px; }
+.dc-bomb.b2 { animation-delay: 0.52s; margin-left: 3px; }
+@keyframes dcDrop { 0% { opacity: 1; transform: translateY(0) scale(0.7); } 100% { opacity: 1; transform: translateY(22px) scale(1); } 101% { opacity: 0; } }
+.dc-boom { position: absolute; left: var(--x); top: 34px; width: 12px; height: 12px; margin: -6px; border-radius: 50%; background: radial-gradient(circle, #fff6c0 0%, #ffb030 35%, #e0402a 60%, transparent 72%); opacity: 0; animation: dcBoom 0.7s ease-out 0.95s forwards; }
+@keyframes dcBoom { 0% { opacity: 1; transform: scale(0.3); } 40% { opacity: 1; transform: scale(4.2); } 100% { opacity: 0; transform: scale(5.5); } }
+.dc-smoke { position: absolute; left: var(--x); top: 30px; width: 18px; height: 18px; margin: -9px; border-radius: 50%; background: radial-gradient(circle, #555a 0%, #4448 50%, transparent 70%); opacity: 0; animation: dcSmoke 1.4s ease-out 1.15s forwards; }
+@keyframes dcSmoke { 0% { opacity: 0.9; transform: translateY(0) scale(1); } 100% { opacity: 0; transform: translateY(-26px) scale(3); } }
+.trk-defcon.dc-shake .defcon-row { animation: dcShake 0.5s ease-out 0.95s; }
+@keyframes dcShake { 0%, 100% { transform: none; } 15% { transform: translate(-3px, 2px); } 30% { transform: translate(3px, -2px); } 45% { transform: translate(-2px, 1px); } 60% { transform: translate(2px, 0); } 80% { transform: translate(-1px, 0); } }
+.dc-dove { position: absolute; left: var(--x); top: 30px; margin: -11px -15px; fill: #fbfbf6; filter: drop-shadow(0 1px 2px #0009); opacity: 0; animation: dcDove 2.4s cubic-bezier(.25,.6,.4,1) forwards; }
+.dc-dove.dv1 { animation-delay: 0.18s; --dx: -70px; --dy: -34px; }
+.dc-dove.dv0 { --dx: 90px; --dy: -46px; }
+.dc-dove.dv2 { animation-delay: 0.34s; --dx: 30px; --dy: 70px; }
+.dc-dove .dv-wing { animation: dvFlap 0.22s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: 100% 100%; }
+.dc-dove .dv-wing.back { transform-origin: 0% 100%; fill: #e3e3dc; }
+.dc-dove .dv-branch { fill: #6b8f3a; }
+@keyframes dvFlap { from { transform: scaleY(1); } to { transform: scaleY(-0.6); } }
+@keyframes dcDove { 0% { opacity: 0; transform: translate(0, 0) scale(0.5); } 12% { opacity: 1; transform: translate(calc(var(--dx) * 0.1), calc(var(--dy) * 0.1)) scale(1); } 80% { opacity: 1; } 100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(1.1); } }
+.dc-dove.dv1 { scale: -1 1; }
+@media (prefers-reduced-motion: reduce) { .dc-fx { display: none; } .trk-defcon.dc-shake .defcon-row { animation: none; } }

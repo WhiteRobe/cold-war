@@ -4,7 +4,7 @@ import { REGION_POINTS, scoreRegion } from '../../engine/scoring';
 import type { Choice, Decision, LogEntry } from '../../engine/types';
 import { Coach, coachOn, danger, setCoach } from './Coach';
 import type { GameView } from '../../engine/view';
-import { audioPrefs, setAudioPrefs, setMusicTrack, setTension, sfx } from '../audio';
+import { audioPrefs, setAudioPrefs, setMood, setMusicTrack, sfx } from '../audio';
 import { go } from '../store';
 import { CardFace, MiniCard } from './CardFace';
 import { cardPreview } from './preview';
@@ -804,13 +804,13 @@ function useGameSounds(view: GameView | null, log: LogEntry[]) {
   useEffect(() => {
     setMusicTrack('game');
     return () => {
-      setTension(false);
+      setMood(null);
       setMusicTrack('menu');
     };
   }, []);
   useEffect(() => {
     if (!view) return;
-    setTension(view.defcon <= 2 && view.phase !== 'over');
+    setMood(view.phase === 'over' ? null : view.defcon, view.vp);
     const p = prev.current;
     prev.current = view;
     const seen = logSeen.current;

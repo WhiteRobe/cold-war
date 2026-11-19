@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { CARDS, REGION_ZH } from '../../data';
 import { SPACE } from '../../engine/space';
 import type { Flags, Side } from '../../engine/types';
@@ -123,7 +124,47 @@ function MilPop({ view }: { view: GameView }) {
   );
 }
 
-function Defcon({ d }: { d: number }) {
+/** DEFCON 变化动画：下降时轰炸机掠过面板投弹、新格子爆炸震动；回升时几只鸽子从格子里飞起 */
+function useDefconFx(d: number) {
+  const prev = useRef(d);
+  const [fx, setFx] = useState<{ kind: 'down' | 'up'; key: number } | null>(null);
+  useEffect(() => {
+    const p = prev.current;
+    prev.current = d;
+    if (d === p) return;
+    const f = { kind: d < p ? 'down' : 'up', key: Date.now() } as const;
+    setFx(f);
+    const t = setTimeout(() => setFx((cur) => (cur === f ? null : cur)), 2600);
+    return () => clearTimeout(t);
+  }, [d]);
+  return fx;
+}
+
+function Bomber() {
+  return (
+    <svg class="dc-bomber" viewBox="0 0 64 28" width="60" height="26">
+      <path d="M4,14 L50,12 Q62,13 62,15 Q62,17 50,17 L4,16 Z" />
+      <path d="M26,13 L36,1 L41,1 L36,13 Z M26,16 L36,27 L41,27 L36,16 Z" />
+      <path d="M4,14 L1,6 L7,6 L12,14 Z" />
+      <circle cx="31" cy="4" r="1.6" class="dc-eng" />
+      <circle cx="31" cy="24" r="1.6" class="dc-eng" />
+    </svg>
+  );
+}
+
+function Dove({ i }: { i: number }) {
+  return (
+    <svg class={`dc-dove dv${i}`} viewBox="0 0 32 24" width="30" height="22">
+      <path class="dv-wing" d="M14,12 Q10,2 2,1 Q8,7 9,12 Z" />
+      <path d="M4,13 Q12,9 20,11 Q25,8 28,10 L31,10 L28,12 Q26,17 18,17 L10,17 Q6,16 4,13 Z" />
+      <path class="dv-wing back" d="M15,12 Q20,3 27,2 Q22,8 19,12 Z" />
+      <path d="M20,16 L23,21 L17,17 Z" class="dv-branch" />
+    </svg>
+  );
+}
+
+export function Defcon({ d }: { d: number }) {
+  const fx = useDefconFx(d);
   const rows: [number, string][] = [
     [5, '没有限制'],
     [4, '欧洲禁止政变和调整阵营'],
@@ -132,7 +173,21 @@ function Defcon({ d }: { d: number }) {
     [1, '核战争：谁的行动轮谁输'],
   ];
   return (
-    <div class="trk trk-defcon has-pop" data-tour="defcon">
+    <div class={`trk trk-defcon has-pop${fx?.kind === 'down' ? ' dc-shake' : ''}`} data-tour="defcon" key={fx?.kind === 'down' ? fx.key : 'dc'}>
+      {fx?.kind === 'down' && (
+        <div class="dc-fx" key={fx.key} style={{ '--x': `${8 + [5, 4, 3, 2, 1].indexOf(d) * 25 + 11}px` } as Record<string, string>}>
+          <div class="dc-fly"><Bomber /></div>
+          <span class="dc-bomb b1" />
+          <span class="dc-bomb b2" />
+          <span class="dc-boom" />
+          <span class="dc-smoke" />
+        </div>
+      )}
+      {fx?.kind === 'up' && (
+        <div class="dc-fx" key={fx.key} style={{ '--x': `${8 + [5, 4, 3, 2, 1].indexOf(d) * 25 + 11}px` } as Record<string, string>}>
+          {[0, 1, 2].map((i) => <Dove key={i} i={i} />)}
+        </div>
+      )}
       <div class="trk-pop defcon-pop">
         <div class="pop-title">DEFCON（核战争警戒等级）</div>
         <table class="pop-table">

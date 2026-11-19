@@ -275,8 +275,32 @@ interface TrackDef {
   bpm: number;
   /** 每小节一个和弦（MIDI） */
   chords: number[][];
-  step(i: number, t: number, dur: number, chord: number[], tense: boolean): void;
+  step(i: number, t: number, dur: number, chord: number[], m: Mood): void;
 }
+
+/** 对局音乐的情绪：紧张度跟 DEFCON 走，倾向跟胜利点走（哪方领先就换成哪方的配器和旋律） */
+export interface Mood {
+  /** 0 = DEFCON 5 … 3 = DEFCON 2 及以下 */
+  tension: 0 | 1 | 2 | 3;
+  lean: 'US' | 'USSR' | null;
+  /** 1 = 小幅领先，2 = 大幅领先 */
+  lead: 0 | 1 | 2;
+}
+const CALM: Mood = { tension: 1, lean: null, lead: 0 };
+
+/** 各阵营领先时的和弦进行：美方 A 大调 I–vi–IV–V，苏方 A 和声小调 i–iv–V–i 的进行 */
+const GAME_CHORDS: Record<'N' | 'US' | 'USSR', number[][]> = {
+  N: [[57, 60, 64], [53, 57, 60], [50, 53, 57], [52, 56, 59]],
+  US: [[57, 61, 64], [54, 57, 61], [50, 54, 57], [52, 56, 59]],
+  USSR: [[57, 60, 64], [50, 53, 57], [52, 56, 59], [57, 60, 64]],
+};
+/** 领先方的主题旋律（每两小节一句，-1 为休止，0 延续） */
+const MOTIF: Record<'US' | 'USSR', number[][]> = {
+  // 上行号角，明亮
+  US: [[64, -1, 69, -1, 73, 0, 0, -1], [73, -1, 71, 69, 66, 0, -1, -1], [69, -1, 74, -1, 73, 71, 69, -1], [71, 0, 0, -1, 68, -1, 64, -1]],
+  // 低沉进行曲，切分下行
+  USSR: [[69, 0, 0, 72, 71, -1, 69, -1], [65, 0, 0, -1, 62, -1, 65, -1], [64, 0, 68, -1, 71, 0, 0, -1], [69, 0, 0, 0, -1, -1, -1, -1]],
+};
 
 let padFilter: BiquadFilterNode | null = null;
 
@@ -324,34 +348,58 @@ const TRACKS: Record<Track, TrackDef> = {
       if (bar === 3 && s >= 6) for (let k = 0; k < 6; k++) noise(0.05, { freq: 1700, q: 1, vol: 0.012 + (s - 6) * 0.01 + k * 0.004, at: t + (k * dur) / 6, dest });
     },
   },
-  // 对局：A 小调，紧张的琶音 + 军鼓，DEFCON 2 时加速并加入低音脉冲和警报
+  // 对局：A 小调琶音 + 军鼓。紧张度越高越快、层次越密（DEFCON 2 加低音脉冲和警报）；
+  // 一方领先时换成该方的和声与配器，领先越多主题越频繁
   game: {
     bpm: 92,
-    chords: [[57, 60, 64], [53, 57, 60], [50, 53, 57], [52, 56, 59]],
-    step(i, t, dur, chord, tense) {
+    chords: GAME_CHORDS.N,
+    step(i, t, dur, chord, m) {
       const bar = Math.floor(i / 8) % 4;
       const s = i % 8;
       const dest = musicBus!;
-      if (s === 0) pad(chord, t, dur * 8, 0.018);
-      // 琶音
-      const arp = [0, 1, 2, 1, 0, 2, 1, 2][s];
-      tone(mtof(chord[arp] + 12), dur * 0.9, { type: 'triangle', vol: 0.035, release: dur * 0.7, dest, filter: 2400 });
-      // 低音
-      if (s === 0 || s === 4) tone(mtof(chord[0] - 12), dur * 1.8, { type: 'triangle', vol: 0.13, dest });
-      if (tense) tone(mtof(chord[0] - 24), dur * 0.7, { type: 'sawtooth', vol: 0.06, dest, filter: 220 });
-      // 军鼓：二、四拍轻击，第 4 小节末滚奏
-      if (s === 2 || s === 6) noise(0.09, { freq: 1900, q: 0.9, vol: 0.035, at: t, dest });
-      if (s === 7 && bar === 3) for (let k = 1; k < 4; k++) noise(0.04, { freq: 1900, q: 0.9, vol: 0.02 + k * 0.006, at: t + (k * dur) / 4, dest });
-      if (s === 0 && bar === 0) noise(0.25, { freq: 120, vol: 0.12, type: 'lowpass', at: t, dest });
+      const T = m.tension;
+      const ussr = m.lean === 'USSR';
+      const us = m.lean === 'US';
+      if (s === 0) pad(chord, t, dur * 8, ussr ? 0.024 : 0.018);
+      // 琶音：DEFCON 5 时只弹一半；美方领先抬高八度更亮，苏方领先改成重复根音的进行曲音型
+      if (T > 0 || s % 2 === 0) {
+        const arp = ussr ? [0, 0, 2, 0, 1, 0, 2, 1][s] : [0, 1, 2, 1, 0, 2, 1, 2][s];
+        const oct = us ? 24 : 12;
+        tone(mtof(chord[arp] + oct), dur * 0.9, { type: 'triangle', vol: us ? 0.028 : 0.035, release: dur * 0.7, dest, filter: 1800 + T * 400 });
+      }
+      // 低音：苏方领先每拍一下（oom-pah），否则一、三拍
+      if (s === 0 || s === 4 || (ussr && s % 2 === 0)) tone(mtof(chord[0] - (ussr && s % 4 === 2 ? 5 : 12)), dur * 1.8, { type: 'triangle', vol: ussr ? 0.15 : 0.13, dest });
+      if (T >= 2 && s % 2 === 1) tone(mtof(chord[0] - 12), dur * 0.5, { type: 'triangle', vol: 0.05, dest });
+      if (T >= 3) tone(mtof(chord[0] - 24), dur * 0.7, { type: 'sawtooth', vol: 0.06, dest, filter: 220 });
+      // 踩镲：DEFCON 3 起加入反拍
+      if (T >= 2 && s % 2 === 1) noise(0.03, { freq: 7000, q: 1.2, vol: 0.012 + (T - 2) * 0.006, at: t, dest });
+      // 军鼓：DEFCON 5 不打；二、四拍轻击，第 4 小节末滚奏；DEFCON 2 加密
+      if (T > 0 && (s === 2 || s === 6 || (T >= 3 && s === 7))) noise(0.09, { freq: 1900, q: 0.9, vol: 0.035, at: t, dest });
+      if (T > 0 && s === 7 && bar === 3) for (let k = 1; k < 4; k++) noise(0.04, { freq: 1900, q: 0.9, vol: 0.02 + k * 0.006, at: t + (k * dur) / 4, dest });
+      if (s === 0 && (bar === 0 || (ussr && bar === 2))) noise(0.25, { freq: 120, vol: 0.12, type: 'lowpass', at: t, dest });
+      // 领先方主题：小幅领先每 8 小节一遍（只在前半），大幅领先每 4 小节一遍
+      if (m.lean && (m.lead >= 2 || Math.floor(i / 32) % 2 === 0)) {
+        const n = MOTIF[m.lean][bar][s];
+        if (n > 0) {
+          let len = 1;
+          while (s + len < 8 && MOTIF[m.lean][bar][s + len] === 0) len++;
+          // 美方：明亮的铜管（锯齿波开滤波）；苏方：低一个八度的厚重铜管 + 五度叠音
+          const lo = ussr ? -12 : 0;
+          tone(mtof(n + lo), dur * len * 0.95, { type: 'sawtooth', vol: 0.03, attack: 0.04, dest, filter: us ? 2600 : 1300 });
+          if (ussr) tone(mtof(n + lo - 5), dur * len * 0.95, { type: 'sawtooth', vol: 0.018, attack: 0.04, dest, filter: 900 });
+        }
+      }
       // 警报
-      if (tense && s === 0 && bar % 2 === 0) tone(990, dur * 3, { type: 'sine', vol: 0.014, slide: 0.66, dest, attack: 0.05 });
+      if (T >= 3 && s === 0 && bar % 2 === 0) tone(990, dur * 3, { type: 'sine', vol: 0.014, slide: 0.66, dest, attack: 0.05 });
     },
   },
 };
 
 let want: Track | null = null;
 let current: Track | null = null;
-let tense = false;
+let mood: Mood = CALM;
+/** 新情绪等到下一个四小节乐句开头才切换，避免半句突变 */
+let pending: Mood = CALM;
 let timer: ReturnType<typeof setInterval> | undefined;
 let nextTime = 0;
 let stepIdx = 0;
@@ -362,8 +410,25 @@ export function setMusicTrack(t: Track | null) {
   syncMusic();
 }
 
-export function setTension(on: boolean) {
-  tense = on;
+/** 按局面更新对局音乐：DEFCON 定紧张度，胜利点定倾向（带回差，避免在门槛上来回切） */
+export function setMood(defcon: number | null, vp = 0) {
+  if (defcon === null) {
+    pending = CALM;
+    return;
+  }
+  const tension = (defcon >= 5 ? 0 : defcon === 4 ? 1 : defcon === 3 ? 2 : 3) as Mood['tension'];
+  const a = Math.abs(vp);
+  const side = vp > 0 ? 'US' : vp < 0 ? 'USSR' : null;
+  const cur = pending;
+  let lean = cur.lean;
+  let lead = cur.lead;
+  if (!side || (cur.lean && cur.lean !== side) || a <= 2) {
+    lean = null;
+    lead = 0;
+  }
+  if (side && a >= 4) lean = side;
+  if (lean) lead = a >= 10 ? 2 : a <= 8 && cur.lead === 2 ? 1 : cur.lead === 2 ? 2 : 1;
+  pending = { tension, lean, lead: lead as Mood['lead'] };
 }
 
 function syncMusic() {
@@ -408,10 +473,15 @@ function tick() {
   // 页面在后台恢复后不要一次补一大串
   if (nextTime < ctx.currentTime - 0.5) nextTime = ctx.currentTime + 0.05;
   while (nextTime < ctx.currentTime + 0.3) {
-    const bpm = def.bpm * (tense && current === 'game' ? 1.2 : 1);
+    if (current !== 'game') mood = CALM;
+    else if (stepIdx % 32 === 0) mood = pending;
+    // 紧张度升高立刻生效（在下一小节），缓和等乐句结束
+    else if (stepIdx % 8 === 0 && pending.tension > mood.tension) mood = { ...mood, tension: pending.tension };
+    const bpm = def.bpm * (current === 'game' ? [0.94, 1, 1.08, 1.2][mood.tension] : 1);
     const dur = 60 / bpm / 2;
-    const chord = def.chords[Math.floor(stepIdx / 8) % def.chords.length];
-    def.step(stepIdx, nextTime, dur, chord, tense && current === 'game');
+    const chords = current === 'game' ? GAME_CHORDS[mood.lean ?? 'N'] : def.chords;
+    const chord = chords[Math.floor(stepIdx / 8) % chords.length];
+    def.step(stepIdx, nextTime, dur, chord, mood);
     nextTime += dur;
     stepIdx = (stepIdx + 1) % (8 * def.chords.length);
   }
