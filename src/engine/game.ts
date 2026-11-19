@@ -380,12 +380,14 @@ export class Game {
   }
 
   private *freePlacement(side: Side, n: number, ok: (c: string) => boolean, where: string): Gen {
+    const steps: [string, number][] = [];
     for (let i = 0; i < n; i++) {
       const ids = COUNTRY_LIST.map((c) => c.id).filter(ok);
       const c = yield* this.askCountry(side, 'setup', `开局布置：在${where}放置影响力（剩余 ${n - i} 点）`, ids, { ops: { total: n, spent: i } });
       this.addInf(c, side, 1);
+      steps.push([c, 1]);
     }
-    this.log(`${SIDE_ZH[side]}完成开局布置（${where} ${n} 点）`, { side });
+    this.log(`${SIDE_ZH[side]}完成开局布置（${where} ${n} 点）`, { side, place: { side, steps } });
   }
 
   baseARs(): number {
@@ -830,6 +832,7 @@ export class Game {
     let rs: RegionState = 'none';
     let spent = 0;
     const placed: Record<string, number> = {};
+    const steps: [string, number][] = [];
     for (;;) {
       const total = this.opsBudget(side, base, o.card, rs, o.raw);
       const targets = ids.filter((c) => {
@@ -843,9 +846,10 @@ export class Game {
       rs = Game.mergeRegion(rs, Game.regionOf(c));
       this.addInf(c, side, 1);
       placed[c] = (placed[c] ?? 0) + 1;
+      steps.push([c, 1]);
     }
     const list = Object.entries(placed).map(([c, n]) => `${countryName(c)} +${n}`).join('，');
-    this.log(`${SIDE_ZH[side]}放置影响力：${list || '无'}`, { side });
+    this.log(`${SIDE_ZH[side]}放置影响力：${list || '无'}`, { side, place: { side, steps } });
   }
 
   private *realignOps(side: Side, base: number, o: OpsOpts, ids: string[]): Gen {
@@ -1075,6 +1079,7 @@ export class Game {
    */
   *placeInfluence(side: Side, card: number, total: number, ok: (c: string) => boolean, o: { maxPer?: number; perCountry?: number; prompt?: string } = {}): Gen<Record<string, number>> {
     const placed: Record<string, number> = {};
+    const steps: [string, number][] = [];
     const per = o.perCountry;
     for (let i = 0; i < total; ) {
       const ids = COUNTRY_LIST.map((c) => c.id).filter((c) => ok(c) && (o.maxPer === undefined || (placed[c] ?? 0) < o.maxPer) && (per === undefined || !placed[c]));
@@ -1083,10 +1088,11 @@ export class Game {
       const n = per ?? 1;
       this.addInf(c, side, n);
       placed[c] = (placed[c] ?? 0) + n;
+      steps.push([c, n]);
       i += n;
     }
     const list = Object.entries(placed).map(([c, n]) => `${countryName(c)} +${n}`).join('，');
-    if (list) this.log(`${SIDE_ZH[side]}：${list}`, { side });
+    if (list) this.log(`${SIDE_ZH[side]}：${list}`, { side, place: { side, steps } });
     return placed;
   }
 

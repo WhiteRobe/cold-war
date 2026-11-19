@@ -72,6 +72,8 @@ export interface LogEntry {
   roll?: RollInfo;
   /** 卡牌移动（界面做飞牌动画） */
   move?: CardMove;
+  /** 逐点放置影响力的顺序（界面逐个播放）：[国家, 点数] */
+  place?: { side: Side; steps: [string, number][] };
 }
 
 export type PileName = 'deck' | 'discard' | 'removed' | 'played';

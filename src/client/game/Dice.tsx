@@ -15,6 +15,8 @@ const SPACE_MS = 2600;
 const HUMAN_CARD_MS = 6000;
 /** 卡牌移动展示时长 */
 const MOVE_MS = 2400;
+/** 对手逐点放置影响力，每一点的间隔 */
+const PLACE_MS = 520;
 /** 自己打出事件的动画时长 */
 const OWN_EVENT_MS = 3400;
 const TITLE: Record<RollInfo['type'], string> = {
@@ -26,6 +28,7 @@ const HOW_ZH = { event: '作为事件', ops: '使用行动点', space: '用于�
 export type Beat =
   | { key: number; kind: 'roll'; roll: RollInfo }
   | { key: number; kind: 'move'; move: CardMove }
+  | { key: number; kind: 'place'; side: Side; country: string; n: number }
   | { key: number; kind: 'card'; card: number; side: Side; how: keyof typeof HOW_ZH; needConfirm: boolean; own?: boolean };
 
 /**
@@ -56,6 +59,18 @@ export function useEventPacing(incoming: GameView | null, aiOpponent: boolean): 
     const b = queue.current.shift();
     if (!b) return finish();
     setBeat(b);
+    if (b.kind === 'place') {
+      // 在当前显示的局面上逐点加影响力，地图上的插旗动画和音效随之播放
+      setShown((v) => {
+        if (!v) return v;
+        const cur = v.inf[b.country];
+        const nv = { ...v, inf: { ...v.inf, [b.country]: (b.side === 'US' ? [cur[0] + b.n, cur[1]] : [cur[0], cur[1] + b.n]) as [number, number] } };
+        shownRef.current = nv;
+        return nv;
+      });
+      timer.current = setTimeout(next, PLACE_MS);
+      return;
+    }
     if (b.kind === 'roll') timer.current = setTimeout(next, b.roll.type === 'space' ? SPACE_MS : ROLL_MS);
     else if (b.kind === 'move') timer.current = setTimeout(next, MOVE_MS);
     else if (b.own) timer.current = setTimeout(next, OWN_EVENT_MS);
@@ -87,6 +102,10 @@ export function useEventPacing(incoming: GameView | null, aiOpponent: boolean): 
       if (i < from) return;
       if (e.move) items.push({ at: i - 0.5, beat: { key: ++seq.current, kind: 'move', move: e.move } });
       if (e.roll) items.push({ at: i, beat: { key: ++seq.current, kind: 'roll', roll: e.roll } });
+      // 对手放影响力逐点播放（自己点的不必重播）
+      if (e.place && e.place.side !== incoming.me) {
+        e.place.steps.forEach(([country, n], k) => items.push({ at: i - 0.4 + k * 0.001, beat: { key: ++seq.current, kind: 'place', side: e.place!.side, country, n } }));
+      }
     });
     const me = incoming.me;
     for (const p of (incoming.plays ?? []).slice(scannedPlays.current)) {
@@ -113,7 +132,9 @@ export function useEventPacing(incoming: GameView | null, aiOpponent: boolean): 
     }
     busy.current = true;
     // 一次太多（读档、跳转）就只展示最后几项
-    queue.current = beats.length > 12 ? beats.slice(-6) : beats;
+    // 逐点放影响力不算在内，只看出牌 / 掷骰 / 移牌的数量
+    const heavy = beats.filter((b) => b.kind !== 'place').length;
+    queue.current = heavy > 12 || beats.length > 40 ? beats.filter((b) => b.kind !== 'place').slice(-6) : beats;
     next();
   }, [incoming]);
 
@@ -173,7 +194,7 @@ export function BeatOverlay({ beat, names, onNext, onSkipAll }: { beat: Beat | n
     if (beat?.kind === 'roll') sfx('dice');
     if (beat?.kind === 'card') sfx('card');
   }, [beat?.key]);
-  if (!beat) return null;
+  if (!beat || beat.kind === 'place') return null;
   if (beat.kind === 'move') return <MoveOverlay move={beat.move} key={beat.key} onNext={onNext} />;
   if (beat.kind === 'card') {
     const c = CARDS[beat.card];
