@@ -153,7 +153,7 @@ h1, h2, h3, h4 { font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif; let
 .hand-main { min-width: 0; flex: 1; }
 .known-opp { min-width: 0; max-width: 40%; }
 .hand-cards.small .mini-card { width: 92px; }
-.undo-btn { pointer-events: auto; background: #1f2328e6; border: 1px solid var(--line); border-radius: 8px; padding: 5px 12px; font-size: 13px; font-weight: 700; color: var(--text); cursor: pointer; box-shadow: 0 3px 10px #0007; }
+.undo-btn { position: absolute; left: 12px; bottom: 14px; z-index: 3; background: #1f2328ee; border: 2px solid var(--line); border-radius: 10px; padding: 10px 22px; font-size: 17px; font-weight: 800; color: var(--text); cursor: pointer; box-shadow: 0 6px 18px #000a; }
 .undo-btn:hover:not(:disabled) { border-color: var(--gold); color: var(--gold); }
 .undo-btn:disabled { opacity: 0.4; }
 
@@ -367,6 +367,7 @@ h1, h2, h3, h4 { font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif; let
   }
   .board-hand.open { transform: none; }
   .board-hand .mini-card { width: 78px; }
+  .undo-btn { bottom: 44px; padding: 7px 14px; font-size: 14px; }
   .board-hand .mc-name { font-size: 10.5px; }
   .known-opp { display: none; }
   .online-tools { right: 236px; bottom: 6px; }

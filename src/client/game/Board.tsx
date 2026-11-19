@@ -144,10 +144,10 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
       <main class="board-map" data-tour="map">
         <div class="map-tl">
           <Effects view={view} onPeek={peekLater} />
-          {session.undo && (
-            <button type="button" class="undo-btn" disabled={!session.canUndo.value} onClick={() => session.undo!()} title="撤销上一步（离线模式）">↶ 撤销</button>
-          )}
         </div>
+        {session.undo && (
+          <button type="button" class="undo-btn" disabled={!session.canUndo.value} onClick={() => session.undo!()} title="撤销上一步（离线模式）">↶ 撤销</button>
+        )}
         <MapView view={view} selectable={selectable} onPick={(c) => choose(c)} flash={flash} onRegion={setRegion} onBolt={(id, x, y, now) => {
           holdBolt();
           clearTimeout(boltOpenTimer.current);
