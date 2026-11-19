@@ -128,7 +128,7 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
       <button type="button" class={`hand-toggle${handChoice ? ' need' : ''}`} onClick={() => setHandOpen(!handOpen)}>
         手牌 {myHand.length}{handOpen ? ' ▾' : ' ▴'}
       </button>
-      <footer class={`board-hand${handOpen || handChoice ? ' open' : ''}${me ? ` side-${me.toLowerCase()}` : ''}`}>
+      <footer class={`board-hand${handOpen || handChoice ? ' open' : ''}${me ? ` hand-${me.toLowerCase()}` : ''}`}>
         <div class="hand-main" data-tour="hand">
         <div class="hand-label">
           {me ? `${SIDE_ZH[me]}手牌` : '观战'}
