@@ -551,10 +551,11 @@ function WinAlerts({ view }: { view: GameView }) {
 
 function RegionLabel({ region, view, onClick }: { region: RegionId; view: GameView; onClick: () => void }) {
   const anchor: Record<RegionId, [number, number]> = {
-    europe: [rx(405), ry(405, 215)],
-    asia: [rx(1110), 760],
-    middleEast: [rx(985), ry(985, 660)],
-    africa: [rx(560), ry(560, 870)],
+    // 标签放在各洲附近的空白处，避开国家方框
+    europe: [rx(405), ry(405, 215) + 105],
+    asia: [rx(1110) - 20, 865],
+    middleEast: [rx(985), ry(985, 660) - 80],
+    africa: [rx(560) + 50, ry(560, 870) - 120],
     centralAmerica: [rx(40), 640],
     southAmerica: [rx(120), 880],
   };
