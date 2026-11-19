@@ -227,6 +227,8 @@ h1, h2, h3, h4 { font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif; let
 .rl-vp { font-size: 13px; font-weight: 800; paint-order: stroke; stroke: #e9dfc7dd; stroke-width: 3px; }
 .rl-vp.us { fill: var(--us3); }
 .rl-vp.ussr { fill: var(--ussr3); }
+/* 东南亚计分已打出移除：划掉，不再单独计分 */
+.rl-vp.done { text-decoration: line-through; text-decoration-thickness: 2px; opacity: 0.55; }
 .rl-vp.even { fill: #55504a; }
 .rl-score .ussr { fill: var(--ussr3); }
 .region-label:hover .rl-name { fill: #000; }
