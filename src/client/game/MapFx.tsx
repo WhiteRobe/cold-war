@@ -166,20 +166,22 @@ export function FxLayer({ fx, pos }: { fx: Fx[]; pos: Pos }) {
 }
 
 /** 每个区域此刻打出计分卡谁领先、领先多少；领先越多雾越浓。
- *  双方在区域里都控制了国家时不再整片铺色，只在各自控制的国家周围起雾，红蓝交错。 */
+ *  双方在区域里都控制了国家时不再整片铺色，只在各自控制的国家周围起雾，红蓝交错；
+ *  但领先方已经支配或控制该区域时，仍然整片铺领先方的颜色。 */
 interface FogEntry { key: string; region: string; side: Side; k: number; ids: string[]; r: number }
 function liveFog(view: GameView): FogEntry[] {
   const out: FogEntry[] = [];
   const sea = new Set(countriesIn('southeastAsia').map((c) => c.id));
   const radius = (r: string) => (r === 'europe' || r === 'southeastAsia' ? 70 : 95);
-  const push = (region: string, ids: string[], side: Side | null, k: number) => {
+  /** whole：领先方已支配 / 控制整个区域，不管对手控制了几国都整片铺色 */
+  const push = (region: string, ids: string[], side: Side | null, k: number, whole = false) => {
     if (!ids.length) return;
     const ctl = { US: [] as string[], USSR: [] as string[] };
     for (const id of ids) {
       const w = controller(view as never, id);
       if (w) ctl[w].push(id);
     }
-    if (ctl.US.length && ctl.USSR.length) {
+    if (ctl.US.length && ctl.USSR.length && !(whole && side)) {
       // 交错：领先方用原浓度（不低于 0.5），落后方 / 平手固定 0.45；半径收小，避免两色糊成紫
       for (const sd of ['US', 'USSR'] as const) {
         out.push({ key: `${region}-${sd}`, region, side: sd, k: sd === side ? Math.max(0.5, k) : 0.45, ids: ctl[sd], r: radius(region) * 0.72 });
@@ -192,7 +194,8 @@ function liveFog(view: GameView): FogEntry[] {
     const side = sc.autoWin ?? (sc.net > 0 ? 'US' : sc.net < 0 ? 'USSR' : null);
     const ids = countriesIn(r as never).map((c) => c.id);
     // 亚洲的雾不盖到东南亚（东南亚单独计分）
-    push(r, r === 'asia' ? ids.filter((id) => !sea.has(id)) : ids, side, sc.autoWin ? 1 : Math.min(1, 0.22 + Math.abs(sc.net) * 0.12));
+    const whole = !!sc.autoWin || (!!side && (sc[side].level === 'domination' || sc[side].level === 'control'));
+    push(r, r === 'asia' ? ids.filter((id) => !sea.has(id)) : ids, side, sc.autoWin ? 1 : Math.min(1, 0.22 + Math.abs(sc.net) * 0.12), whole);
   }
   const s = scoreSEA(view as never);
   push('southeastAsia', [...sea], s.net > 0 ? 'US' : s.net < 0 ? 'USSR' : null, Math.min(1, 0.22 + Math.abs(s.net) * 0.16));
