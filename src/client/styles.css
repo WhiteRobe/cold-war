@@ -1134,7 +1134,7 @@ g.links { pointer-events: none; }
 
 /* 卡牌文字里「西欧」「东欧」后的徽记 */
 .sub-word { white-space: nowrap; }
-.sub-icon { display: inline-block; vertical-align: -0.15em; margin: 0 1px 0 2px; }
+.sub-icon { display: inline-block; vertical-align: 0.02em; margin: 0 1px 0 2px; }
 /* 古巴导弹危机：钢铁色导弹，和战争卡的深红区分开 */
 .c-missile circle { fill: #46505a; stroke: #c3ccd4; stroke-width: 1.2; }
 .c-missile .ms-body { fill: #dfe5ea; }
