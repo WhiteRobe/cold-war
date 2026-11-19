@@ -154,7 +154,7 @@ interface Props {
   /** 正在掷骰的目标国（脉冲高亮） */
   focus?: string;
   /** 点了国家右下角的闪电：列出点名该国的卡 */
-  onBolt?: (id: string, x: number, y: number) => void;
+  onBolt?: (id: string, x: number, y: number, now?: boolean) => void;
   onBoltLeave?: () => void;
 }
 
@@ -381,7 +381,7 @@ export function MapView({ view, selectable, onPick, flash, onRegion, focus, onBo
             onPick={() => !drag.current?.moved && selectable.has(c.id) && onPick(c.id)}
             onHover={onHover}
             bolt={countryCards(view, c.id).length > 0}
-            onBolt={(x, y) => onBolt?.(c.id, x, y)}
+            onBolt={(x, y, now) => onBolt?.(c.id, x, y, now)}
             onBoltLeave={() => onBoltLeave?.()}
           />
         ))}
@@ -573,7 +573,7 @@ function RegionLabel({ region, view, onClick }: { region: RegionId; view: GameVi
   );
 }
 
-function CountryBox({ id, view, selectable, dimmed, flash, adjHl, onPick, onHover, bolt, onBolt, onBoltLeave }: { id: string; view: GameView; selectable: boolean; dimmed: boolean; flash: boolean; adjHl: boolean; onPick: () => void; onHover: (id: string | null) => void; bolt: boolean; onBolt: (x: number, y: number) => void; onBoltLeave: () => void }) {
+function CountryBox({ id, view, selectable, dimmed, flash, adjHl, onPick, onHover, bolt, onBolt, onBoltLeave }: { id: string; view: GameView; selectable: boolean; dimmed: boolean; flash: boolean; adjHl: boolean; onPick: () => void; onHover: (id: string | null) => void; bolt: boolean; onBolt: (x: number, y: number, now?: boolean) => void; onBoltLeave: () => void }) {
   const c = COUNTRIES[id];
   const [x, y] = pos(id);
   const [us, ussr] = view.inf[id];
@@ -625,7 +625,7 @@ function CountryBox({ id, view, selectable, dimmed, flash, adjHl, onPick, onHove
           onPointerLeave={onBoltLeave}
           onClick={(e) => {
             e.stopPropagation();
-            onBolt(e.clientX, e.clientY);
+            onBolt(e.clientX, e.clientY, true);
           }}
         >
           <circle cx={left + BW - 1} cy={top + BH + 1} r="7" />

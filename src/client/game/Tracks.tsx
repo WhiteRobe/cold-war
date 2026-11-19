@@ -303,7 +303,7 @@ const FLAG_ZH: Partial<Record<keyof Flags, [string, number]>> = {
   warsawPact: ['华沙条约', 16],
 };
 
-export function Effects({ view, onPeek }: { view: GameView; onPeek: (id: number | null, el?: HTMLElement) => void }) {
+export function Effects({ view, onPeek }: { view: GameView; onPeek: (id: number | null, el?: HTMLElement, now?: boolean) => void }) {
   const f = view.flags;
   const chips: { text: string; card: number; cls: string }[] = [];
   for (const [k, v] of Object.entries(FLAG_ZH) as [keyof Flags, [string, number]][]) {
@@ -325,7 +325,7 @@ export function Effects({ view, onPeek }: { view: GameView; onPeek: (id: number 
           class={`chip ${c.cls}`}
           onPointerEnter={(e) => onPeek(c.card, e.currentTarget as HTMLElement)}
           onPointerLeave={() => onPeek(null)}
-          onClick={(e) => onPeek(c.card, e.currentTarget as HTMLElement)}
+          onClick={(e) => onPeek(c.card, e.currentTarget as HTMLElement, true)}
         >
           {c.text}
         </button>

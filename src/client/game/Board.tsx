@@ -47,7 +47,21 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
     clearTimeout(boltTimer.current);
     boltTimer.current = setTimeout(() => { setBolt(null); setPeek(null); }, 260);
   };
-  const peekAt = (id: number | null, r?: { left: number; right: number; top: number; bottom: number }) => setPeek(id === null || !r ? null : { id, left: r.left, right: r.right, top: r.top, bottom: r.bottom });
+  const peekAt = (id: number | null, r?: { left: number; right: number; top: number; bottom: number }) => {
+    clearTimeout(hoverTimer.current);
+    setPeek(id === null || !r ? null : { id, left: r.left, right: r.right, top: r.top, bottom: r.bottom });
+  };
+  // 悬停要停留一会儿才展开，鼠标划过不触发
+  const HOVER_MS = 500;
+  const hoverTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const peekLater = (id: number | null, el?: HTMLElement, now?: boolean) => {
+    clearTimeout(hoverTimer.current);
+    if (id === null || !el) return setPeek(null);
+    const r = el.getBoundingClientRect();
+    if (now) return peekAt(id, r);
+    hoverTimer.current = setTimeout(() => setPeek({ id, left: r.left, right: r.right, top: r.top, bottom: r.bottom }), HOVER_MS);
+  };
+  const boltOpenTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const [tab, setTab] = useState<'log' | 'headlines' | 'cards' | 'regions' | 'help'>('log');
   const flash = useFlash(view);
   useGameSounds(view, view?.log ?? []);
@@ -128,8 +142,14 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
         <AudioToggles />
       </header>
       <main class="board-map" data-tour="map">
-        <Effects view={view} onPeek={(id, el) => peekAt(id, el?.getBoundingClientRect())} />
-        <MapView view={view} selectable={selectable} onPick={(c) => choose(c)} flash={flash} onRegion={setRegion} onBolt={(id, x, y) => { holdBolt(); setBolt((b) => (b?.id === id ? b : { id, x, y })); }} onBoltLeave={leaveBolt} focus={paced.beat?.kind === 'roll' ? paced.beat.roll.target : undefined} />
+        <Effects view={view} onPeek={peekLater} />
+        <MapView view={view} selectable={selectable} onPick={(c) => choose(c)} flash={flash} onRegion={setRegion} onBolt={(id, x, y, now) => {
+          holdBolt();
+          clearTimeout(boltOpenTimer.current);
+          const open = () => setBolt((b) => (b?.id === id ? b : { id, x, y }));
+          if (now || bolt?.id === id) open();
+          else boltOpenTimer.current = setTimeout(open, HOVER_MS);
+        }} onBoltLeave={() => { clearTimeout(boltOpenTimer.current); leaveBolt(); }} focus={paced.beat?.kind === 'roll' ? paced.beat.roll.target : undefined} />
         <BeatOverlay beat={paced.beat} names={names} onNext={paced.next} onSkipAll={paced.skipAll} />
       </main>
       <aside class="board-side">
@@ -144,7 +164,7 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
           <button type="button" class={tab === 'regions' ? 'on' : ''} onClick={() => setTab('regions')}>局势</button>
           <button type="button" class={tab === 'help' ? 'on' : ''} onClick={() => setTab('help')}>速查</button>
         </div>
-        {tab === 'log' ? <LogView log={view.log} me={me} onPeek={(id, el) => peekAt(id, el?.getBoundingClientRect())} /> : tab === 'headlines' ? <HeadlineHistory view={view} names={names} onZoom={setZoomCard} /> : tab === 'cards' ? <CardsPanel view={view} names={names} onZoom={setZoomCard} /> : tab === 'regions' ? <RegionPanel view={view} /> : <QuickRef />}
+        {tab === 'log' ? <LogView log={view.log} me={me} onPeek={peekLater} /> : tab === 'headlines' ? <HeadlineHistory view={view} names={names} onZoom={setZoomCard} /> : tab === 'cards' ? <CardsPanel view={view} names={names} onZoom={setZoomCard} /> : tab === 'regions' ? <RegionPanel view={view} /> : <QuickRef />}
       </aside>
       <button type="button" class={`hand-toggle${handChoice ? ' need' : ''}`} onClick={() => setHandOpen(!handOpen)}>
         手牌 {myHand.length}{handOpen ? ' ▾' : ' ▴'}
@@ -370,7 +390,7 @@ function PlayingCard({ view, names, onZoom }: { view: GameView; names: Record<Si
 }
 
 /** 日志文字里的「#编号 卡名」变成可点击的卡牌链接 */
-function LogText({ text, onPeek }: { text: string; onPeek: (c: number | null, el?: HTMLElement) => void }) {
+function LogText({ text, onPeek }: { text: string; onPeek: (c: number | null, el?: HTMLElement, now?: boolean) => void }) {
   const out: (string | preact.JSX.Element)[] = [];
   const re = /#(\d{1,3})/g;
   let last = 0;
@@ -389,7 +409,7 @@ function LogText({ text, onPeek }: { text: string; onPeek: (c: number | null, el
         class={`log-card side-${card.side.toLowerCase()}`}
         onPointerEnter={(e) => onPeek(id, e.currentTarget as HTMLElement)}
         onPointerLeave={() => onPeek(null)}
-        onClick={(e) => onPeek(id, e.currentTarget as HTMLElement)}
+        onClick={(e) => onPeek(id, e.currentTarget as HTMLElement, true)}
       >
         {text.slice(m.index, end)}
       </button>,
@@ -401,7 +421,7 @@ function LogText({ text, onPeek }: { text: string; onPeek: (c: number | null, el
   return <>{out}</>;
 }
 
-function LogView({ log, me, onPeek }: { log: LogEntry[]; me: Side | null; onPeek: (c: number | null, el?: HTMLElement) => void }) {
+function LogView({ log, me, onPeek }: { log: LogEntry[]; me: Side | null; onPeek: (c: number | null, el?: HTMLElement, now?: boolean) => void }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const el = ref.current;
