@@ -1,4 +1,4 @@
-// 出牌轮盘：点手牌后在牌的正上方弹出一圈选项（事件 / 行动点 / 太空竞赛 → 放置 / 政变 / 调整），
+// 出牌菜单：点手牌后在牌的正上方弹出一列选项（事件 / 行动点 / 太空竞赛 → 放置 / 政变 / 调整），
 // 鼠标只在手牌附近移动就能把一张牌打完。也支持数字键 1–4 选择、Esc 取消。
 import { useEffect, useState } from 'preact/hooks';
 import type { JSX } from 'preact';
@@ -13,7 +13,7 @@ export interface RadialAnchor { card: number; x: number; top: number }
 interface Petal { key: string; label: string; sub?: string; icon: Icon; cls?: string; run: () => void }
 type Icon = 'event' | 'ops' | 'space' | 'influence' | 'coup' | 'realign' | 'back' | 'headline' | 'score' | 'first' | 'skip';
 
-/** 实时决策里这些 tag 由轮盘接管显示 */
+/** 实时决策里这些 tag 由出牌菜单接管显示 */
 export const RADIAL_LIVE_TAGS = new Set(['mode', 'opsMode', 'order']);
 
 function canSpace(v: GameView, me: Side, card: number) {
@@ -95,38 +95,31 @@ export function Radial({ view, anchor, d, onCommit, onLive, onCancel, detail }: 
     return () => window.removeEventListener('keydown', onKey);
   });
 
-  const R = petals.length > 3 ? 150 : 124;
-  const x = Math.max(R + 70, Math.min(window.innerWidth - R - 70, anchor.x));
-  const y = anchor.top - 8;
-  const span = petals.length <= 1 ? 0 : petals.length === 2 ? 70 : petals.length === 3 ? 100 : 120;
-  // 详情放在轮盘右侧，右边放不下就放左侧
+  // 纵向菜单：从选中的牌正上方往上叠，和牌左对齐；靠右边缘时右对齐
+  const MW = 200;
+  const left = Math.max(8, Math.min(window.innerWidth - MW - 8, anchor.x - MW / 2));
+  const bottom = window.innerHeight - anchor.top + 10;
+  // 详情放在菜单右侧，右边放不下就放左侧
   const DW = 290;
-  const dx = x + R + 70 + DW <= window.innerWidth - 8 ? x + R + 70 : Math.max(8, x - R - 70 - DW);
+  const dx = left + MW + 12 + DW <= window.innerWidth - 8 ? left + MW + 12 : Math.max(8, left - 12 - DW);
   return (
     <>
       {!live && <div class="radial-backdrop" onClick={onCancel} />}
-      {detail && <div class="radial-detail" style={{ left: `${dx}px`, bottom: `${window.innerHeight - anchor.top + 6}px` }}>{detail}</div>}
-      <div class={`radial${live ? ' live' : ''}`} style={{ left: `${x}px`, top: `${y}px` }} key={`${stage}-${live ? d!.tag : 'p'}`}>
-        {petals.map((p, i) => {
-          const a = ((petals.length === 1 ? 0 : -span / 2 + (span * i) / (petals.length - 1)) - 90) * (Math.PI / 180);
-          const style: Record<string, string> = { left: `${Math.cos(a) * R}px`, top: `${Math.sin(a) * R}px`, animationDelay: `${i * 0.04}s` };
-          return (
-            <button type="button" key={p.key} class={`petal ${p.cls ?? ''}`} style={style} onClick={(e) => { e.stopPropagation(); p.run(); }}>
-              <PetalIcon k={p.icon} />
+      {detail && <div class="radial-detail" style={{ left: `${dx}px`, bottom: `${bottom - 4}px` }}>{detail}</div>}
+      <div class={`radial-menu${live ? ' live' : ''}`} style={{ left: `${left}px`, bottom: `${bottom}px`, width: `${MW}px` }} key={`${stage}-${live ? d!.tag : 'p'}`}>
+        <div class="rm-title">{title}</div>
+        {petals.map((p, i) => (
+          <button type="button" key={p.key} class={`petal ${p.cls ?? ''}`} style={{ animationDelay: `${i * 0.035}s` }} onClick={(e) => { e.stopPropagation(); p.run(); }}>
+            <PetalIcon k={p.icon} />
+            <span class="pt-text">
               <span class="pt-label">{p.label}</span>
               {p.sub && <span class="pt-sub">{p.sub}</span>}
-              <kbd>{i + 1}</kbd>
-            </button>
-          );
-        })}
-        <div class="radial-hub">
-          <span class="rh-title">{title}</span>
-          {!live && (
-            <span class="rh-actions">
-              <button type="button" onClick={onCancel}>取消</button>
             </span>
-          )}
-        </div>
+            <kbd>{i + 1}</kbd>
+          </button>
+        ))}
+        {!live && <button type="button" class="rm-cancel" onClick={onCancel}>取消<kbd>Esc</kbd></button>}
+        <span class="rm-arrow" style={{ left: `${Math.max(14, Math.min(MW - 14, anchor.x - left))}px` }} />
       </div>
     </>
   );

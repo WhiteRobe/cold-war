@@ -324,7 +324,7 @@ function DecisionPanel({ view, d, names, choose, onZoom }: { view: GameView; d?:
       )}
       {d.kind === 'card' && (
         <>
-          {(d.tag === 'play' || d.tag === 'headline') && <div class="hint">点击高亮的手牌，在牌上方的轮盘里选打法（数字键 1–4 也行）</div>}
+          {(d.tag === 'play' || d.tag === 'headline') && <div class="hint">点击高亮的手牌，在牌上方弹出的菜单里选打法（数字键 1–4 也行）</div>}
           {d.tag !== 'play' && d.tag !== 'headline' && (
             <div class="option-cards">
               {d.options.filter((o) => typeof o.v === 'number').map((o) => (
