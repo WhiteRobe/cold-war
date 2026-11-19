@@ -533,7 +533,7 @@ h1, h2, h3, h4 { font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif; let
 .pile-cards.side { flex: 1; overflow-y: auto; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); align-content: start; }
 
 /* ---------------- 邻接显示 ---------------- */
-.links { pointer-events: none; }
+g.links { pointer-events: none; }
 .link rect { fill: #3b352a; stroke: #f3ecdb; stroke-width: 1; }
 .link line { stroke: #f3ecdb; stroke-width: 1.4; }
 .link.hl rect { fill: var(--gold); stroke: #1f1a10; }
