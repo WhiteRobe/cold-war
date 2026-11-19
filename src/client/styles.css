@@ -1026,3 +1026,6 @@ h1, h2, h3, h4 { font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif; let
 .peek-card { position: fixed; z-index: 46; width: 280px; display: flex; flex-direction: column; gap: 6px; pointer-events: none; filter: drop-shadow(0 18px 30px #000c); animation: detailIn 0.18s cubic-bezier(.2,.9,.25,1.1) both; }
 .peek-card .card-face, .peek-card .score-preview { width: 100%; }
 .effects .chip { pointer-events: auto; cursor: help; }
+.c-oil { cursor: help; }
+.c-oil circle { fill: #2b2f36; stroke: #ffffffcc; stroke-width: 1.2; }
+.c-oil path { fill: #f5d76e; }

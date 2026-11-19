@@ -488,6 +488,8 @@ function Superpower({ id }: { id: 'usa' | 'ussr' }) {
   );
 }
 
+/** 石油输出国组织（#61）计分的产油国 */
+const OPEC = new Set(['egypt', 'iran', 'libya', 'saudiArabia', 'iraq', 'gulfStates', 'venezuela']);
 const LV_ZH = { none: '—', presence: '存在', domination: '支配', control: '控制' };
 const SCORING_CARD: Record<string, number> = { asia: 1, europe: 2, middleEast: 3, centralAmerica: 37, southeastAsia: 38, africa: 79, southAmerica: 81 };
 
@@ -613,6 +615,13 @@ function CountryBox({ id, view, selectable, dimmed, flash, adjHl, onPick, onHove
           <title>{lock}</title>
           <circle r="6" />
           <line x1="-3.9" y1="-3.9" x2="3.9" y2="3.9" />
+        </g>
+      )}
+      {OPEC.has(id) && !view.flags.northSeaOil && (
+        <g class="c-oil" transform={`translate(${left + 1},${top + BH + 1})`}>
+          <title>石油输出国组织：苏联每控制一个产油国 +1 VP（北海油田发动后失效）</title>
+          <circle r="7" />
+          <path d="M0,-4.6 C2.6,-1.2 3.6,0.6 3.6,1.9 A3.6,3.6 0 0 1 -3.6,1.9 C-3.6,0.6 -2.6,-1.2 0,-4.6Z" />
         </g>
       )}
       {bolt && (
