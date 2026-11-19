@@ -220,6 +220,33 @@ const LV_ZH = { none: '无', presence: '存在', domination: '支配', control: 
 function Vp({ vp, view }: { vp: number; view: GameView }) {
   const pct = ((Math.max(-20, Math.min(20, vp)) + 20) / 40) * 100;
   const pj = projectFinal(view);
+  // 对局结束：显示胜负和原因，不再给终局预估（提前结束时胜利点不一定代表结果）
+  if (view.phase === 'over') {
+    const end = [...view.log].reverse().find((e) => e.kind === 'end')?.t ?? '';
+    const w = view.winner;
+    const res = w ? `${w === 'US' ? '美国' : '苏联'}获胜` : '平局';
+    return (
+      <div class="trk trk-vp has-pop" data-tour="vp">
+        <div class="trk-label">胜利点</div>
+        <div class="vp-bar">
+          <div class="vp-ussr">苏 20</div>
+          <div class="vp-track">
+            <div class="vp-mid" />
+            <div class={`vp-marker ${vp > 0 ? 'us' : vp < 0 ? 'ussr' : ''}`} style={{ left: `${pct}%` }}>{Math.abs(vp)}</div>
+          </div>
+          <div class="vp-us">美 20</div>
+        </div>
+        <div class="trk-sub">
+          <span class={`vp-proj ${w ? w.toLowerCase() : ''}`}>对局结束 · {res}</span>
+        </div>
+        <div class="trk-pop">
+          <div class="pop-title">对局结束：{res}</div>
+          <p>{end.replace(/^[^：]*：/, '') || res}</p>
+          <div class="pop-note">胜利点最终停在 {vp === 0 ? '0' : vp > 0 ? `美 ${vp}` : `苏 ${-vp}`}。{/VP|胜利点/.test(end) ? '' : '这局不是靠胜利点决出的，所以胜负和胜利点对不上。'}</div>
+        </div>
+      </div>
+    );
+  }
   const proj = pj.autoWin ? `${pj.autoWin === 'US' ? '美国' : '苏联'}控制欧洲 → 直接获胜` : leadText(pj.total);
   return (
     <div class="trk trk-vp has-pop" data-tour="vp">
