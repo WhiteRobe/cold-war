@@ -2,6 +2,8 @@ import { CARDS, CHINA_CARD } from '../../data';
 import { cardArt } from '../../art';
 import { richCardText } from './SubBadge';
 import { cardView } from './cardCtx';
+import { cardKind } from './countryCards';
+import { MarkGlyph } from './MarkGlyph';
 
 const SIDE_CLASS = { US: 'us', USSR: 'ussr', NEUTRAL: 'neutral' } as const;
 const ERA_ZH = { early: '冷战早期', mid: '冷战中期', late: '冷战后期' } as const;
@@ -33,7 +35,15 @@ export function CardFace({ id, faceDown }: { id: number; faceDown?: boolean }) {
       <div class="cf-head">
         {c.scoring ? <div class="cf-ops scoring-badge">计分</div> : <div class="cf-ops">{c.ops}</div>}
         <div class="cf-title">
-          <div class="cf-zh">{c.zh}</div>
+          <div class="cf-zh">
+            {c.zh}
+            {/* 和地图国家方框上同款的标记（闪电除外），方便对照 */}
+            {cardKind(id) !== 'bolt' && (
+              <svg class="cf-mark" viewBox="-8 -8 16 16" aria-hidden="true">
+                <g class={`c-mark c-${cardKind(id)}`}><MarkGlyph k={cardKind(id)} /></g>
+              </svg>
+            )}
+          </div>
           <div class="cf-en">{c.name}</div>
         </div>
         <div class="cf-no">#{id}</div>

@@ -1399,3 +1399,20 @@ g.links { pointer-events: none; }
 .sb-duel .sb-spark { fill: none; stroke: #f5d76e; stroke-width: 1.2; stroke-linecap: round; animation: sbSpark 0.5s steps(2) infinite; }
 @keyframes sbSpark { 50% { opacity: 0.2; } }
 @media (prefers-reduced-motion: reduce) { .sb-arms, .sb-duel .sb-spark { animation: none; } }
+
+/* 太空竞赛：得分飘字 + 特权弹窗（在本土上方，悬停几秒后淡出） */
+.sa-vp { font-size: 16px; font-weight: 900; text-anchor: middle; paint-order: stroke; stroke: #1f1a10; stroke-width: 3px; animation: saVp 2.6s ease-out forwards; }
+.sa-vp.sa-us { fill: #9cc6f0; }
+.sa-vp.sa-ussr { fill: #f5a090; }
+@keyframes saVp { 0% { opacity: 0; transform: translateY(8px) scale(0.6); } 15% { opacity: 1; transform: translateY(0) scale(1.15); } 70% { opacity: 1; } 100% { opacity: 0; transform: translateY(-24px); } }
+.sa-pop { pointer-events: none; animation: saPop2 5s ease forwards; }
+.sa-pop .sp-panel { fill: #1f1c17f0; stroke: #f5d76e; stroke-width: 1.5; filter: drop-shadow(0 6px 14px #000a); }
+.sa-pop.lose .sp-panel { stroke: #c9b2f2; }
+.sa-pop .sp-title { font-size: 14px; font-weight: 800; fill: #f5d76e; text-anchor: middle; }
+.sa-pop.lose .sp-title { fill: #c9b2f2; }
+.sa-pop .sp-sub { font-size: 12px; fill: #e9dfc7; text-anchor: middle; }
+@keyframes saPop2 { 0% { opacity: 0; transform: translateY(10px); } 8% { opacity: 1; transform: translateY(0); } 85% { opacity: 1; } 100% { opacity: 0; transform: translateY(-8px); } }
+@media (prefers-reduced-motion: reduce) { .sa-vp, .sa-pop { animation-duration: 0.01s; } }
+/* 卡面标题里的标记（与地图国家方框上的一致） */
+.cf-mark { width: 0.95em; height: 0.95em; margin-left: 6px; vertical-align: -0.1em; overflow: visible; }
+.cf-mark .c-mark { cursor: inherit; }

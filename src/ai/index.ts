@@ -241,7 +241,10 @@ class Smart {
     }
     let best: Choice | undefined;
     let bv = -Infinity;
-    for (const o of d.options) {
+    // 剩下的行动轮不比手里的计分卡多：只能在计分卡里挑，否则回合末持牌判负。
+    // 不能交给估值比较——后期行动点的估值量级可能远超计分卡的加成（曾因此在最后一轮打出别的牌而判负）
+    const opts = scoringForced(v, me) ? d.options.filter((o) => typeof o.v === 'number' && CARDS[o.v]?.scoring && o.v !== CHINA_CARD) : [];
+    for (const o of opts.length ? opts : d.options) {
       let val: number;
       if (o.v === 'pass') val = 0;
       else val = this.evalPlay(o.v as number).value + this.rand() * 0.05;

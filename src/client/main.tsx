@@ -55,9 +55,23 @@ const DevDefcon = import.meta.env.DEV ? lazy(() => import('./game/Tracks').then(
   return <div style={{ margin: 80 }}><div class="tracks"><m.Defcon d={seq[i]} /></div></div>;
 })) : null;
 
+/** 仅开发环境：#/dev-space 预览太空竞赛得分飘字与特权弹窗（双方轮流推进） */
+const DevSpace = import.meta.env.DEV ? lazy(() => import('./game/SpaceArsenal').then((m) => () => {
+  const steps = [[0, 0], [1, 0], [1, 1], [2, 1], [2, 3], [4, 3], [4, 5], [6, 5], [6, 8]];
+  const [i, setI] = useState(0);
+  useEffect(() => { const t = setInterval(() => setI((x) => Math.min(steps.length - 1, x + 1)), 2600); return () => clearInterval(t); }, []);
+  const [us, ussr] = steps[i];
+  return (
+    <svg viewBox="0 0 1500 420" style={{ width: '100%', background: '#93aab6' }}>
+      <m.SpaceArsenal view={{ space: { US: us, USSR: ussr } } as never} home={{ US: [140, 330], USSR: [1100, 330] }} />
+    </svg>
+  );
+})) : null;
+
 function App() {
   const r = route.value;
   if (DevVictory && location.hash.startsWith('#/dev-victory/')) return <DevVictory w={location.hash.split('/')[2]} />;
+  if (DevSpace && location.hash.startsWith('#/dev-space')) return <DevSpace />;
   if (DevDefcon && location.hash.startsWith('#/dev-defcon')) return <DevDefcon />;
   if (DevEvent && location.hash.startsWith('#/dev-event/')) return <DevEvent ids={location.hash.split('/')[2]} />;
   // 对局页面由 Board 自己切换到对局音乐；其余页面放首页音乐

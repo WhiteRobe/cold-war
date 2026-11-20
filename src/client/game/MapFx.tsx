@@ -186,7 +186,8 @@ interface FogEntry { key: string; region: string; side: Side; k: number; ids: st
 function liveFog(view: GameView): FogEntry[] {
   const out: FogEntry[] = [];
   const sea = new Set(countriesIn('southeastAsia').map((c) => c.id));
-  const radius = (r: string) => (r === 'europe' || r === 'southeastAsia' ? 70 : 95);
+  // 亚洲、东南亚的国家相隔远，晕染半径放大，让光晕能连成片
+  const radius = (r: string) => (r === 'europe' ? 70 : r === 'southeastAsia' ? 115 : r === 'asia' ? 125 : 95);
   /** whole：领先方已支配 / 控制整个区域，不管对手控制了几国都整片铺色 */
   const push = (region: string, ids: string[], side: Side | null, k: number, whole = false, strong = false) => {
     if (!ids.length) return;

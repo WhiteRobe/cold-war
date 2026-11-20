@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { playMatch } from '../scripts/ai-match';
-import type { AiLevel } from '../src/ai';
+import { chooseAI, type AiLevel } from '../src/ai';
+import { Game } from '../src/engine/game';
+import { viewFor } from '../src/engine/view';
+import forced from './fixtures/forced-scoring.json';
 
 // 用户要求不做大规模模拟：每项只跑少量对局
 describe('AI', () => {
@@ -41,4 +44,10 @@ describe('AI', () => {
     expect(m.ms.US / m.decisions.US).toBeLessThan(5);
     expect(m.ms.USSR / m.decisions.USSR).toBeLessThan(50);
   }, 60_000);
+
+  it('最后一个行动轮手里有计分卡时必须打出（实战复盘：曾打出熊陷阱后持计分卡判负）', () => {
+    const g = Game.replay({ seed: forced.seed, options: forced.options }, forced.history as never);
+    const v = viewFor(g, 'USSR');
+    for (const lv of [1, 2, 3] as AiLevel[]) expect(chooseAI(v, v.decision!, lv, () => 0.5)).toBe(3);
+  });
 });

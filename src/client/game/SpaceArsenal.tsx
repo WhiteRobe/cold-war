@@ -88,21 +88,42 @@ const SLOTS: Record<Side, (i: number) => [number, number]> = {
   USSR: (i) => [1262 + i * 30, 146],
 };
 
-export function SpaceArsenal({ view }: { view: GameView }) {
+interface SpacePop { key: number; side: Side; kind: 'vp' | 'gain' | 'lose'; text: string; sub?: string; at: [number, number] }
+let popSeq = 0;
+
+export function SpaceArsenal({ view, home }: { view: GameView; home: Record<Side, [number, number]> }) {
   const prev = useRef(view.space);
   const [fresh, setFresh] = useState<{ side: Side; n: number; key: number } | null>(null);
+  const [pops, setPops] = useState<SpacePop[]>([]);
   useEffect(() => {
     const p = prev.current;
     prev.current = view.space;
+    const add: SpacePop[] = [];
     for (const side of ['US', 'USSR'] as const) {
-      if (view.space[side] > p[side]) {
-        const f = { side, n: view.space[side], key: Date.now() };
-        setFresh(f);
-        setTimeout(() => setFresh((cur) => (cur === f ? null : cur)), 2400);
+      const from = p[side], to = view.space[side];
+      if (to <= from) continue;
+      const f = { side, n: to, key: Date.now() };
+      setFresh(f);
+      setTimeout(() => setFresh((cur) => (cur === f ? null : cur)), 2400);
+      const other: Side = side === 'US' ? 'USSR' : 'US';
+      const name = side === 'US' ? '美国' : '苏联';
+      // 得分：先到拿高分、后到拿低分（引擎只按最后到达的那格给分）
+      const box = SPACE[to];
+      const vp = p[other] >= to ? box.vp[1] : box.vp[0];
+      if (vp) add.push({ key: ++popSeq, side, kind: 'vp', text: `+${vp} VP`, at: SLOTS[side](to - 1) });
+      for (let n = from + 1; n <= to; n++) {
+        const b = SPACE[n];
+        if (!b.perk) continue;
+        // 先到这一格：获得特权；对手早已到达：对手的特权就此失效
+        if (p[other] < n) add.push({ key: ++popSeq, side, kind: 'gain', text: `${name}获得特权：${b.name}`, sub: b.perk, at: home[side] });
+        else if (p[other] >= n && from < n) add.push({ key: ++popSeq, side: other, kind: 'lose', text: `${other === 'US' ? '美国' : '苏联'}的特权失效：${b.name}`, sub: `${name}也到达了这一格`, at: home[other] });
       }
     }
+    if (!add.length) return;
+    setPops((cur) => [...cur, ...add]);
+    const keys = new Set(add.map((x) => x.key));
+    setTimeout(() => setPops((cur) => cur.filter((x) => !keys.has(x.key))), 5200);
   }, [view.space.US, view.space.USSR]);
-
   return (
     <g class="space-arsenal">
       {(['US', 'USSR'] as const).map((side) =>
@@ -124,6 +145,19 @@ export function SpaceArsenal({ view }: { view: GameView }) {
             </g>
           );
         }),
+      )}
+      {pops.map((pp, i) =>
+        pp.kind === 'vp' ? (
+          <text key={pp.key} x={pp.at[0]} y={pp.at[1] - 16} class={`sa-vp sa-${pp.side.toLowerCase()}`}>{pp.text}</text>
+        ) : (
+          <g key={pp.key} transform={`translate(${pp.at[0]},${pp.at[1] - 96 - (i % 2) * 52})`}>
+           <g class={`sa-pop ${pp.kind} sa-${pp.side.toLowerCase()}`}>
+            <rect x={-Math.max(pp.text.length, (pp.sub ?? '').length) * 7 - 14} y="-20" width={Math.max(pp.text.length, (pp.sub ?? '').length) * 14 + 28} height="44" rx="8" class="sp-panel" />
+            <text y="-2" class="sp-title">{pp.kind === 'gain' ? '🚀 ' : '⚠ '}{pp.text}</text>
+            <text y="16" class="sp-sub">{pp.sub}</text>
+           </g>
+          </g>
+        ),
       )}
     </g>
   );
