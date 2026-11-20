@@ -1716,3 +1716,7 @@ g.links { pointer-events: none; }
 .kr-spire { fill: #3f6b4a; stroke: #24321a; stroke-width: 0.4; }
 .kr-star { fill: #ff4a3a; stroke: #f5d76e; stroke-width: 0.4; }
 .kr-gate { fill: #3a140f; }
+/* 越南起义：丛林烟火 */
+.vf-wrap { cursor: help; animation: nsIn 1.2s ease-out; }
+.vf-flame { fill: #e8502a; animation: nsFlame 0.4s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: center bottom; }
+.vf-core { fill: #f5c542; }

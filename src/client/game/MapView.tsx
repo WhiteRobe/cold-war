@@ -399,6 +399,7 @@ export function MapView({ view, selectable, onPick, flash, onRegion, focus, onBo
         {view.flags.cmc && <SovietSub x={378} y={452} side={view.flags.cmc} />}
         {view.flags.cmc && <MissileSilo x={1126} y={378} side={view.flags.cmc} />}
         {eventHappened(view, 90) && <KremlinWalls x={1092} y={226} />}
+        {eventHappened(view, 9) && <VietnamFire x={1588} y={548} active={!!view.flags.vietnamRevolts} />}
         {view.flags.containment && <Carrier x={1690} y={612} tip={decorTip('1946 年凯南提出“遏制”构想：在苏联试图扩张的每一处坚定地加以阻挡，美国舰队由此常驻亚太。', '本回合美国打出的每张牌行动点 +1（最多 4）')} />}
         {view.flags.chernobyl && (
           <g transform="translate(1078,300)" class="cb-ukr">
@@ -1565,6 +1566,25 @@ function KremlinWalls({ x, y }: { x: number; y: number }) {
         {tower(0, 24)}
         {tower(22, 16)}
         <path d="M-6,1 L-6,-4 Q0,-8 6,-4 L6,1" class="kr-gate" />
+      </g>
+    </g>
+  );
+}
+
+/** 越南起义之后：越南旁的丛林冒烟起火 */
+function VietnamFire({ x, y, active }: { x: number; y: number; active: boolean }) {
+  return (
+    <g transform={`translate(${x},${y}) scale(1.4)`}>
+      <g class="vf-wrap">
+        <title>{decorTip('二战后胡志明宣布越南独立，与重返的法国殖民者打了八年战争，1954 年奠边府一役法军惨败。', active ? '本回合苏联把一张牌的行动点全部用在东南亚时，这张牌行动点 +1' : null)}</title>
+        {[[-8, 2, 0.9], [6, 0, 1.1], [-1, 6, 0.8]].map(([dx, dy, k], i) => (
+          <g key={i} transform={`translate(${dx},${dy}) scale(${k})`}>
+            <circle cx="0" cy="-14" r="5" class="wt-smoke a" style={{ animationDelay: `${-i * 0.8}s` }} />
+            <circle cx="2" cy="-21" r="6" class="wt-smoke b" style={{ animationDelay: `${-i * 0.8 - 1}s` }} />
+            <path d="M0,4 C-4,4 -5,0 -3,-3 C-2.6,-1.6 -1.6,-1.2 -1.2,-1.6 C-2,-4.4 -0.4,-6.8 1.4,-7.6 C1,-5.6 2.2,-4.6 3.2,-3.4 C4.6,-1.6 4.2,4 0,4Z" class="vf-flame" />
+            <path d="M0,3.6 C-1.8,3.6 -2,1.8 -1.2,0.8 C-0.8,1.4 0,1.4 0.2,0.8 C0.4,0 1,-0.2 1.4,0.4 C2,1.6 1.6,3.6 0,3.6Z" class="vf-core" />
+          </g>
+        ))}
       </g>
     </g>
   );
