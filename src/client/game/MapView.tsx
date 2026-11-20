@@ -36,6 +36,8 @@ const NUDGE: Record<string, [number, number]> = {
   colombia: [12, 16],
   // 朝鲜、韩国方框挨得太紧：朝鲜往上挪
   northKorea: [0, -10],
+  // 巴拉圭、乌拉圭上下拉开（巴拉圭上面挨着玻利维亚，只挪乌拉圭）
+  uruguay: [10, 16],
 };
 
 export const pos = (id: string): [number, number] => {
@@ -372,6 +374,7 @@ export function MapView({ view, selectable, onPick, flash, onRegion, focus, onBo
         <Superpower id="usa" />
         <Superpower id="ussr" />
         <SpaceArsenal view={view} />
+        <OilReserve view={view} />
         <text x={MAP_W - 8} y={pos('japan')[1] + 38} class="edge-label" text-anchor="end">→ 美国</text>
         <text x={8} y={pos('usa')[1] - 10} class="edge-label">日本 ←</text>
         {COUNTRY_LIST.map((c) => (
@@ -1158,4 +1161,26 @@ function PactOverlay({ view }: { view: GameView }) {
     );
   }
   return <g class="pact-overlay">{out}</g>;
+}
+
+/** 苏联控制的产油国：西伯利亚太空装备下方摆一排油桶，一国一桶（「石油输出国组织」按这个数给苏联加分） */
+const OPEC_IDS = ['egypt', 'iran', 'libya', 'saudiArabia', 'iraq', 'gulfStates', 'venezuela'];
+function OilReserve({ view }: { view: GameView }) {
+  if (view.flags.northSeaOil) return null;
+  const held = OPEC_IDS.filter((id) => controller(view as never, id) === 'USSR');
+  if (!held.length) return null;
+  const names = held.map((id) => COUNTRIES[id].zh).join('、');
+  return (
+    <g class="oil-reserve">
+      <title>苏联控制的产油国（{held.length}）：{names}。打出「石油输出国组织」时苏联 +{held.length} VP</title>
+      {held.map((id, i) => (
+        <g key={id} transform={`translate(${1326 + i * 20},${186})`} class="oil-barrel">
+          <rect x="-6" y="-8" width="12" height="16" rx="2" class="ob-body" />
+          <ellipse cx="0" cy="-8" rx="6" ry="1.8" class="ob-top" />
+          <path d="M-6,-3 L6,-3 M-6,3 L6,3" class="ob-band" />
+          <path d="M0,-2 C1.3,-0.3 1.8,0.6 1.8,1.2 A1.8,1.8 0 0 1 -1.8,1.2 C-1.8,0.6 -1.3,-0.3 0,-2Z" class="ob-drop" />
+        </g>
+      ))}
+    </g>
+  );
 }
