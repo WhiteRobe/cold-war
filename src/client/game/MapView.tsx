@@ -675,7 +675,7 @@ function CountryBox({ id, view, selectable, dimmed, flash, adjHl, onPick, onHove
         </g>
       )}
       {/* 点名该国的卡：左下角从左往右、右下角从右往左（闪电永远最右）；还没到时期的半透明；悬停展开卡列表 */}
-      {[...marks.left.map((k, i) => [k, left + 1 + i * 15] as const), ...marks.right.map((k, i) => [k, left + BW - 1 - i * 16] as const)].map(([k, mx]) => (
+      {markSlots(marks, left).map(([k, mx]) => (
         <g
           key={k}
           class={`c-mark c-${k}${marks.future.has(k) ? ' future' : ''}`}
@@ -796,6 +796,22 @@ function CountryTip({ id, view }: { id: string; view: GameView }) {
       {hint && <div class="ct-odds">{hint}</div>}
     </div>
   );
+}
+
+/** 方框下沿标记的横坐标：统一间距 15；左右两组放得下就分居两角，放不下（超过 4 个）就整排居中，
+ *  顺序仍是左组在前、闪电在最右，保证不重叠、间距一致 */
+const MARK_GAP = 15;
+function markSlots(marks: { left: CardKind[]; right: CardKind[] }, left: number): [CardKind, number][] {
+  const n = marks.left.length + marks.right.length;
+  if (n <= 4) {
+    return [
+      ...marks.left.map((k, i) => [k, left + 1 + i * MARK_GAP] as [CardKind, number]),
+      ...marks.right.map((k, i) => [k, left + BW - 1 - i * MARK_GAP] as [CardKind, number]),
+    ];
+  }
+  const row = [...marks.left, ...[...marks.right].reverse()];
+  const x0 = left + BW / 2 - ((n - 1) * MARK_GAP) / 2;
+  return row.map((k, i) => [k, x0 + i * MARK_GAP]);
 }
 
 /** 国家方框下沿的标记图形（局部坐标，半径 7 的圆章） */
@@ -1008,10 +1024,9 @@ function SpyLinks({ view }: { view: GameView }) {
 const WAR_PAIRS: [string, string][] = [['pakistan', 'india'], ['iraq', 'iran']];
 function WarLinks({ view }: { view: GameView }) {
   const at = (id: string): [number, number] | null => {
-    const i = countryMarks(view, id).right.indexOf('war');
-    if (i < 0) return null;
     const [x, y] = pos(id);
-    return [x - BW / 2 + BW - 1 - i * 16, y - BH / 2 + BH + 1];
+    const slot = markSlots(countryMarks(view, id), x - BW / 2).find(([k]) => k === 'war');
+    return slot ? [slot[1], y - BH / 2 + BH + 1] : null;
   };
   return (
     <g class="war-links">
