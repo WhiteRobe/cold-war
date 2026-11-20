@@ -4,6 +4,7 @@ import type { GameView } from '../../engine/view';
 import type { ClientMsg, RoomInfo, ServerMsg } from '../../shared/protocol';
 import { Conn, type ConnStatus } from '../net';
 import { toast } from '../store';
+import { recordResult } from './record';
 import type { GameSession } from './session';
 
 export interface OnlineRoom extends GameSession {
@@ -38,6 +39,8 @@ export function onlineSession(roomId: string): OnlineRoom {
       log.value = m.logReset ? m.view.log : [...log.value, ...m.view.log];
       view.value = { ...m.view, log: log.value };
       canUndo.value = !!m.view.me && m.view.phase !== 'over';
+      // 自己参与的在线对局也计入首页战绩（观战不算）
+      if (m.view.me) recordResult(`on:${roomId}`, view.value);
     } else if (m.type === 'undoAsk') {
       undoAsk.value = m.from;
     } else if (m.type === 'chat') {

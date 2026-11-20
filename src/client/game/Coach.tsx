@@ -1,8 +1,8 @@
 // 新手引导：按局面依次弹出提示，并把相关界面圈出来。每条只出现一次；教学局里强制开启。
 import { signal } from '@preact/signals';
 import { useEffect, useLayoutEffect, useState } from 'preact/hooks';
-import { CARDS, CHINA_CARD, COUNTRIES, type RegionId, type Side } from '../../data';
-import { scoreRegion, scoreSEA } from '../../engine/scoring';
+import { CARDS, CHINA_CARD, COUNTRIES, COUNTRY_LIST, type RegionId, type Side } from '../../data';
+import { controller, scoreRegion, scoreSEA } from '../../engine/scoring';
 import type { Choice, Decision } from '../../engine/types';
 import type { GameView } from '../../engine/view';
 
@@ -173,6 +173,69 @@ const TIPS: Tip[] = [
     id: 'turn2', title: '新的回合', target: 'tracks',
     text: () => '每回合开始 DEFCON +1，双方补牌到 8 张。第 4 回合进入冷战中期：补到 9 张、每回合 7 个行动轮，并加入中期牌。',
     when: (v) => v.turn >= 2,
+  },
+  {
+    id: 'fog', title: '地图上的红晕和蓝晕', target: 'map',
+    text: () =>
+      '每个洲泛着的颜色表示「如果现在打出这个洲的计分卡，谁领先」，越浓领先越多。双方都控制了国家时，颜色只出现在各自控制的国家周围，红蓝交错；一方达到「支配」或「控制」时整片铺开，「控制」时最浓。',
+    when: (v) => v.phase === 'action',
+  },
+  {
+    id: 'regionLabel', title: '点洲名看计分预览', target: 'map',
+    text: () => '点地图上的洲名（比如「欧洲」），会弹出这个洲的计分预览：双方等级、战场国、邻接本土的加分，下面的小天平会往领先的一方倾斜。洲名后面的 ✓ 表示本回合已经计过分。',
+    when: (v) => v.phase === 'action' && v.ar >= 1,
+  },
+  {
+    id: 'marks', title: '国家方框下面的小图标', target: 'map',
+    text: () =>
+      '方框下沿的小圆章表示「有卡点名了这个国家」：白色闪电是普通事件，交叉步枪是战争，皇冠是计分卡，还有人物、油滴、新月等专门的图标。鼠标停在上面会列出对应的卡和它们现在在哪；半透明的表示那张卡要到后面的时期才会出现。',
+    when: (v) => v.phase === 'action' && (v.turn >= 2 || v.ar >= 2),
+  },
+  {
+    id: 'spy', title: '间谍与本土加分', target: 'map',
+    text: (v) => {
+      const me = v.me!;
+      return `与超级大国本土相邻的国家（如古巴、芬兰、日本）被对方控制时，这条通往本土的线会变成半红半蓝，中间有个间谍：该洲计分时控制方额外 +1 VP。${SIDE_ZH[me]}要留意自家门口。`;
+    },
+    when: (v) => COUNTRY_LIST.some((c) => (c.adj.includes('usa') && controller(v as never, c.id) === 'USSR') || (c.adj.includes('ussr') && controller(v as never, c.id) === 'US')),
+  },
+  {
+    id: 'fate', title: '发光的手牌', target: 'hand',
+    text: () => '手牌泛金光并散出涟漪：现在打出它就能当场获胜。泛紫黑光：现在打出会当场判负（比如 DEFCON 2 时会再降一级的事件）。鼠标停在牌上看原因。',
+    when: (v) => !!v.me && (v.decision?.tag === 'play' || v.decision?.tag === 'headline') && v.hands[v.me].some((c) => instantOutcome(v, c)),
+  },
+  {
+    id: 'winAlert', title: '右上角的红色警示', target: 'map',
+    text: () => '地图右上角出现提示条，表示有一方离直接获胜只差一步：控制了欧洲（打出欧洲计分即胜）、胜利点到了 15 以上、或者 DEFCON 已经是 2。鼠标停在提示上看详细说明。',
+    when: (v) => v.defcon === 2 || Math.abs(v.vp) >= 15 || !!scoreRegion(v as never, 'europe').autoWin,
+  },
+  {
+    id: 'spaceGear', title: '太空成果', target: 'space',
+    text: () => '太空竞赛每推进一格，本土上就会多摆一件成果（卫星、火箭、登月旗……），鼠标停上去能看到这一格的名字和特权。先到某些格子的一方能拿到特权，比如每回合多进行一次太空竞赛。',
+    when: (v) => !!v.me && v.space[v.me] >= 1,
+  },
+  {
+    id: 'oil', title: '西伯利亚的油桶', target: 'map',
+    text: () => '苏联每控制一个产油国（埃及、伊朗、利比亚、沙特、伊拉克、海湾国家、委内瑞拉），苏联本土旁就多一个油桶。苏联打出「石油输出国组织」时，每个油桶 +1 VP；「北海油田」发动后这张牌失效，油桶也会消失。',
+    when: (v) => !v.flags.northSeaOil && ['egypt', 'iran', 'libya', 'saudiArabia', 'iraq', 'gulfStates', 'venezuela'].some((id) => controller(v as never, id) === 'USSR'),
+  },
+  {
+    id: 'pact', title: '北约 / 华约', target: 'map',
+    text: (v) =>
+      v.flags.nato
+        ? '北约成立后，西欧背景上会出现北约的徽记：苏联不能对美国控制的欧洲国家发动政变或调整阵营。之后的「戴高乐领导法国」「维利·勃兰特」会让法国、西德脱离这层保护。'
+        : '华约成立后，东欧背景上会出现华约的徽记。它同时是美国打出「北约」的前提之一。',
+    when: (v) => !!v.flags.nato || !!v.flags.warsawPact,
+  },
+  {
+    id: 'undoTip', title: '走错了可以撤销', target: 'map',
+    text: () => '和 AI 打的离线局里，地图左下角有「撤销」按钮，可以退回到你的上一步；哪怕对局已经结束，也能从结算弹窗里撤销回去接着打。',
+    when: (v) => v.phase === 'action' && v.turn === 1 && v.ar >= 2,
+  },
+  {
+    id: 'lastTurn', title: '最后一回合', target: 'vp',
+    text: () => '这是第 10 回合。回合结束时进行终局计分：每个洲按「控制 / 支配 / 存在」再算一次分，中国牌的持有者 +1。鼠标停在顶栏胜利点上可以看到「如果现在终局」的逐项预估。',
+    when: (v) => v.turn >= 10,
   },
   {
     id: 'quickref', title: '规则速查', target: 'sidetabs',

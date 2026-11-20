@@ -3,6 +3,7 @@ import type { AiLevel } from '../../ai';
 import type { Choice, GameOptions, LogEntry, Side } from '../../engine/types';
 import type { GameView } from '../../engine/view';
 import { AI_LEVEL_ZH } from '../../ai';
+import { recordResult } from './record';
 import type { GameSession, OfflineSave, WorkerIn, WorkerOut } from './session';
 
 const KEY = 'cw.saves.v1';
@@ -62,6 +63,7 @@ export function offlineSession(save: OfflineSave): GameSession {
     const v = m.view;
     cur = { ...cur, history: m.history, updatedAt: Date.now(), summary: { turn: v.turn, vp: v.vp, defcon: v.defcon, over: v.phase === 'over', winner: v.winner } };
     putSave(cur);
+    recordResult(`off:${cur.id}`, v);
   };
   const post = (m: WorkerIn) => worker.postMessage(m);
   post({ type: 'start', save });

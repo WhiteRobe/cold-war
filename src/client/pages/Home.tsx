@@ -2,6 +2,7 @@ import { useState } from 'preact/hooks';
 import { AI_LEVEL_ZH, type AiLevel } from '../../ai';
 import { DEFAULT_OPTIONS, type Side } from '../../engine/types';
 import { deleteSave, listSaves, newSave } from '../game/offline';
+import { StrengthBar } from './StrengthBar';
 import { go, toast } from '../store';
 import { coachOn, resetCoach, setCoach } from '../game/Coach';
 import { AudioToggles } from '../game/Board';
@@ -35,6 +36,8 @@ export function Home() {
         <h1>冷战热斗</h1>
         <div class="subtitle">Twilight Struggle · 1945–1989 · 双人策略</div>
       </div>
+
+      <StrengthBar />
 
       <section class="panel tutorial-panel">
         <div>
