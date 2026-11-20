@@ -377,6 +377,7 @@ export function MapView({ view, selectable, onPick, flash, onRegion, focus, onBo
         <Superpower id="ussr" />
         <SpaceArsenal view={view} home={{ US: pos('usa'), USSR: pos('ussr') }} />
         <OilReserve view={view} />
+        {view.flags.northSeaOil && <NorthSeaRig x={688} y={150} />}
         <text x={MAP_W - 8} y={pos('japan')[1] + 38} class="edge-label" text-anchor="end">→ 美国</text>
         <text x={8} y={pos('usa')[1] - 10} class="edge-label">日本 ←</text>
         {COUNTRY_LIST.map((c) => (
@@ -978,6 +979,24 @@ function OilReserve({ view }: { view: GameView }) {
           <path d="M0,-2 C1.3,-0.3 1.8,0.6 1.8,1.2 A1.8,1.8 0 0 1 -1.8,1.2 C-1.8,0.6 -1.3,-0.3 0,-2Z" class="ob-drop" />
         </g>
       ))}
+    </g>
+  );
+}
+
+/** 北海油田发动后：英国与丹麦之间的北海上立起一座海上采油平台 */
+function NorthSeaRig({ x, y }: { x: number; y: number }) {
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <g class="ns-rig">
+        <title>北海油田：石油输出国组织不再能作为事件打出；本回合美国可多进行 1 个行动轮</title>
+        <path d="M-22,14 q4,-3 8,0 t8,0 t8,0 t8,0 t8,0 M-18,19 q4,-3 8,0 t8,0 t8,0 t8,0" class="ns-wave" />
+        <path d="M-12,-2 L-15,15 M12,-2 L15,15 M-5,-2 L-6,15 M5,-2 L6,15 M-14,8 L14,8" class="ns-leg" />
+        <polygon points="-16,-6 16,-6 15,-1 -15,-1" class="ns-deck" />
+        <polygon points="-14,-11 -3,-11 -3,-6 -14,-6" class="ns-hut" />
+        <path d="M2,-6 L6,-28 L10,-6 M3,-12 L9,-12 M4,-18 L8,-18 M3,-12 L8,-18 M9,-12 L4,-18" class="ns-derrick" />
+        <path d="M15,-4 L26,-14" class="ns-boom" />
+        <path d="M26,-14 C24,-18 27,-21 26,-25 C29,-22 31,-18 28,-14Z" class="ns-flame" />
+      </g>
     </g>
   );
 }

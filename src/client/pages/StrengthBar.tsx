@@ -1,43 +1,116 @@
-// 首页军力对比条：左苏右美，红蓝分界按双方胜场比例移动；分界处两只大手腕掰手腕，手下两个小兵拼刺刀；
-// 两端按胜场多少排兵（兵 + 坦克）。数据来自按对局 id 记的战绩，删存档不影响。
+// 首页军力对比条：左苏右美，红蓝分界按双方胜场比例移动；分界处两只低多边形手臂肘撑在条上掰手腕，
+// 领先一方把对方压下去；手臂之间两个小兵拼刺刀；两端是按胜场多少排列的方阵（钢盔兵 + 坦克 + 军旗）。
+// 数据来自按对局 id 记的战绩，删存档不影响。
 import type { JSX } from 'preact';
 import { tally } from '../game/record';
 
-const W = 760, H = 128, X0 = 30, X1 = W - 30, BAR_Y = 104, BAR_H = 16;
+const W = 760, H = 150, X0 = 24, X1 = W - 24, BAR_Y = 118, BAR_H = 14;
+type S = 'us' | 'ussr';
 
-function Soldier({ x, y, side, flip }: { x: number; y: number; side: 'us' | 'ussr'; flip?: boolean }) {
+function star(cx: number, cy: number, r: number) {
+  return Array.from({ length: 10 }, (_, i) => {
+    const a = -Math.PI / 2 + (i * Math.PI) / 5;
+    const rr = i % 2 ? r * 0.45 : r;
+    return `${(cx + rr * Math.cos(a)).toFixed(1)},${(cy + rr * Math.sin(a)).toFixed(1)}`;
+  }).join(' ');
+}
+
+/** 低多边形钢盔兵半身（面朝 +x；flip 时面朝 -x） */
+function Trooper({ x, y, s, side, flip }: { x: number; y: number; s: number; side: S; flip?: boolean }) {
   return (
-    <g transform={`translate(${x},${y}) scale(${flip ? -1 : 1},1)`} class={`sb-unit ${side}`}>
-      <circle cx="0" cy="-15" r="3.2" class="sb-helmet" />
-      <rect x="-2.6" y="-12" width="5.2" height="8" rx="1.4" class="sb-body" />
-      <path d="M-1.6,-4 L-2.4,1.6 M1.6,-4 L2.6,1.6" class="sb-leg" />
-      <path d="M1.6,-10 L9,-12.6" class="sb-rifle" />
+    <g transform={`translate(${x},${y}) scale(${flip ? -s : s},${s})`} class={`sbt ${side}`}>
+      <polygon points="-7,0 -6,-9 0,-12 6,-9 7,0" class="t-body" />
+      <polygon points="0,-12 6,-9 7,0 0,0" class="t-body-d" />
+      <polygon points="-3.4,-12 3.4,-12 3,-15.6 -3,-15.6" class="t-face" />
+      <polygon points="-5.4,-15.4 -4.6,-19.6 0,-21.4 4.6,-19.6 6.4,-15.4" class="t-helm" />
+      <polygon points="0,-21.4 4.6,-19.6 6.4,-15.4 0,-15.4" class="t-helm-d" />
+      <polygon points="4,-8 13,-23 14,-22.4 5.6,-7" class="t-rifle" />
     </g>
   );
 }
 
-function Tank({ x, y, side, flip }: { x: number; y: number; side: 'us' | 'ussr'; flip?: boolean }) {
+function TankS({ x, y, s, side, flip }: { x: number; y: number; s: number; side: S; flip?: boolean }) {
   return (
-    <g transform={`translate(${x},${y}) scale(${flip ? -1 : 1},1)`} class={`sb-unit ${side}`}>
-      <rect x="-9" y="-6" width="18" height="5" rx="2.4" class="sb-track" />
-      <rect x="-7" y="-10" width="13" height="4.4" rx="1" class="sb-body" />
-      <rect x="-3" y="-13.4" width="7" height="3.6" rx="1.2" class="sb-body" />
-      <path d="M4,-11.8 L13,-12.8" class="sb-rifle" />
+    <g transform={`translate(${x},${y}) scale(${flip ? -s : s},${s})`} class={`sbt ${side}`}>
+      <polygon points="-15,0 -17,-4 17,-4 15,0" class="t-track" />
+      <polygon points="-14,-4 -12,-10 12,-10 14,-4" class="t-body" />
+      <polygon points="0,-10 12,-10 14,-4 0,-4" class="t-body-d" />
+      <polygon points="-6,-10 -4,-15 6,-15 8,-10" class="t-helm" />
+      <polygon points="6,-13.4 22,-14.4 22,-12.6 7,-11.6" class="t-rifle" />
     </g>
   );
 }
 
-/** 一侧的部队：胜场越多兵越多，每 4 个兵换一辆坦克 */
-function Army({ wins, side }: { wins: number; side: 'us' | 'ussr' }) {
-  const n = Math.min(12, 2 + wins);
-  const out: JSX.Element[] = [];
+function Banner({ x, y, side, flip }: { x: number; y: number; side: S; flip?: boolean }) {
+  return (
+    <g transform={`translate(${x},${y}) scale(${flip ? -1 : 1},1)`} class={`sbt ${side}`}>
+      <rect x="-0.8" y="-44" width="1.6" height="44" class="t-pole" />
+      <path d="M0.8,-44 Q10,-47 19,-43 Q15,-38 19,-33 Q10,-36 0.8,-33Z" class="t-flag" />
+      <polygon points={star(8.6, -38.6, 2.8)} class="t-flag-star" />
+    </g>
+  );
+}
+
+/** 一侧的方阵：三排，越靠后越小越淡；胜场越多人越多，前排末尾一辆坦克 */
+function Army({ wins, side }: { wins: number; side: S }) {
   const left = side === 'ussr';
-  for (let i = 0; i < n; i++) {
-    const x = left ? X0 + 10 + i * 17 : X1 - 10 - i * 17;
-    const y = BAR_Y - 10 - (i % 2) * 5;
-    out.push((i + 1) % 4 === 0 ? <Tank key={i} x={x} y={y} side={side} flip={!left} /> : <Soldier key={i} x={x} y={y} side={side} flip={!left} />);
-  }
-  return <g>{out}</g>;
+  const per = Math.min(9, 3 + wins);
+  const out: JSX.Element[] = [];
+  const rows = [
+    { dy: -30, s: 0.62, o: 0.55 },
+    { dy: -16, s: 0.78, o: 0.78 },
+    { dy: -2, s: 0.95, o: 1 },
+  ];
+  rows.forEach((r, ri) => {
+    for (let i = 0; i < per; i++) {
+      const step = 17 * r.s + 2;
+      const x0 = left ? X0 + 30 + ri * 6 : X1 - 30 - ri * 6;
+      const x = left ? x0 + i * step : x0 - i * step;
+      const y = BAR_Y + r.dy - 1;
+      out.push(
+        <g key={`${ri}-${i}`} opacity={r.o}>
+          {i === per - 1 && ri === 2 ? <TankS x={x + (left ? 8 : -8)} y={y} s={r.s} side={side} flip={!left} /> : <Trooper x={x} y={y} s={r.s} side={side} flip={!left} />}
+        </g>,
+      );
+    }
+  });
+  return (
+    <g>
+      <Banner x={left ? X0 + 14 : X1 - 14} y={BAR_Y - 2} side={side} flip={!left} />
+      {out}
+    </g>
+  );
+}
+
+/** 一条低多边形前臂：肘在 (ex,ey)，腕在 (wx,wy)；阵营色袖子、袖口星 */
+function Forearm({ ex, ey, wx, wy, side }: { ex: number; ey: number; wx: number; wy: number; side: S }) {
+  const dx = wx - ex, dy = wy - ey, L = Math.hypot(dx, dy);
+  const nx = -dy / L, ny = dx / L;
+  const at = (t: number, w: number, k: number) => [ex + dx * t + nx * w * k, ey + dy * t + ny * w * k].map((n) => n.toFixed(1)).join(',');
+  const se = 0.42; // 袖子长度占比
+  return (
+    <g class={`sb-arm ${side}`}>
+      <polygon points={`${at(0, 15, 1)} ${at(se, 13, 1)} ${at(se, 13, -1)} ${at(0, 15, -1)}`} class="a-sleeve" />
+      <polygon points={`${at(0, 15, 1)} ${at(se, 13, 1)} ${at(se, 0, 1)} ${at(0, 0, 1)}`} class="a-sleeve-d" />
+      <polygon points={`${at(se - 0.08, 13.6, 1)} ${at(se, 13, 1)} ${at(se, 13, -1)} ${at(se - 0.08, 13.6, -1)}`} class="a-cuff" />
+      <polygon points={star(ex + dx * (se - 0.2), ey + dy * (se - 0.2), 4.2)} class="a-star" />
+      <polygon points={`${at(se, 11, 1)} ${at(1, 8, 1)} ${at(1, 8, -1)} ${at(se, 11, -1)}`} class="a-skin" />
+      <polygon points={`${at(se, 11, 1)} ${at(1, 8, 1)} ${at(1, 0, 1)} ${at(se, 0, 1)}`} class="a-skin-d" />
+      <ellipse cx={ex} cy={ey + 1} rx="13" ry="4" class="a-elbow" />
+    </g>
+  );
+}
+
+/** 互扣的两只拳头（以 (cx,cy) 为中心） */
+function Fists({ cx: x, cy: y }: { cx: number; cy: number }) {
+  return (
+    <g>
+      <polygon points={`${x - 13},${y + 10} ${x - 14},${y - 2} ${x - 6},${y - 11} ${x + 4},${y - 10} ${x + 6},${y + 1} ${x - 2},${y + 12}`} class="sb-hand back" />
+      <polygon points={`${x + 13},${y + 10} ${x + 14},${y - 1} ${x + 7},${y - 9} ${x - 3},${y - 8} ${x - 5},${y + 2} ${x + 3},${y + 12}`} class="sb-hand front" />
+      <polygon points={`${x - 3},${y - 8} ${x + 7},${y - 9} ${x + 6},${y - 3} ${x - 4},${y - 2}`} class="sb-hand knuckle" />
+      <polygon points={`${x - 14},${y - 2} ${x - 6},${y - 11} ${x - 8},${y - 2}`} class="sb-hand thumb" />
+    </g>
+  );
 }
 
 export function StrengthBar() {
@@ -46,7 +119,11 @@ export function StrengthBar() {
   // 加 1 平滑：没打过时停在正中，也不会一局就推到底
   const share = (t.USSR + 1) / (total + 2);
   const sx = X0 + (X1 - X0) * share;
-  const tilt = Math.max(-15, Math.min(15, (t.USSR - t.US) * 4));
+  // 领先一方把对方的手往下压：正角度 = 顺时针 = 往美国一侧倒
+  const tilt = Math.max(-28, Math.min(28, (t.USSR - t.US) * 7));
+  // 握手点：两肘固定在桌面上，握手点绕两肘中点沿圆弧往被压的一方倒
+  const R = 74, th = (tilt * Math.PI) / 180;
+  const gx = sx + R * Math.sin(th), gy = BAR_Y - R * Math.cos(th);
   return (
     <section class="panel strength-panel">
       <div class="sb-head">
@@ -59,26 +136,34 @@ export function StrengthBar() {
         <span class="sb-side us"><b>{t.US}</b> 胜 美国</span>
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} class="sb-svg" role="img" aria-label={`军力对比：苏联 ${t.USSR} 胜，美国 ${t.US} 胜，争夺中 ${t.pending} 局`}>
+        <defs>
+          <linearGradient id="sbSkyR" x1="0" x2="1"><stop offset="0" stop-color="#8f2c23" stop-opacity="0.55" /><stop offset="1" stop-color="#8f2c23" stop-opacity="0" /></linearGradient>
+          <linearGradient id="sbSkyB" x1="1" x2="0"><stop offset="0" stop-color="#24447a" stop-opacity="0.6" /><stop offset="1" stop-color="#24447a" stop-opacity="0" /></linearGradient>
+          <radialGradient id="sbGlow"><stop offset="0" stop-color="#f5d76e" stop-opacity="0.55" /><stop offset="1" stop-color="#f5d76e" stop-opacity="0" /></radialGradient>
+        </defs>
+        <rect x={X0} y="6" width={sx - X0} height={BAR_Y - 6} fill="url(#sbSkyR)" />
+        <rect x={sx} y="6" width={X1 - sx} height={BAR_Y - 6} fill="url(#sbSkyB)" />
         <Army wins={t.USSR} side="ussr" />
         <Army wins={t.US} side="us" />
-        {/* 军力条 */}
-        <rect x={X0} y={BAR_Y} width={sx - X0} height={BAR_H} rx="4" class="sb-bar ussr" />
-        <rect x={sx} y={BAR_Y} width={X1 - sx} height={BAR_H} rx="4" class="sb-bar us" />
-        <rect x={X0} y={BAR_Y} width={X1 - X0} height={BAR_H} rx="4" class="sb-frame" />
-        {/* 分界处：两只大手腕掰手腕，领先的一方把对方的手往下压 */}
-        <g transform={`rotate(${tilt} ${sx} ${BAR_Y - 6})`} class="sb-arms">
-          <path d={`M${sx - 58},${BAR_Y - 2} L${sx - 46},${BAR_Y - 14} L${sx - 8},${BAR_Y - 58} L${sx + 2},${BAR_Y - 50} L${sx - 34},${BAR_Y - 4}Z`} class="sb-sleeve ussr" />
-          <path d={`M${sx + 58},${BAR_Y - 2} L${sx + 46},${BAR_Y - 14} L${sx + 8},${BAR_Y - 58} L${sx - 2},${BAR_Y - 50} L${sx + 34},${BAR_Y - 4}Z`} class="sb-sleeve us" />
-          <path d={`M${sx - 14},${BAR_Y - 52} L${sx - 4},${BAR_Y - 66} L${sx + 6},${BAR_Y - 66} L${sx + 14},${BAR_Y - 54} L${sx + 8},${BAR_Y - 46} L${sx - 8},${BAR_Y - 46}Z`} class="sb-fist" />
-          <path d={`M${sx - 6},${BAR_Y - 62} L${sx + 4},${BAR_Y - 50} M${sx},${BAR_Y - 64} L${sx + 9},${BAR_Y - 54}`} class="sb-knuckle" />
-          <circle cx={sx - 52} cy={BAR_Y - 8} r="7" class="sb-cuff ussr" />
-          <circle cx={sx + 52} cy={BAR_Y - 8} r="7" class="sb-cuff us" />
-        </g>
-        {/* 手腕下两个小兵拼刺刀 */}
+        {/* 桌面 = 军力条 */}
+        <polygon points={`${X0 - 6},${BAR_Y} ${X1 + 6},${BAR_Y} ${X1},${BAR_Y + BAR_H} ${X0},${BAR_Y + BAR_H}`} class="sb-table" />
+        <polygon points={`${X0},${BAR_Y + 3} ${sx},${BAR_Y + 3} ${sx},${BAR_Y + BAR_H - 2} ${X0 + 2},${BAR_Y + BAR_H - 2}`} class="sb-bar ussr" />
+        <polygon points={`${sx},${BAR_Y + 3} ${X1},${BAR_Y + 3} ${X1 - 2},${BAR_Y + BAR_H - 2} ${sx},${BAR_Y + BAR_H - 2}`} class="sb-bar us" />
+        <line x1={sx} y1={BAR_Y - 2} x2={sx} y2={BAR_Y + BAR_H} class="sb-split" />
+        {/* 手臂之间：两个小兵拼刺刀 */}
         <g class="sb-duel">
-          <Soldier x={sx - 12} y={BAR_Y - 2} side="ussr" />
-          <Soldier x={sx + 12} y={BAR_Y - 2} side="us" flip />
-          <path d={`M${sx - 3},${BAR_Y - 22} l2,-3 l2,3 M${sx - 1},${BAR_Y - 25} l0,-4`} class="sb-spark" />
+          <Trooper x={sx - 13} y={BAR_Y - 1} s={0.78} side="ussr" />
+          <Trooper x={sx + 13} y={BAR_Y - 1} s={0.78} side="us" flip />
+          <polygon points={star(sx, BAR_Y - 19, 4.6)} class="sb-spark" />
+        </g>
+        {/* 掰手腕：肘不动，握手点倾斜 */}
+        <g class="sb-wrestle">
+          <circle cx={gx} cy={gy} r="30" fill="url(#sbGlow)" class="sb-glow" />
+          <Forearm ex={sx - 62} ey={BAR_Y - 2} wx={gx - 7} wy={gy + 8} side="ussr" />
+          <Forearm ex={sx + 62} ey={BAR_Y - 2} wx={gx + 7} wy={gy + 8} side="us" />
+          <g transform={`translate(${gx - sx},${gy - (BAR_Y - 74)}) rotate(${tilt} ${sx} ${BAR_Y - 74})`}>
+            <Fists cx={sx} cy={BAR_Y - 74} />
+          </g>
         </g>
       </svg>
     </section>
