@@ -86,7 +86,7 @@ const SPECIAL_OF: Record<number, CardKind> = {
 /** 跟在主卡后面一起列出的“让它失效”的卡 */
 const EXTRA: Partial<Record<CardKind, number[]>> = { oil: [86] };
 export const cardKind = (id: number): CardKind => SPECIAL_OF[id] ?? (CARDS[id].war ? 'war' : CARDS[id].scoring ? 'score' : 'bolt');
-const isSpecial = (k: CardKind) => k !== 'bolt' && k !== 'war' && k !== 'score';
+export const isSpecial = (k: CardKind) => k !== 'bolt' && k !== 'war' && k !== 'score';
 
 /** 方框右下角（从右往左，闪电永远最右，导弹最左）/ 左下角（从左往右） */
 export const RIGHT_KINDS: CardKind[] = ['bolt', 'usjp', 'ship', 'fist', 'hostage', 'unrest', 'solidarity', 'chain', 'war', 'score', 'reds', 'tent', 'wall', 'radar', 'suez', 'missile'];

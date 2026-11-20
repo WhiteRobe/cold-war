@@ -2,7 +2,7 @@
 import { useEffect } from 'preact/hooks';
 import { CARDS, COUNTRIES } from '../../data';
 import type { GameView } from '../../engine/view';
-import { ERA_ZH, GROUP_NOTE, STATUS_ZH, cardStatus, countryCards, eraNow, type CardKind } from './countryCards';
+import { ERA_ZH, GROUP_NOTE, STATUS_ZH, cardStatus, countryCards, eraNow, isSpecial, type CardKind } from './countryCards';
 
 const ERA_IDX = { early: 0, mid: 1, late: 2 } as const;
 const TITLE: Record<CardKind, (n: string) => string> = {
@@ -45,8 +45,9 @@ export function BoltPopover({ view, at, onClose, onEnter, onLeave, onPeek }: { v
   const cards = countryCards(view, at.id, at.kind);
   const now = eraNow(view.turn);
   const note = GROUP_NOTE[at.kind];
-  // 成组标记（油滴 / 新月 / 河流）不按时期截断：之前时期的卡也可能还在牌库里
-  const groups = [0, 1, 2].filter((e) => note || e >= now).map((e) => ({ era: e, list: cards.filter((c) => ERA_IDX[CARDS[c].era] === e) })).filter((g) => g.list.length);
+  // 专用标记（美日、人物、油滴……）不按时期截断：之前时期的卡也可能还在牌库里或已经生效
+  const special = isSpecial(at.kind);
+  const groups = [0, 1, 2].filter((e) => special || e >= now).map((e) => ({ era: e, list: cards.filter((c) => ERA_IDX[CARDS[c].era] === e) })).filter((g) => g.list.length);
   const W = 300;
   const left = Math.max(8, Math.min(window.innerWidth - W - 8, at.x + 12));
   const top = Math.max(8, Math.min(window.innerHeight - 60 - cards.length * 44 - groups.length * 24, at.y - 20));
