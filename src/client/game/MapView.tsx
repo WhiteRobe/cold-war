@@ -378,6 +378,8 @@ export function MapView({ view, selectable, onPick, flash, onRegion, focus, onBo
         <SpaceArsenal view={view} home={{ US: pos('usa'), USSR: pos('ussr') }} />
         <OilReserve view={view} />
         {view.flags.northSeaOil && <NorthSeaRig x={688} y={150} />}
+        {view.flags.norad && <NoradRadar x={250} y={176} />}
+        {view.flags.usJapan && <Carrier x={1812} y={490} />}
         <text x={MAP_W - 8} y={pos('japan')[1] + 38} class="edge-label" text-anchor="end">→ 美国</text>
         <text x={8} y={pos('usa')[1] - 10} class="edge-label">日本 ←</text>
         {COUNTRY_LIST.map((c) => (
@@ -996,6 +998,44 @@ function NorthSeaRig({ x, y }: { x: number; y: number }) {
         <path d="M2,-6 L6,-28 L10,-6 M3,-12 L9,-12 M4,-18 L8,-18 M3,-12 L8,-18 M9,-12 L4,-18" class="ns-derrick" />
         <path d="M15,-4 L26,-14" class="ns-boom" />
         <path d="M26,-14 C24,-18 27,-21 26,-25 C29,-22 31,-18 28,-14Z" class="ns-flame" />
+      </g>
+    </g>
+  );
+}
+
+/** 北美防空司令部生效：加拿大国土上立起一座旋转的雷达站 */
+function NoradRadar({ x, y }: { x: number; y: number }) {
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <g class="nr-radar">
+        <title>北美防空司令部生效：每个行动轮结束时，若美国控制加拿大且这一轮 DEFCON 变为 2，美国在一个已有美国影响力的国家 +1 影响力（「泥潭」会取消此效果）</title>
+        <path d="M-4,10 L-1,-4 L1,-4 L4,10 M-3,5 L3,5" class="nr-tower" />
+        <rect x="-9" y="10" width="18" height="4" rx="1" class="nr-base" />
+        <g class="nr-dish">
+          <path d="M-11,-12 Q0,-1 11,-12 L9,-14 Q0,-5 -9,-14Z" class="nr-bowl" />
+          <path d="M0,-6 L0,-15" class="nr-feed" />
+          <circle cx="0" cy="-15.5" r="1.4" class="nr-tip" />
+        </g>
+        <path d="M14,-20 A16,16 0 0 1 18,-8 M18,-24 A22,22 0 0 1 24,-6" class="nr-wave" />
+      </g>
+    </g>
+  );
+}
+
+/** 美日共同防卫协定生效：日本外海停着一艘美国航空母舰 */
+function Carrier({ x, y }: { x: number; y: number }) {
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <g class="cv-ship">
+        <title>美日共同防卫协定：美国控制日本，苏联不能对日本政变或调整阵营</title>
+        <path d="M-28,8 q4,-3 8,0 t8,0 t8,0 t8,0 t8,0 t8,0 t8,0" class="cv-wave" />
+        <polygon points="-26,2 24,2 28,-2 -28,-2" class="cv-hull" />
+        <polygon points="-28,-2 28,-2 26,-5 -24,-5" class="cv-deck" />
+        <path d="M-20,-3.5 L18,-3.5" class="cv-line" />
+        <polygon points="10,-5 17,-5 17,-11 12,-11 12,-14 14,-14 14,-11" class="cv-island" />
+        <polygon points="-15,-6.2 -9,-6.2 -12,-8.6" class="cv-plane" />
+        <polygon points="-3,-6.2 3,-6.2 0,-8.6" class="cv-plane" />
+        <polygon points="-27,-2 -21,-2 -21,-1 -27,-1" class="cv-flag" />
       </g>
     </g>
   );

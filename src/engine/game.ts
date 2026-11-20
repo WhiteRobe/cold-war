@@ -473,7 +473,6 @@ export class Game {
         return ob - oa || (a === 'US' ? -1 : 1);
       });
     const record: NonNullable<GameState['headlines']>[number] = { turn: s.turn, US: picks.US, USSR: picks.USSR };
-    for (const sd of ['USSR', 'US'] as Side[]) if (picks[sd] !== undefined) this.recordPlay(sd, picks[sd]!, 'headline');
     s.headlines = [...(s.headlines ?? []), record];
     const cancelled = new Set<Side>();
     if (picks.US === 103 && picks.USSR !== undefined) {
@@ -483,6 +482,9 @@ export class Game {
     this.headlineCancel = cancelled;
     for (const side of order) {
       const c = picks[side]!;
+      // 轮到这张头条结算时才记一次“打出”，界面按这个位置播放出牌展示，
+      // 不会出现第二张头条的展示跑到第一张的结算前面、效果却晚于行动轮第一张牌出现的情况
+      this.recordPlay(side, c, 'headline');
       if (cancelled.has(side)) {
         record.cancelled = side;
         this.discardCard(c);
