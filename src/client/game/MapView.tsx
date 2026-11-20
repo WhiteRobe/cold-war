@@ -383,6 +383,7 @@ export function MapView({ view, selectable, onPick, flash, onRegion, focus, onBo
         {view.flags.deGaulle && <FrenchFlag x={676} y={396} />}
         {view.flags.nuclearSubs && <NuclearSub x={505} y={440} />}
         {view.flags.marshall && <AidShip x={452} y={262} />}
+        {view.flags.evilEmpire && <Speaker x={196} y={212} />}
         {view.flags.chernobyl && (
           <g transform="translate(1078,300)" class="cb-ukr">
             <title>切尔诺贝利：本回合苏联不能用行动点在{REGION_ZH[view.flags.chernobyl]}放置影响力</title>
@@ -1169,6 +1170,32 @@ function AidShip({ x, y }: { x: number; y: number }) {
         <rect x="16" y="-17" width="3" height="6" class="ms-funnel" />
         <circle cx="17.5" cy="-20" r="2" class="ms-smoke" />
         <circle cx="15" cy="-23.5" r="2.6" class="ms-smoke" />
+      </g>
+    </g>
+  );
+}
+
+/** “邪恶帝国”生效：加拿大西边一位美国领导人站在讲台后演讲（通用剪影） */
+function Speaker({ x, y }: { x: number; y: number }) {
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <g class="sp-speech">
+        <title>“邪恶帝国”：美国 +1 VP，并阻止或取消「花之力」</title>
+        <ellipse cx="0" cy="12" rx="14" ry="2.4" class="sp-shadow" />
+        {/* 演讲者：头、发型、西装、抬起的手 */}
+        <circle cx="0" cy="-14" r="4.2" class="sp-face" />
+        <path d="M-4.2,-15.4 Q-3.6,-19.6 0.6,-19.4 Q4.4,-19 4.3,-15 Q2,-17.4 -1,-16.8Z" class="sp-hair" />
+        <path d="M-7,2 L-6,-7 Q0,-10.4 6,-7 L7,2Z" class="sp-suit" />
+        <path d="M-1.2,-9.6 L0,-6.4 L1.2,-9.6Z" class="sp-tie" />
+        <path d="M5,-6.6 L9.4,-13.4" class="sp-arm" />
+        <circle cx="9.8" cy="-14.2" r="1.6" class="sp-face" />
+        {/* 讲台与话筒 */}
+        <polygon points="-9,12 9,12 7,-1 -7,-1" class="sp-podium" />
+        <polygon points={STAR_PTS(0, 5.4, 3.2)} class="sp-star" />
+        <path d="M3,-1 L5,-6" class="sp-mic" />
+        <circle cx="5.2" cy="-6.6" r="1" class="sp-mic-head" />
+        {/* 声波 */}
+        <path d="M13,-16 A6,6 0 0 1 13,-8 M16,-19 A10,10 0 0 1 16,-5" class="sp-wave" />
       </g>
     </g>
   );

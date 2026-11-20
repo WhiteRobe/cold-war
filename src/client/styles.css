@@ -1596,3 +1596,18 @@ g.links { pointer-events: none; }
 .ms-funnel { fill: #2f5d8a; }
 .ms-smoke { fill: #c8c4bc; opacity: 0.7; }
 @media (prefers-reduced-motion: reduce) { .ms-ship { animation: none; } }
+/* “邪恶帝国”：加拿大西边的演讲者 */
+.sp-speech { cursor: help; animation: nsIn 1.2s ease-out; filter: drop-shadow(0 2px 2px #0006); }
+.sp-shadow { fill: #0003; }
+.sp-face { fill: #e3b98f; }
+.sp-hair { fill: #6b4a2e; }
+.sp-suit { fill: #2b2f3a; }
+.sp-tie { fill: #b8231c; }
+.sp-arm { stroke: #2b2f3a; stroke-width: 2.4; stroke-linecap: round; transform-box: fill-box; transform-origin: 0% 100%; animation: spWave 1.2s ease-in-out infinite alternate; }
+@keyframes spWave { to { rotate: -14deg; } }
+.sp-podium { fill: #2d5291; stroke: #142a4a; stroke-width: 0.7; }
+.sp-star { fill: #fff; }
+.sp-mic { stroke: #1b1b1b; stroke-width: 0.8; }
+.sp-mic-head { fill: #1b1b1b; }
+.sp-wave { fill: none; stroke: #f5d76e; stroke-width: 1.1; stroke-linecap: round; animation: nrWave 1.4s ease-out infinite; }
+@media (prefers-reduced-motion: reduce) { .sp-arm, .sp-wave { animation: none; } }

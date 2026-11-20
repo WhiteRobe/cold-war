@@ -226,6 +226,7 @@ function liveFog(view: GameView): FogEntry[] {
   return out;
 }
 
+/** 亚洲国家多、补雾的点也多，叠起来偏浓：整体再淡 30% */
 export function FogLayer({ view, fresh, pos }: { view: GameView; fresh: Set<string>; pos: Pos }) {
   const entries = liveFog(view);
   return (
@@ -243,7 +244,7 @@ export function FogLayer({ view, fresh, pos }: { view: GameView; fresh: Set<stri
         </radialGradient>
       </defs>
       {entries.map(({ key, region: r, side, k, ids, r: rad, strong, pairs }) => (
-        <g key={key} opacity={k.toFixed(2)} class={`fog-wrap${strong ? ' strong' : ''}`}>
+        <g key={key} opacity={(k * (r === 'asia' ? 0.7 : 1)).toFixed(2)} class={`fog-wrap${strong ? ' strong' : ''}`}>
           <g class={`fog fog-${side.toLowerCase()}${fresh.has(r) ? ' fresh' : ''}`}>
             {pairs.map(([a, b], i) => {
               const [x1, y1] = pos(a), [x2, y2] = pos(b);
