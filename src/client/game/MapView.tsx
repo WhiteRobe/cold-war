@@ -385,7 +385,7 @@ export function MapView({ view, selectable, onPick, flash, onRegion, focus, onBo
         {view.flags.marshall && <AidShip x={452} y={262} natoOpen={natoOpen(view)} />}
         {view.flags.evilEmpire && <Speaker x={196} y={212} />}
         {eventHappened(view, 84) && <Craters x={880} y={522} />}
-        {eventHappened(view, 70) && <OasFlag x={600} y={676} />}
+        {eventHappened(view, 70) && <OasFlag x={482} y={702} />}
         {view.flags.reformer && <Reformer x={1258} y={252} />}
         {view.flags.bearTrap && <WreckedTank x={1244} y={398} />}
         {view.flags.iranContra && <Reporter x={300} y={296} />}
