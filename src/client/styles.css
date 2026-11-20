@@ -1728,3 +1728,61 @@ g.links { pointer-events: none; }
 ::-webkit-scrollbar-thumb { background: linear-gradient(180deg, #a8862e, #6b5a2a); border-radius: 4px; border: 2px solid #1f1c17; }
 ::-webkit-scrollbar-thumb:hover { background: linear-gradient(180deg, #f5d76e, #a8862e); }
 ::-webkit-scrollbar-corner { background: transparent; }
+/* 中情局成立：风衣间谍 */
+.ts-spy { cursor: help; animation: nsIn 1.2s ease-out, tsSneak 2.4s ease-in-out 1.2s infinite alternate; filter: drop-shadow(0 2px 2px #0006); }
+@keyframes tsSneak { to { transform: translateX(3px); } }
+.ts-leg { stroke: #2a2420; stroke-width: 1.4; stroke-linecap: round; }
+.ts-coat { fill: #b8a072; stroke: #5a4024; stroke-width: 0.5; }
+.ts-collar { fill: #9a8258; }
+.ts-belt { stroke: #6b5232; stroke-width: 0.9; }
+.ts-seam { stroke: #8a7048; stroke-width: 0.4; }
+.ts-glass { stroke: #111; stroke-width: 1; }
+.ts-hat { fill: #3a342c; stroke: #1b1712; stroke-width: 0.4; }
+.ts-arm { stroke: #b8a072; stroke-width: 1.4; stroke-linecap: round; }
+.ts-case { fill: #4a2e1c; stroke: #2a1a10; stroke-width: 0.4; }
+@media (prefers-reduced-motion: reduce) { .ts-spy { animation: none; } }
+/* 艾姆斯间谍案：兜售情报的间谍 */
+.is-seller { animation: nsIn 1.2s ease-out; }
+.is-inner { fill: #3a2a20; }
+.is-doc { fill: #f3efe6; stroke: #8a8070; stroke-width: 0.3; }
+.is-line { stroke: #c9302a; stroke-width: 0.4; }
+.is-bag { fill: #8a6a3c; stroke: #4a2e1c; stroke-width: 0.4; }
+.is-dollar { font-size: 4px; font-weight: 900; fill: #f5d76e; text-anchor: middle; }
+/* 尼克松打出中国牌：乒乓外交 */
+.pp-wrap { cursor: help; animation: nsIn 1.2s ease-out; filter: drop-shadow(0 2px 2px #0006); }
+.pp-handle { fill: #c9a06a; stroke: #5a4024; stroke-width: 0.5; }
+.pp-paddle { fill: #c8102e; }
+.pp-rim { fill: none; stroke: #1b1b1b; stroke-width: 1; }
+.pp-ball { fill: #fbfaf6; stroke: #8a8070; stroke-width: 0.5; animation: ppBounce 0.9s ease-in-out infinite alternate; }
+@keyframes ppBounce { from { transform: translate(0, 0); } to { transform: translate(-4px, 5px); } }
+@media (prefers-reduced-motion: reduce) { .pp-ball { animation: none; } }
+/* 泥潭：越南丛林上空的直升机 */
+.qh-wrap { cursor: help; animation: nsIn 1.2s ease-out; }
+.qh-tree { fill: #3f6b2a; stroke: #24401a; stroke-width: 0.5; }
+.qh-heli { animation: subBob 1.6s ease-in-out infinite alternate; filter: drop-shadow(0 4px 3px #0005); }
+.qh-rotor { stroke: #2a2a2a; stroke-width: 1.2; stroke-linecap: round; animation: qhSpin 0.25s linear infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes qhSpin { 50% { transform: scaleX(0.2); } }
+.qh-mast { stroke: #2a2a2a; stroke-width: 1; }
+.qh-body { fill: #4f5e3a; stroke: #24321a; stroke-width: 0.6; }
+.qh-tail { fill: none; stroke: #4f5e3a; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.qh-glass { fill: #a8c4d8; }
+.qh-skid { stroke: #2a2a2a; stroke-width: 0.8; }
+/* 台湾决议：东南沿海高射炮 */
+.aa-wrap { cursor: help; animation: nsIn 1.2s ease-out; }
+.aa-base { fill: #6b6458; stroke: #2a2420; stroke-width: 0.5; }
+.aa-mount { fill: #4f5e3a; stroke: #24321a; stroke-width: 0.5; }
+.aa-barrel { stroke: #2a2a2a; stroke-width: 1.2; stroke-linecap: round; }
+.aa-burst { fill: #5a5650; opacity: 0.8; animation: wtSmoke 2.4s ease-out infinite; transform-box: fill-box; transform-origin: center; }
+.aa-burst.b { animation-delay: -1.2s; }
+@media (prefers-reduced-motion: reduce) { .qh-heli, .qh-rotor, .aa-burst { animation: none; } }
+/* 伊朗人质危机：黑新月 */
+.bc-wrap { cursor: help; animation: nsIn 1.2s ease-out; }
+.bc-glow { fill: #f3efe6; opacity: 0.55; }
+.bc-moon { fill: #111; }
+/* 去斯大林化：被推倒的雕像 */
+.fs-wrap { cursor: help; animation: nsIn 1.2s ease-out; filter: drop-shadow(0 2px 2px #0006); }
+.fs-base { fill: #8a8478; stroke: #4a4440; stroke-width: 0.5; }
+.fs-cap { fill: #a8a294; stroke: #4a4440; stroke-width: 0.4; }
+.fs-body { fill: #6b6a64; stroke: #2a2a26; stroke-width: 0.5; }
+.fs-body.d { fill: #57564f; }
+.fs-crack { fill: none; stroke: #2a2a26; stroke-width: 0.5; }

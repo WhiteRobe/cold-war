@@ -399,6 +399,14 @@ export function MapView({ view, selectable, onPick, flash, onRegion, focus, onBo
         {view.flags.cmc && <SovietSub x={378} y={452} side={view.flags.cmc} />}
         {view.flags.cmc && <MissileSilo x={1126} y={378} side={view.flags.cmc} />}
         {eventHappened(view, 90) && <KremlinWalls x={1092} y={226} />}
+        {eventHappened(view, 26) && <TrenchSpy x={238} y={352} />}
+        {view.flags.aldrichAmes && <IntelSeller x={1170} y={292} />}
+        {eventHappened(view, 71) && <PingPong x={1584} y={336} />}
+        {eventHappened(view, 8) && <CubaFlag x={254} y={461} />}
+        {view.flags.quagmire && <QuagmireHeli x={1620} y={512} />}
+        {view.flags.formosan && <AAGun x={1662} y={474} />}
+        {eventHappened(view, 82) && <BlackCrescent x={1238} y={466} />}
+        {eventHappened(view, 33) && <FallenStatue x={1330} y={302} />}
         {eventHappened(view, 9) && <VietnamFire x={1588} y={548} active={!!view.flags.vietnamRevolts} />}
         {view.flags.containment && <Carrier x={1690} y={612} tip={decorTip('1946 年凯南提出“遏制”构想：在苏联试图扩张的每一处坚定地加以阻挡，美国舰队由此常驻亚太。', '本回合美国打出的每张牌行动点 +1（最多 4）')} />}
         {view.flags.chernobyl && (
@@ -1232,7 +1240,8 @@ function Speaker({ x, y }: { x: number; y: number }) {
 /** 里根轰炸利比亚之后：利比亚北部留下两个焦黑的弹坑 */
 function Craters({ x, y }: { x: number; y: number }) {
   return (
-    <g transform={`translate(${x},${y})`} class="crater-wrap">
+    <g transform={`translate(${x},${y})`}>
+     <g class="crater-wrap">
       <title>{decorTip('1986 年美国空袭利比亚的黎波里和班加西，回应西柏林舞厅爆炸案。')}</title>
       {[[-12, 2, 1], [10, -3, 0.8]].map(([dx, dy, k], i) => (
         <g key={i} transform={`translate(${dx},${dy}) scale(${k})`}>
@@ -1244,6 +1253,7 @@ function Craters({ x, y }: { x: number; y: number }) {
           <path d="M1,-3 C-2,-8 3,-10 0,-15" class="cr-smoke" />
         </g>
       ))}
+     </g>
     </g>
   );
 }
@@ -1585,6 +1595,175 @@ function VietnamFire({ x, y, active }: { x: number; y: number; active: boolean }
             <path d="M0,3.6 C-1.8,3.6 -2,1.8 -1.2,0.8 C-0.8,1.4 0,1.4 0.2,0.8 C0.4,0 1,-0.2 1.4,0.4 C2,1.6 1.6,3.6 0,3.6Z" class="vf-core" />
           </g>
         ))}
+      </g>
+    </g>
+  );
+}
+
+/** 中情局成立之后：美国国土上一个风衣、礼帽、墨镜的间谍（通用剪影） */
+function TrenchSpy({ x, y }: { x: number; y: number }) {
+  return (
+    <g transform={`translate(${x},${y}) scale(1.3)`}>
+      <g class="ts-spy">
+        <title>{decorTip('1947 年美国成立中央情报局，统筹海外情报与秘密行动，此后深度介入冷战各地的局势。')}</title>
+        <ellipse cx="0" cy="12" rx="8" ry="1.8" class="sp-shadow" />
+        <path d="M-2.4,12 L-2,6 M2.4,12 L2,6" class="ts-leg" />
+        {/* 风衣：竖领、腰带、下摆 */}
+        <path d="M-5.6,7 L-4.6,-5 L-1.6,-7 L0,-4.6 L1.6,-7 L4.6,-5 L5.6,7Z" class="ts-coat" />
+        <path d="M-1.6,-7 L0,-4.6 L1.6,-7 L0.8,-8.4 L-0.8,-8.4Z" class="ts-collar" />
+        <path d="M-5,1 L5,1" class="ts-belt" />
+        <path d="M0,-4.6 L0,7" class="ts-seam" />
+        {/* 头、墨镜、礼帽 */}
+        <circle cx="0" cy="-10.6" r="2.8" class="sp-face" />
+        <path d="M-2.2,-11.2 L-0.3,-11.2 M0.3,-11.2 L2.2,-11.2" class="ts-glass" />
+        <path d="M-5,-12.6 L5,-12.6 L3.4,-13.4 L2.8,-16.2 L-2.8,-16.2 L-3.4,-13.4Z" class="ts-hat" />
+        {/* 公文包 */}
+        <path d="M5.2,0 L6,4" class="ts-arm" />
+        <rect x="4.4" y="4" width="5" height="3.6" rx="0.6" class="ts-case" />
+      </g>
+    </g>
+  );
+}
+
+/** 艾姆斯间谍案生效：苏联境内一个敞开风衣、兜售机密文件的间谍 */
+function IntelSeller({ x, y }: { x: number; y: number }) {
+  return (
+    <g transform={`translate(${x},${y}) scale(1.3)`}>
+      <g class="ts-spy is-seller">
+        <title>{decorTip('中情局官员艾姆斯从 1985 年起向苏联出卖情报，导致多名为美国工作的特工暴露，直到 1994 年才落网。', '本回合余下时间，美国的手牌对苏联公开')}</title>
+        <ellipse cx="0" cy="12" rx="10" ry="1.8" class="sp-shadow" />
+        <path d="M-2.4,12 L-2,6 M2.4,12 L2,6" class="ts-leg" />
+        {/* 敞开的风衣，里面挂满文件 */}
+        <path d="M-5.6,7 L-4.6,-5 L-1.6,-7 L-2.4,7Z" class="ts-coat" />
+        <path d="M5.6,7 L4.6,-5 L1.6,-7 L2.4,7Z" class="ts-coat" />
+        <path d="M-2.4,7 L-1.6,-7 L1.6,-7 L2.4,7Z" class="is-inner" />
+        <rect x="-1.6" y="-4" width="3.2" height="3" class="is-doc" />
+        <rect x="-1.6" y="0" width="3.2" height="3" class="is-doc" />
+        <path d="M-1,-3 L1,-3 M-1,1 L1,1" class="is-line" />
+        <circle cx="0" cy="-10.6" r="2.8" class="sp-face" />
+        <path d="M-2.2,-11.2 L-0.3,-11.2 M0.3,-11.2 L2.2,-11.2" class="ts-glass" />
+        <path d="M-5,-12.6 L5,-12.6 L3.4,-13.4 L2.8,-16.2 L-2.8,-16.2 L-3.4,-13.4Z" class="ts-hat" />
+        {/* 脚边一袋钱 */}
+        <path d="M8,11 C5.4,11 5,7.4 7,6 L6.4,4.6 L9.6,4.6 L9,6 C11,7.4 10.6,11 8,11Z" class="is-bag" />
+        <text x="8" y="9.6" class="is-dollar">$</text>
+      </g>
+    </g>
+  );
+}
+
+/** 尼克松打出中国牌之后：中国境内的乒乓球拍与小球（乒乓外交） */
+function PingPong({ x, y }: { x: number; y: number }) {
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <g class="pp-wrap">
+        <title>{decorTip('1971 年美国乒乓球队应邀访华，“小球转动大球”，打开了中美交往的大门；次年尼克松访华，中美关系走向正常化。')}</title>
+        <ellipse cx="0" cy="12" rx="12" ry="2" class="sp-shadow" />
+        <g transform="rotate(-30)">
+          <rect x="-1.4" y="2" width="2.8" height="9" rx="1" class="pp-handle" />
+          <circle cx="0" cy="-4" r="7.4" class="pp-paddle" />
+          <circle cx="0" cy="-4" r="7.4" class="pp-rim" />
+        </g>
+        <circle cx="10" cy="-12" r="2.4" class="pp-ball" />
+      </g>
+    </g>
+  );
+}
+
+/** 卡斯特罗之后：古巴岛上飘扬的古巴国旗 */
+function CubaFlag({ x, y }: { x: number; y: number }) {
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <g class="fr-flag">
+        <title>{decorTip('1959 年卡斯特罗率游击队推翻巴蒂斯塔政权，随后倒向苏联，古巴成为西半球第一个共产党执政的国家。')}</title>
+        <ellipse cx="0" cy="0" rx="5" ry="1.6" class="fr-base" />
+        <rect x="-0.8" y="-30" width="1.6" height="30" class="fr-pole" />
+        <circle cx="0" cy="-30.6" r="1.4" class="fr-knob" />
+        <g class="fr-cloth">
+          {[0, 1, 2, 3, 4].map((i) => (
+            <path key={i} d={`M0.8,${-29 + i * 2.4} Q10,${-31 + i * 2.4} 19.8,${-29 + i * 2.4} L19.8,${-26.6 + i * 2.4} Q10,${-28.6 + i * 2.4} 0.8,${-26.6 + i * 2.4}Z`} fill={i % 2 ? '#f8f8f4' : '#1f3d8a'} />
+          ))}
+          <path d="M0.8,-29 L9,-23 L0.8,-17Z" fill="#cf142b" />
+          <polygon points={STAR_PTS(3.6, -23, 2)} fill="#fff" />
+        </g>
+      </g>
+    </g>
+  );
+}
+
+/** 泥潭生效：越南丛林上空一架美军直升机（美国深陷越战） */
+function QuagmireHeli({ x, y }: { x: number; y: number }) {
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <g class="qh-wrap">
+        <title>{decorTip('美国在越南从派遣顾问一路升级到五十多万大军，伤亡、开支和国内反战浪潮让历届政府进退两难，“泥潭”成了这场战争最常见的比喻。', '美国每个行动轮须弃一张 2 点以上的牌并掷 1–4 才能脱身（仍可打出计分卡）')}</title>
+        {/* 丛林 */}
+        {[-12, -4, 5, 13].map((tx, i) => (
+          <polygon key={tx} points={`${tx - 5},10 ${tx},${i % 2 ? -1 : 1} ${tx + 5},10`} class="qh-tree" />
+        ))}
+        {/* 直升机 */}
+        <g class="qh-heli">
+          <path d="M-14,-14 L14,-14" class="qh-rotor" />
+          <path d="M0,-14 L0,-11" class="qh-mast" />
+          <path d="M-7,-11 L5,-11 C9,-11 10,-8 10,-6 C10,-4 8,-3 5,-3 L-6,-3 C-8,-3 -9,-5 -9,-7 C-9,-9 -8,-11 -7,-11Z" class="qh-body" />
+          <path d="M-9,-7 L-20,-8 L-21,-11 L-19,-11 L-17,-8.6" class="qh-tail" />
+          <path d="M4,-9.6 C6,-9.6 7.6,-8.6 7.8,-7 L4,-7Z" class="qh-glass" />
+          <path d="M-6,-1 L6,-1 M-4,-3 L-4,-1 M3,-3 L3,-1" class="qh-skid" />
+        </g>
+      </g>
+    </g>
+  );
+}
+
+/** 台湾决议生效：中国东南沿海一门对着海峡的高射炮 */
+function AAGun({ x, y }: { x: number; y: number }) {
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <g class="aa-wrap">
+        <title>{decorTip('1950 年代台海两度爆发炮击危机，美国国会通过台湾决议，授权总统在必要时动用武力保卫台湾及澎湖。', '美国控制台湾时，亚洲计分把台湾算作战场国')}</title>
+        <ellipse cx="0" cy="5" rx="10" ry="2.4" class="sp-shadow" />
+        <polygon points="-8,5 -6,0 6,0 8,5" class="aa-base" />
+        <rect x="-3" y="-4" width="6" height="4" class="aa-mount" />
+        <path d="M0,-2 L10,-13 M1.6,-1 L11.6,-12" class="aa-barrel" />
+        <circle cx="13" cy="-17" r="2.2" class="aa-burst" />
+        <circle cx="18" cy="-21" r="1.6" class="aa-burst b" />
+      </g>
+    </g>
+  );
+}
+
+/** 伊朗人质危机之后：伊朗国土上的黑色新月 */
+function BlackCrescent({ x, y }: { x: number; y: number }) {
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <g class="bc-wrap">
+        <title>{decorTip('1979 年伊朗学生占领美国驻德黑兰大使馆，五十多名美国人被扣押 444 天，营救失败让卡特政府颜面尽失。')}</title>
+        <circle r="10" class="bc-glow" />
+        <path d="M3,-8.6 A9,9 0 1 0 3,8.6 A7,7 0 1 1 3,-8.6Z" class="bc-moon" />
+      </g>
+    </g>
+  );
+}
+
+/** 去斯大林化之后：苏联境内一座被推倒的领袖雕像（空基座 + 横倒的人像，通用造型） */
+function FallenStatue({ x, y }: { x: number; y: number }) {
+  return (
+    <g transform={`translate(${x},${y}) scale(1.2)`}>
+      <g class="fs-wrap">
+        <title>{decorTip('1956 年赫鲁晓夫在苏共二十大作“秘密报告”，揭露斯大林的个人崇拜与大清洗，各地的领袖雕像随后陆续被拆除。')}</title>
+        <ellipse cx="2" cy="8" rx="20" ry="2.6" class="sp-shadow" />
+        {/* 空基座 */}
+        <polygon points="-16,8 -16,-4 -6,-4 -6,8" class="fs-base" />
+        <rect x="-17" y="-6" width="12" height="2.4" class="fs-cap" />
+        {/* 横倒在地的人像：大衣、躯干、头 */}
+        <g transform="translate(2,4) rotate(-6)">
+          <path d="M-4,0 L14,-1.6 L15,3.4 L-4,4Z" class="fs-body" />
+          <path d="M14,-1.6 L18,-0.8 L18,2.6 L15,3.4Z" class="fs-body d" />
+          <circle cx="21" cy="0.6" r="2.8" class="fs-body" />
+          <path d="M2,-1 L8,-6 L10,-5 L5,0" class="fs-body d" />
+          <path d="M6,0.4 L8,2.6 M11,-0.6 L12.6,2" class="fs-crack" />
+        </g>
+        <polygon points="-4,8 -2,6 0,8" class="pg-rubble" />
+        <polygon points="18,8 20,6.4 21,8" class="pg-rubble" />
       </g>
     </g>
   );
