@@ -32,6 +32,7 @@ const TITLE: Record<CardKind, (n: string) => string> = {
   unrest: (n) => `🔥 ${n}与「南非动乱」`,
   solidarity: (n) => `✊ ${n}与「团结工会」`,
   chain: (n) => `⛓ ${n}与「封锁」`,
+  awacs: (n) => `✈️ ${n}与「向沙特出售预警机」`,
   radar: (n) => `📡 ${n}与「北美防空司令部」`,
 };
 const SIDE_CLS = { US: 'us', USSR: 'ussr', NEUTRAL: 'neutral' } as const;

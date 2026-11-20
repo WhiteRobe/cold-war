@@ -377,13 +377,29 @@ export function MapView({ view, selectable, onPick, flash, onRegion, focus, onBo
         <Superpower id="ussr" />
         <SpaceArsenal view={view} home={{ US: pos('usa'), USSR: pos('ussr') }} />
         <OilReserve view={view} />
-        {view.flags.northSeaOil && <NorthSeaRig x={688} y={150} />}
+        {view.flags.northSeaOil && <NorthSeaRig x={688} y={150} eight={!!view.flags.northSeaOil8} />}
         {view.flags.norad && <NoradRadar x={250} y={176} />}
         {view.flags.usJapan && <Carrier x={1812} y={490} />}
         {view.flags.deGaulle && <FrenchFlag x={676} y={396} />}
         {view.flags.nuclearSubs && <NuclearSub x={505} y={440} />}
-        {view.flags.marshall && <AidShip x={452} y={262} />}
+        {view.flags.marshall && <AidShip x={452} y={262} natoOpen={natoOpen(view)} />}
         {view.flags.evilEmpire && <Speaker x={196} y={212} />}
+        {eventHappened(view, 84) && <Craters x={880} y={522} />}
+        {eventHappened(view, 70) && <OasFlag x={600} y={676} />}
+        {view.flags.reformer && <Reformer x={1258} y={252} />}
+        {view.flags.bearTrap && <WreckedTank x={1244} y={398} />}
+        {view.flags.iranContra && <Reporter x={300} y={296} />}
+        {view.flags.brezhnev && <TankColumn x={1384} y={262} />}
+        {eventHappened(view, 15) && <EgyptFlag x={922} y={534} />}
+        {eventHappened(view, 83) && <RoyalNavy x={440} y={950} />}
+        {eventHappened(view, 76) && <UssuriStandoff x={1612} y={246} />}
+        {view.flags.awacs && <Awacs x={1224} y={598} />}
+        {eventHappened(view, 58) && <BrokenPagoda x={1466} y={352} />}
+        {eventHappened(view, 99) && <MissileTruck x={985} y={256} />}
+        {view.flags.cmc && <SovietSub x={378} y={452} side={view.flags.cmc} />}
+        {view.flags.cmc && <MissileSilo x={1126} y={378} side={view.flags.cmc} />}
+        {eventHappened(view, 90) && <KremlinWalls x={1092} y={226} />}
+        {view.flags.containment && <Carrier x={1690} y={612} tip={decorTip('1946 年凯南提出“遏制”构想：在苏联试图扩张的每一处坚定地加以阻挡，美国舰队由此常驻亚太。', '本回合美国打出的每张牌行动点 +1（最多 4）')} />}
         {view.flags.chernobyl && (
           <g transform="translate(1078,300)" class="cb-ukr">
             <title>切尔诺贝利：本回合苏联不能用行动点在{REGION_ZH[view.flags.chernobyl]}放置影响力</title>
@@ -597,6 +613,16 @@ function WinAlerts({ view }: { view: GameView }) {
         tip: `回合结束时手里还有计分卡的一方直接输。每个行动轮最多打出一张计分卡，${name}已经来不及全部打完${mine ? '' : '（只统计已经公开的手牌）'}。`,
       });
     }
+  }
+  // “我们将埋葬你们”：美国下一个行动轮必须以事件打出联合国干预，否则苏联 +3 VP
+  if (view.flags.wwby) {
+    const mine = view.me === 'US';
+    items.push({
+      key: 'wwby',
+      cls: mine ? 'warn' : 'ussr',
+      text: mine ? '“我们将埋葬你们”：你下个行动轮须以事件打出「联合国干预」，否则苏联 +3 VP' : '“我们将埋葬你们”：美国下个行动轮不以事件打出「联合国干预」，苏联就 +3 VP',
+      tip: '苏联打出“我们将埋葬你们”后，美国必须在接下来的第一个行动轮把「联合国干预」（#32）作为事件打出，否则苏联获得 3 点胜利点数。',
+    });
   }
   if (view.defcon === 2) items.push({ key: 'dc', cls: 'warn', text: 'DEFCON 2：再降一级，行动方直接输', tip: '在战场国政变或某些事件会让 DEFCON 降到 1，引发核战争；输的是当时正在行动的一方，哪怕是对手的事件。' });
   if (!items.length) return null;
@@ -943,6 +969,7 @@ function WarLinks({ view }: { view: GameView }) {
 
 /** 北约 / 华约成立后，在西欧 / 东欧的地图背景上铺一个半透明的大徽记 */
 function PactOverlay({ view }: { view: GameView }) {
+  const natoOpen = natoOpenFn(view);
   const center = (sub: SubRegionId): [number, number] => {
     const ps = COUNTRY_LIST.filter((c) => c.sub.includes(sub)).map((c) => pos(c.id));
     return [ps.reduce((a, p) => a + p[0], 0) / ps.length, ps.reduce((a, p) => a + p[1], 0) / ps.length];
@@ -954,7 +981,7 @@ function PactOverlay({ view }: { view: GameView }) {
     const [x, y] = [cx0 - 120, cy0 + 10];
     out.push(
       <g key="nato" class="pact pact-nato" transform={`translate(${x},${y})`}>
-        <title>北约已成立：美国控制的西欧国家不能被政变或调整阵营</title>
+        <title>{decorTip('1949 年北大西洋公约签订，对任一成员国的攻击视为对全体的攻击。', '苏联不能对美国控制的欧洲国家发动政变或调整阵营')}</title>
         <circle r="72" class="pk-ring" />
         {/* 四角罗盘星：四个尖角各分明暗两半 */}
         {[0, 90, 180, 270].map((r) => (
@@ -976,7 +1003,7 @@ function PactOverlay({ view }: { view: GameView }) {
     }).join(' ');
     out.push(
       <g key="warsaw" class="pact pact-warsaw" transform={`translate(${x},${y})`}>
-        <title>华约已成立</title>
+        <title>{decorTip('1955 年苏联与东欧七国签订华沙条约，组成与北约对峙的军事同盟。', natoOpen ? '「北大西洋公约组织」可以作为事件打出了' : null)}</title>
         <circle r="80" class="pk-ring" />
         <circle r="70" class="pk-ring thin" />
         <polygon points={star} class="pk-star" />
@@ -1009,11 +1036,11 @@ function OilReserve({ view }: { view: GameView }) {
 }
 
 /** 北海油田发动后：英国与丹麦之间的北海上立起一座海上采油平台 */
-function NorthSeaRig({ x, y }: { x: number; y: number }) {
+function NorthSeaRig({ x, y, eight }: { x: number; y: number; eight: boolean }) {
   return (
     <g transform={`translate(${x},${y})`}>
       <g class="ns-rig">
-        <title>北海油田：石油输出国组织不再能作为事件打出；本回合美国可多进行 1 个行动轮</title>
+        <title>{decorTip('1970 年代英国、挪威在北海开发出大型海上油田，西欧对中东石油的依赖随之下降。', `「石油输出国组织」不能再作为事件打出${eight ? '；本回合美国可以进行 8 个行动轮' : ''}`)}</title>
         <path d="M-22,14 q4,-3 8,0 t8,0 t8,0 t8,0 t8,0 M-18,19 q4,-3 8,0 t8,0 t8,0 t8,0" class="ns-wave" />
         <path d="M-12,-2 L-15,15 M12,-2 L15,15 M-5,-2 L-6,15 M5,-2 L6,15 M-14,8 L14,8" class="ns-leg" />
         <polygon points="-16,-6 16,-6 15,-1 -15,-1" class="ns-deck" />
@@ -1031,7 +1058,7 @@ function NoradRadar({ x, y }: { x: number; y: number }) {
   return (
     <g transform={`translate(${x},${y})`}>
       <g class="nr-radar">
-        <title>北美防空司令部生效：每个行动轮结束时，若美国控制加拿大且这一轮 DEFCON 变为 2，美国在一个已有美国影响力的国家 +1 影响力（「泥潭」会取消此效果）</title>
+        <title>{decorTip('1958 年美加联合成立北美防空司令部，共同监视北美上空的轰炸机与导弹。', '每个行动轮结束时，若美国控制加拿大且这一轮 DEFCON 变为 2，美国在一个已有美国影响力的国家 +1 影响力（「泥潭」会取消）')}</title>
         <path d="M-4,10 L-1,-4 L1,-4 L4,10 M-3,5 L3,5" class="nr-tower" />
         <rect x="-9" y="10" width="18" height="4" rx="1" class="nr-base" />
         <g class="nr-dish">
@@ -1046,11 +1073,11 @@ function NoradRadar({ x, y }: { x: number; y: number }) {
 }
 
 /** 美日共同防卫协定生效：日本外海停着一艘美国航空母舰 */
-function Carrier({ x, y }: { x: number; y: number }) {
+function Carrier({ x, y, tip }: { x: number; y: number; tip?: string }) {
   return (
     <g transform={`translate(${x},${y})`}>
       <g class="cv-ship">
-        <title>美日共同防卫协定：美国控制日本，苏联不能对日本政变或调整阵营</title>
+        <title>{tip ?? decorTip('1951 年美日签订安全条约，美军留驻日本，日本成为美国在亚洲最重要的盟友。', '苏联不能对日本政变或调整阵营')}</title>
         <path d="M-28,8 q4,-3 8,0 t8,0 t8,0 t8,0 t8,0 t8,0 t8,0" class="cv-wave" />
         <polygon points="-26,2 24,2 28,-2 -28,-2" class="cv-hull" />
         <polygon points="-28,-2 28,-2 26,-5 -24,-5" class="cv-deck" />
@@ -1069,7 +1096,7 @@ function FrenchFlag({ x, y }: { x: number; y: number }) {
   return (
     <g transform={`translate(${x},${y})`}>
       <g class="fr-flag">
-        <title>戴高乐领导法国：法国走自己的路，北约不再保护法国</title>
+        <title>{decorTip('1966 年戴高乐让法国退出北约一体化军事指挥，坚持独立自主的国防。', '北约不再保护法国')}</title>
         <ellipse cx="0" cy="0" rx="5" ry="1.6" class="fr-base" />
         <rect x="-0.8" y="-30" width="1.6" height="30" class="fr-pole" />
         <circle cx="0" cy="-30.6" r="1.4" class="fr-knob" />
@@ -1094,7 +1121,7 @@ function AntiWarProtest({ x, y }: { x: number; y: number }) {
   return (
     <g transform={`translate(${x},${y}) scale(1.4)`}>
       <g class="aw-crowd">
-        <title>花之力：反战运动高涨——美国每打出一张战争牌（太空竞赛除外），苏联 +2 VP</title>
+        <title>{decorTip('1960 年代后期美国反战与反主流文化运动兴起，“把花插在枪口上”成为标志。', '美国每打出一张战争牌（太空竞赛除外），苏联 +2 VP')}</title>
         {people.map((p, i) => (
           <g key={i} transform={`translate(${p.dx},${(i % 2) * 2})`} class="aw-person" style={{ animationDelay: `${-i * 0.35}s` }}>
             <path d="M0,-8 L0,-20" class="aw-stick" />
@@ -1138,7 +1165,7 @@ function NuclearSub({ x, y }: { x: number; y: number }) {
   return (
     <g transform={`translate(${x},${y})`}>
       <g class="ns-sub">
-        <title>核潜艇：本回合美国在战场国政变不会降低 DEFCON</title>
+        <title>{decorTip('1960 年美国首艘弹道导弹核潜艇出航，深藏海底的报复力量成为核威慑最可靠的一环。', '本回合美国在战场国政变不会降低 DEFCON')}</title>
         <path d="M-34,6 L34,6" class="sb-water" />
         <path d="M-30,6 C-30,-2 -22,-5 -12,-5 L22,-5 C30,-5 34,0 34,6Z" class="sb-hull" />
         <path d="M-30,6 C-28,12 -18,13 -10,13 L22,13 C30,13 34,10 34,6Z" class="sb-hull under" />
@@ -1154,11 +1181,11 @@ function NuclearSub({ x, y }: { x: number; y: number }) {
 }
 
 /** 马歇尔计划生效：北大西洋上一艘满载援助物资驶向欧洲的货船 */
-function AidShip({ x, y }: { x: number; y: number }) {
+function AidShip({ x, y, natoOpen }: { x: number; y: number; natoOpen: boolean }) {
   return (
     <g transform={`translate(${x},${y})`}>
       <g class="ms-ship">
-        <title>马歇尔计划：美国援助西欧重建（之后《北大西洋公约组织》可以作为事件打出）</title>
+        <title>{decorTip('1948 年起美国向西欧提供约 130 亿美元援助，帮助战后重建。', natoOpen ? '「北大西洋公约组织」可以作为事件打出了' : null)}</title>
         <path d="M-30,8 q4,-3 8,0 t8,0 t8,0 t8,0 t8,0 t8,0 t8,0" class="cv-wave" />
         <polygon points="-26,4 24,4 30,-3 -28,-3" class="ms-hull" />
         <polygon points="-28,-3 30,-3 29,-1 -27,-1" class="ms-stripe" />
@@ -1180,7 +1207,7 @@ function Speaker({ x, y }: { x: number; y: number }) {
   return (
     <g transform={`translate(${x},${y})`}>
       <g class="sp-speech">
-        <title>“邪恶帝国”：美国 +1 VP，并阻止或取消「花之力」</title>
+        <title>{decorTip('1983 年里根在演讲中把苏联称为“邪恶帝国”，美国对苏政策重回强硬。', '「花之力」被取消且不能再作为事件打出')}</title>
         <ellipse cx="0" cy="12" rx="14" ry="2.4" class="sp-shadow" />
         {/* 演讲者：头、发型、西装、抬起的手 */}
         <circle cx="0" cy="-14" r="4.2" class="sp-face" />
@@ -1196,6 +1223,348 @@ function Speaker({ x, y }: { x: number; y: number }) {
         <circle cx="5.2" cy="-6.6" r="1" class="sp-mic-head" />
         {/* 声波 */}
         <path d="M13,-16 A6,6 0 0 1 13,-8 M16,-19 A10,10 0 0 1 16,-5" class="sp-wave" />
+      </g>
+    </g>
+  );
+}
+
+/** 里根轰炸利比亚之后：利比亚北部留下两个焦黑的弹坑 */
+function Craters({ x, y }: { x: number; y: number }) {
+  return (
+    <g transform={`translate(${x},${y})`} class="crater-wrap">
+      <title>{decorTip('1986 年美国空袭利比亚的黎波里和班加西，回应西柏林舞厅爆炸案。')}</title>
+      {[[-12, 2, 1], [10, -3, 0.8]].map(([dx, dy, k], i) => (
+        <g key={i} transform={`translate(${dx},${dy}) scale(${k})`}>
+          <ellipse rx="11" ry="5" class="cr-rim" />
+          <ellipse rx="8" ry="3.4" class="cr-hole" />
+          {[0, 50, 110, 170, 230, 290].map((d) => (
+            <circle key={d} cx={13 * Math.cos((d * Math.PI) / 180)} cy={6 * Math.sin((d * Math.PI) / 180)} r="1.1" class="cr-debris" />
+          ))}
+          <path d="M1,-3 C-2,-8 3,-10 0,-15" class="cr-smoke" />
+        </g>
+      ))}
+    </g>
+  );
+}
+
+/** 美洲国家组织成立之后：巴西境内插一面简化的组织旗（自绘，不照搬官方徽章） */
+function OasFlag({ x, y }: { x: number; y: number }) {
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <g class="oas-flag">
+        <title>{decorTip('1948 年美洲国家组织在波哥大成立，冷战中常被用来协调西半球的反共立场。')}</title>
+        <ellipse cx="0" cy="0" rx="5" ry="1.6" class="fr-base" />
+        <rect x="-0.8" y="-30" width="1.6" height="30" class="fr-pole" />
+        <circle cx="0" cy="-30.6" r="1.4" class="fr-knob" />
+        <g class="fr-cloth">
+          <path d="M0.8,-29 Q10,-31 20,-29 L20,-16 Q10,-18 0.8,-16Z" class="oas-cloth" />
+          <circle cx="10.4" cy="-22.6" r="5" class="oas-disc" />
+          <circle cx="10.4" cy="-22.6" r="5" class="oas-ring" />
+          <text x="10.4" y="-21.4" class="oas-text">OAS</text>
+        </g>
+      </g>
+    </g>
+  );
+}
+
+/** 改革者生效：苏联境内一位苏联领导人站在挂红旗的讲台后（通用剪影） */
+function Reformer({ x, y }: { x: number; y: number }) {
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <g class="sp-speech rf-speech">
+        <title>{decorTip('1985 年戈尔巴乔夫出任苏共总书记，推行改革与“新思维”，主张与西方缓和。', '苏联不能再在欧洲发动政变；「公开性」打出时苏联还可用它的行动点调整阵营或放置影响力')}</title>
+        <ellipse cx="0" cy="12" rx="14" ry="2.4" class="sp-shadow" />
+        <circle cx="0" cy="-14" r="4.4" class="sp-face" />
+        <path d="M-4.4,-13 Q-4.6,-15.6 -3.6,-16.4 M4.4,-13 Q4.6,-15.6 3.6,-16.4" class="rf-hair" />
+        <path d="M-7,2 L-6,-7 Q0,-10.4 6,-7 L7,2Z" class="sp-suit" />
+        <path d="M-1.2,-9.6 L0,-6.4 L1.2,-9.6Z" class="rf-tie" />
+        <path d="M-5,-6.6 L-9.4,-12" class="sp-arm" />
+        <circle cx="-9.8" cy="-12.8" r="1.6" class="sp-face" />
+        <polygon points="-9,12 9,12 7,-1 -7,-1" class="rf-podium" />
+        <polygon points={STAR_PTS(0, 5.4, 3.2)} class="rf-star" />
+        <path d="M-3,-1 L-5,-6" class="sp-mic" />
+        <circle cx="-5.2" cy="-6.6" r="1" class="sp-mic-head" />
+        <path d="M-13,-16 A6,6 0 0 0 -13,-8 M-16,-19 A10,10 0 0 0 -16,-5" class="sp-wave" />
+      </g>
+    </g>
+  );
+}
+
+/** 熊陷阱生效：阿富汗山地里一辆被击毁、冒着黑烟的坦克 */
+function WreckedTank({ x, y }: { x: number; y: number }) {
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <g class="wt-tank">
+        <title>{decorTip('1979 年苏联出兵阿富汗，陷入近十年的山地游击战，被称为“苏联的越南”。', '苏联每个行动轮须弃一张 2 点以上的牌并掷 1–4 才能脱身（仍可打出计分卡）')}</title>
+        <ellipse cx="0" cy="6" rx="15" ry="2.6" class="sp-shadow" />
+        <polygon points="-13,5 -15,1 15,1 13,5" class="wt-track" />
+        <polygon points="-12,1 -10,-4 10,-4 12,1" class="wt-body" />
+        <polygon points="-5,-4 -3,-8 5,-8 6,-4" class="wt-body" />
+        <path d="M4,-6.6 L13,-4" class="wt-gun" />
+        <circle cx="-1" cy="-6" r="1.6" class="wt-fire" />
+        <circle cx="-2" cy="-12" r="3.4" class="wt-smoke a" />
+        <circle cx="1" cy="-18" r="4.4" class="wt-smoke b" />
+        <circle cx="-1" cy="-25" r="5.2" class="wt-smoke c" />
+      </g>
+    </g>
+  );
+}
+
+/** 伊朗门生效：美国境内一名举着相机拍照的记者（相机闪光） */
+function Reporter({ x, y }: { x: number; y: number }) {
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <g class="rp-man">
+        <title>{decorTip('1980 年代中期美国秘密向伊朗售武，所得款项转给尼加拉瓜反政府武装，丑闻曝光后举国哗然。', '本回合美国调整阵营掷骰 -1')}</title>
+        <ellipse cx="0" cy="13" rx="9" ry="2" class="sp-shadow" />
+        <path d="M-3,13 L-2,4 M3,13 L2,4" class="rp-leg" />
+        <path d="M-5,5 L-4.4,-6 Q0,-8.6 4.4,-6 L5,5Z" class="rp-coat" />
+        <circle cx="0" cy="-10.6" r="3.6" class="sp-face" />
+        <path d="M-4.6,-12 L4.6,-12 L3.4,-15.4 L-3.4,-15.4Z M-6,-11.6 L6,-11.6" class="rp-hat" />
+        <text x="-2.4" y="-12.6" class="rp-press">PRESS</text>
+        <path d="M4,-4 L8,-9" class="rp-arm" />
+        <rect x="6.6" y="-13.6" width="7" height="5" rx="1" class="rp-cam" />
+        <circle cx="10.1" cy="-11.1" r="1.6" class="rp-lens" />
+        <path d="M14.6,-12.4 L19,-15 M14.8,-10.6 L20,-10.6 M14.6,-8.8 L19,-6.4" class="rp-flash" />
+      </g>
+    </g>
+  );
+}
+
+/** 勃列日涅夫主义生效：中国北边的苏联国土上一列坦克集结 */
+function TankColumn({ x, y }: { x: number; y: number }) {
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <g class="tc-column">
+        <title>{decorTip('1968 年出兵捷克后，勃列日涅夫宣称社会主义国家主权有限、苏联有权干预。', '本回合苏联每次使用行动点都 +1')}</title>
+        {[[-26, 4], [0, 0], [26, 4]].map(([dx, dy], i) => (
+          <g key={i} transform={`translate(${dx},${dy})`} class="tc-tank" style={{ animationDelay: `${-i * 0.3}s` }}>
+            <ellipse cx="0" cy="6" rx="13" ry="2.2" class="sp-shadow" />
+            <polygon points="-11,5 -13,1 13,1 11,5" class="wt-track" />
+            <polygon points="-10,1 -8,-4 8,-4 10,1" class="tc-body" />
+            <polygon points="-4,-4 -2,-8 4,-8 5,-4" class="tc-body" />
+            <path d="M4,-6.4 L14,-7.4" class="wt-gun" />
+            <polygon points={STAR_PTS(-5, -1.4, 1.6)} class="tc-star" />
+          </g>
+        ))}
+      </g>
+    </g>
+  );
+}
+
+/** 地图装饰的悬停说明：一句历史背景；效果还在持续时再加一行当前效果 */
+function decorTip(story: string, effect?: string | null) {
+  return effect ? `${story}\n⏳ 生效中：${effect}` : story;
+}
+
+/** 北约还没打出：马歇尔计划 / 华约“允许打出北约”的效果仍有意义 */
+function natoOpenFn(v: GameView) {
+  return !v.inPlay.includes(21) && !v.removed.includes(21) && !v.flags.nato;
+}
+const natoOpen = natoOpenFn;
+
+/** 纳赛尔之后：埃及境内的红白黑三色旗（中间简化的金色徽记） */
+function EgyptFlag({ x, y }: { x: number; y: number }) {
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <g class="fr-flag">
+        <title>{decorTip('1952 年埃及自由军官发动政变，纳赛尔掌权后推动阿拉伯民族主义，并接受苏联援助。')}</title>
+        <ellipse cx="0" cy="0" rx="5" ry="1.6" class="fr-base" />
+        <rect x="-0.8" y="-30" width="1.6" height="30" class="fr-pole" />
+        <circle cx="0" cy="-30.6" r="1.4" class="fr-knob" />
+        <g class="fr-cloth">
+          <path d="M0.8,-29 Q10,-31 19.8,-29 L19.8,-25 Q10,-27 0.8,-25Z" fill="#ce1126" />
+          <path d="M0.8,-25 Q10,-27 19.8,-25 L19.8,-21 Q10,-23 0.8,-21Z" fill="#f8f8f4" />
+          <path d="M0.8,-21 Q10,-23 19.8,-21 L19.8,-17 Q10,-19 0.8,-17Z" fill="#1b1b1b" />
+          <path d="M10.3,-25.6 L12,-23.4 L10.3,-21.8 L8.6,-23.4Z" fill="#c09a2e" />
+        </g>
+      </g>
+    </g>
+  );
+}
+
+/** 某张卡的事件是否发生过：带星卡发动后移出游戏；其他卡看日志里有没有“事件：#编号” */
+function eventHappened(v: GameView, id: number): boolean {
+  if (CARDS[id].starred) return v.removed.includes(id);
+  return v.log.some((e) => e.t.startsWith(`事件：#${id} `));
+}
+
+/** 铁娘子之后：阿根廷外海一艘英国军舰（马岛战争） */
+function RoyalNavy({ x, y }: { x: number; y: number }) {
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <g class="rn-ship">
+        <title>{decorTip('1982 年撒切尔夫人派舰队南下，夺回被阿根廷占领的马尔维纳斯群岛（福克兰群岛）。')}</title>
+        <path d="M-30,8 q4,-3 8,0 t8,0 t8,0 t8,0 t8,0 t8,0 t8,0" class="cv-wave" />
+        <polygon points="-28,2 22,2 30,-4 -26,-4" class="rn-hull" />
+        <polygon points="-24,-4 -18,-4 -18,-8 -24,-8" class="rn-turret" />
+        <path d="M-18,-6.4 L-11,-7.4" class="rn-gun" />
+        <polygon points="8,-4 16,-4 16,-8 8,-8" class="rn-turret" />
+        <path d="M16,-6.4 L23,-7.4" class="rn-gun" />
+        <polygon points="-8,-4 4,-4 3,-11 -6,-11" class="rn-bridge" />
+        <path d="M-2,-11 L-2,-20" class="rn-mast" />
+        {/* 桅顶的英国国旗（简化米字） */}
+        <g transform="translate(-1.4,-20)">
+          <rect width="9" height="6" fill="#1f3d7a" />
+          <path d="M0,0 L9,6 M9,0 L0,6" stroke="#fff" stroke-width="1.4" />
+          <path d="M0,0 L9,6 M9,0 L0,6" stroke="#c8102e" stroke-width="0.6" />
+          <path d="M4.5,0 L4.5,6 M0,3 L9,3" stroke="#fff" stroke-width="2" />
+          <path d="M4.5,0 L4.5,6 M0,3 L9,3" stroke="#c8102e" stroke-width="1.1" />
+        </g>
+      </g>
+    </g>
+  );
+}
+
+/** 乌苏里江冲突之后：中苏边境一条江，两岸苏联、中国坦克对峙 */
+function UssuriStandoff({ x, y }: { x: number; y: number }) {
+  const tank = (dx: number, flip: boolean, cls: string, starFill: string) => (
+    <g transform={`translate(${dx},0) scale(${flip ? -1 : 1},1)`} class={cls}>
+      <ellipse cx="0" cy="6" rx="12" ry="2.2" class="sp-shadow" />
+      <polygon points="-11,5 -13,1 13,1 11,5" class="wt-track" />
+      <polygon points="-10,1 -8,-4 8,-4 10,1" class="us-body" />
+      <polygon points="-4,-4 -2,-8 4,-8 5,-4" class="us-body" />
+      <path d="M4,-6.4 L13,-6.8" class="wt-gun" />
+      <polygon points={STAR_PTS(-5, -1.4, 1.6)} fill={starFill} />
+    </g>
+  );
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <g class="us-standoff">
+        <title>{decorTip('1969 年中苏两国在乌苏里江珍宝岛爆发武装冲突，两国关系跌入谷底，也为中美接近埋下伏笔。')}</title>
+        <path d="M-4,-14 C2,-6 -6,2 2,12" class="us-river" />
+        {tank(-18, false, 'us-ussr', '#f5d76e')}
+        {tank(18, true, 'us-china', '#f5d76e')}
+        <polygon points={STAR_PTS(0, -12, 3.4)} class="sb-spark" />
+      </g>
+    </g>
+  );
+}
+
+/** 向沙特出售预警机之后：沙特东边空中一架背着雷达圆盘的预警机 */
+function Awacs({ x, y }: { x: number; y: number }) {
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <g class="awx-plane">
+        <title>{decorTip('1981 年里根政府不顾以色列方面反对，向沙特出售预警机，巩固美国在海湾的影响力。', '「穆斯林革命」不能再作为事件打出')}</title>
+        <path d="M-22,-2 L18,-2 Q24,-2 24,0 Q24,2 18,2 L-22,2 L-24,0Z" class="awx-body" />
+        <polygon points="-2,-2 -8,-14 -4,-14 6,-2" class="awx-wing" />
+        <polygon points="-2,2 -8,14 -4,14 6,2" class="awx-wing" />
+        <polygon points="-20,-2 -24,-7 -21,-7 -16,-2" class="awx-wing" />
+        <polygon points="-20,2 -24,7 -21,7 -16,2" class="awx-wing" />
+        <g class="awx-dome-g"><ellipse cx="-6" cy="0" rx="7" ry="3" class="awx-dome" /><path d="M-13,0 L1,0" class="awx-dome-line" /></g>
+        <circle cx="-6" cy="0" r="12" class="awx-ping" />
+      </g>
+    </g>
+  );
+}
+
+/** 文化大革命之后：中国境内一座残破的宝塔（上层倾斜缺损、塔基瓦砾） */
+function BrokenPagoda({ x, y }: { x: number; y: number }) {
+  const eave = (w: number, yy: number) => `M${-w},${yy} Q${-w - 3},${yy - 3} ${-w - 4},${yy - 4} L${w + 4},${yy - 4} Q${w + 3},${yy - 3} ${w},${yy}Z`;
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <g class="pg-wrap">
+        <title>{decorTip('1966 年起中国经历了十年政治动荡，大量文物古迹在运动中遭到破坏，对外关系也一度紧张。')}</title>
+        <ellipse cx="0" cy="14" rx="18" ry="3" class="sp-shadow" />
+        {/* 底两层完好 */}
+        <rect x="-8" y="2" width="16" height="12" class="pg-wall" />
+        <path d={eave(10, 2)} class="pg-roof" />
+        <rect x="-6.4" y="-9" width="12.8" height="7" class="pg-wall" />
+        <path d={eave(8, -9)} class="pg-roof" />
+        {/* 上层倾斜缺角 */}
+        <g transform="rotate(9 0 -13)">
+          <polygon points="-5,-13 5,-13 5,-18 1,-19 -5,-17" class="pg-wall" />
+          <path d="M-7,-18 L-8,-21 L3,-21 L1,-18Z" class="pg-roof" />
+        </g>
+        <path d="M-2,4 L1,8 L-1,11 M3,-7 L1,-4" class="pg-crack" />
+        <rect x="-2" y="8" width="4" height="6" class="pg-door" />
+        {/* 塔基瓦砾 */}
+        <polygon points="9,14 12,10 15,12 17,14" class="pg-rubble" />
+        <polygon points="-16,14 -13,11 -11,14" class="pg-rubble" />
+        <polygon points="11,6 14,4 15,7" class="pg-rubble" />
+        <path d="M4,-22 C2,-27 6,-29 4,-34" class="cr-smoke" />
+      </g>
+    </g>
+  );
+}
+
+/** 部署潘兴 II 型导弹之后：东欧一带出现导弹发射车（起竖的导弹 + 多轴卡车） */
+function MissileTruck({ x, y }: { x: number; y: number }) {
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <g class="mt-truck">
+        <title>{decorTip('1979 年北约决定在西欧部署潘兴 II 型与巡航导弹，回应苏联的中程导弹，1983 年起部署，欧洲各地爆发大规模反核抗议。')}</title>
+        <ellipse cx="0" cy="7" rx="22" ry="2.4" class="sp-shadow" />
+        <rect x="-20" y="-1" width="30" height="5" rx="1" class="mt-bed" />
+        <polygon points="10,4 10,-7 17,-7 20,-2 20,4" class="mt-cab" />
+        <rect x="13" y="-5.6" width="4" height="3" class="mt-window" />
+        {[-16, -10, -4, 14].map((wx) => <circle key={wx} cx={wx} cy="5" r="2.4" class="mt-wheel" />)}
+        <g transform="rotate(-32 -14 -1)">
+          <rect x="-14" y="-3.2" width="26" height="2" class="mt-rail" />
+          <path d="M-12,-3.4 L8,-3.4 C11,-3.4 13,-4.6 14,-5.6 C13,-6.6 11,-7.8 8,-7.8 L-12,-7.8Z" class="mt-missile" />
+          <polygon points="-12,-7.8 -15,-9.4 -15,-1.8 -12,-3.4" class="mt-fin" />
+        </g>
+      </g>
+    </g>
+  );
+}
+
+const CMC_EFFECT = (side: Side) => `${side === 'US' ? '美国' : '苏联'}本回合发动任何政变都会引发核战争并直接输掉；可以从古巴（苏联）或西德、土耳其（美国）移除 2 点影响力来解除`;
+
+/** 古巴导弹危机生效：古巴旁边浮出一艘苏联核潜艇 */
+function SovietSub({ x, y, side }: { x: number; y: number; side: Side }) {
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <g class="ns-sub sv-sub">
+        <title>{decorTip('1962 年苏联在古巴秘密部署核导弹，苏联潜艇也在加勒比海与美国舰队周旋，世界距核战争只有一步之遥。', CMC_EFFECT(side))}</title>
+        <path d="M-30,6 L30,6" class="sb-water" />
+        <path d="M-26,6 C-26,-1 -19,-4 -10,-4 L19,-4 C26,-4 30,0 30,6Z" class="sb-hull" />
+        <polygon points="-3,-4 1,-12 10,-12 11,-4" class="sb-sail" />
+        <polygon points={STAR_PTS(5.6, -8, 2.2)} class="sv-star" />
+        <polygon points="-26,0 -33,-5 -33,7 -26,4" class="sb-rudder" />
+        <path d="M-36,8 q4,-3 8,0 t8,0 M32,8 q4,-3 8,0 t8,0" class="sb-wave" />
+      </g>
+    </g>
+  );
+}
+
+/** 古巴导弹危机生效：土耳其旁边一座打开的导弹发射井 */
+function MissileSilo({ x, y, side }: { x: number; y: number; side: Side }) {
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <g class="ms-silo">
+        <title>{decorTip('美国部署在土耳其的“朱庇特”导弹直指苏联，危机最终以苏联撤出古巴导弹、美国私下撤出土耳其导弹收场。', CMC_EFFECT(side))}</title>
+        <ellipse cx="0" cy="4" rx="12" ry="4" class="si-pad" />
+        <ellipse cx="0" cy="3" rx="6" ry="2.2" class="si-hole" />
+        <path d="M-6,3 L-9,-3" class="si-lid" />
+        <path d="M-2.4,3 L-2.4,-10 Q0,-15 2.4,-10 L2.4,3Z" class="si-missile" />
+        <path d="M-2.4,-6 L2.4,-6" class="si-band" />
+      </g>
+    </g>
+  );
+}
+
+/** 公开性之后：苏联境内一段红墙与几座带红星尖顶的塔楼（简化自绘） */
+function KremlinWalls({ x, y }: { x: number; y: number }) {
+  const tower = (tx: number, h: number) => (
+    <g key={tx}>
+      <rect x={tx - 3} y={-h} width="6" height={h} class="kr-tower" />
+      <polygon points={`${tx - 3.6},${-h} ${tx},${-h - 9} ${tx + 3.6},${-h}`} class="kr-spire" />
+      <polygon points={STAR_PTS(tx, -h - 11, 1.8)} class="kr-star" />
+    </g>
+  );
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <g class="kr-wrap">
+        <title>{decorTip('戈尔巴乔夫推行“公开性”，放宽新闻审查、允许公开讨论历史与社会问题，积压多年的不满随之浮出水面。')}</title>
+        <ellipse cx="0" cy="2" rx="26" ry="3" class="sp-shadow" />
+        <rect x="-22" y="-8" width="44" height="9" class="kr-wall" />
+        {[-20, -14, -8, -2, 4, 10, 16].map((mx) => <rect key={mx} x={mx} y="-10.4" width="3" height="2.4" class="kr-wall" />)}
+        {tower(-22, 16)}
+        {tower(0, 24)}
+        {tower(22, 16)}
+        <path d="M-6,1 L-6,-4 Q0,-8 6,-4 L6,1" class="kr-gate" />
       </g>
     </g>
   );

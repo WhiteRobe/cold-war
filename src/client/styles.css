@@ -1611,3 +1611,108 @@ g.links { pointer-events: none; }
 .sp-mic-head { fill: #1b1b1b; }
 .sp-wave { fill: none; stroke: #f5d76e; stroke-width: 1.1; stroke-linecap: round; animation: nrWave 1.4s ease-out infinite; }
 @media (prefers-reduced-motion: reduce) { .sp-arm, .sp-wave { animation: none; } }
+/* 里根轰炸利比亚：弹坑 */
+.crater-wrap { cursor: help; animation: nsIn 1s ease-out; }
+.cr-rim { fill: #6b5a44; }
+.cr-hole { fill: #231d16; }
+.cr-debris { fill: #4a3f30; }
+.cr-smoke { fill: none; stroke: #8d8a85; stroke-width: 1.4; stroke-linecap: round; opacity: 0.7; animation: crSmoke 2.4s ease-in-out infinite alternate; }
+@keyframes crSmoke { to { opacity: 0.25; translate: 1px -2px; } }
+/* 美洲国家组织：巴西境内的组织旗 */
+.oas-flag { cursor: help; animation: nsIn 1.2s ease-out; filter: drop-shadow(0 2px 2px #0006); }
+.oas-cloth { fill: #f8f8f4; stroke: #c9c3b4; stroke-width: 0.4; }
+.oas-disc { fill: #2d5291; }
+.oas-ring { fill: none; stroke: #f5d76e; stroke-width: 0.8; }
+.oas-text { font-size: 3.6px; font-weight: 900; fill: #fff; text-anchor: middle; }
+/* 改革者：苏联境内的演讲者 */
+.rf-hair { fill: none; stroke: #8a7a68; stroke-width: 1.1; stroke-linecap: round; }
+.rf-tie { fill: #6b4a3a; }
+.rf-podium { fill: #b8231c; stroke: #5c1a14; stroke-width: 0.7; }
+.rf-star { fill: #f5d76e; }
+.rf-speech .sp-arm { transform-origin: 100% 100%; }
+@media (prefers-reduced-motion: reduce) { .cr-smoke { animation: none; } }
+/* 熊陷阱：阿富汗冒烟的坦克 */
+.wt-tank { cursor: help; animation: nsIn 1.2s ease-out; }
+.wt-track { fill: #2f2b26; }
+.wt-body { fill: #5f6b4a; stroke: #2f3524; stroke-width: 0.6; }
+.wt-gun { stroke: #2f3524; stroke-width: 1.4; stroke-linecap: round; }
+.wt-fire { fill: #f5a540; animation: nsFlame 0.35s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: center bottom; }
+.wt-smoke { fill: #3a3633; opacity: 0.75; animation: wtSmoke 3s ease-out infinite; transform-box: fill-box; transform-origin: center; }
+.wt-smoke.b { animation-delay: -1s; opacity: 0.55; }
+.wt-smoke.c { animation-delay: -2s; opacity: 0.4; }
+@keyframes wtSmoke { from { transform: translateY(4px) scale(0.6); } to { transform: translateY(-4px) scale(1.2); opacity: 0; } }
+/* 伊朗门：拍照的记者 */
+.rp-man { cursor: help; animation: nsIn 1.2s ease-out; filter: drop-shadow(0 2px 2px #0006); }
+.rp-leg { stroke: #2a2420; stroke-width: 1.6; stroke-linecap: round; }
+.rp-coat { fill: #b89a6a; stroke: #5a4024; stroke-width: 0.5; }
+.rp-hat { fill: #4a3f30; stroke: #2a2420; stroke-width: 0.5; }
+.rp-press { font-size: 1.8px; font-weight: 900; fill: #fff; }
+.rp-arm { stroke: #b89a6a; stroke-width: 2; stroke-linecap: round; }
+.rp-cam { fill: #1b1b1b; }
+.rp-lens { fill: #5a6a7a; stroke: #ccc; stroke-width: 0.4; }
+.rp-flash { stroke: #fff6c0; stroke-width: 1.2; stroke-linecap: round; animation: rpFlash 1.8s steps(1) infinite; }
+@keyframes rpFlash { 0%, 80% { opacity: 0; } 85%, 100% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .wt-smoke, .wt-fire, .rp-flash { animation: none; } }
+/* 勃列日涅夫主义：中国北边的苏联坦克群 */
+.tc-column { cursor: help; animation: nsIn 1.2s ease-out; }
+.tc-tank { animation: tcRumble 0.6s ease-in-out infinite alternate; }
+@keyframes tcRumble { to { transform: translateX(1px); } }
+.tc-body { fill: #6b2a22; stroke: #3a140f; stroke-width: 0.6; }
+.tc-star { fill: #f5d76e; }
+@media (prefers-reduced-motion: reduce) { .tc-tank { animation: none; } }
+/* 铁娘子：英国军舰 */
+.rn-ship { cursor: help; animation: nsIn 1.2s ease-out, msSail 4s ease-in-out 1.2s infinite alternate; filter: drop-shadow(0 2px 2px #0006); }
+.rn-hull { fill: #6b7684; stroke: #1f2630; stroke-width: 0.7; }
+.rn-turret, .rn-bridge { fill: #5a6370; stroke: #1f2630; stroke-width: 0.5; }
+.rn-gun { stroke: #1f2630; stroke-width: 1.2; stroke-linecap: round; }
+.rn-mast { stroke: #1f2630; stroke-width: 0.8; }
+/* 乌苏里江冲突：中苏坦克对峙 */
+.us-standoff { cursor: help; animation: nsIn 1.2s ease-out; }
+.us-river { fill: none; stroke: #7fb0d8; stroke-width: 3.4; stroke-linecap: round; opacity: 0.9; }
+.us-ussr .us-body { fill: #8f2c23; stroke: #3a140f; stroke-width: 0.6; }
+.us-china .us-body { fill: #4f6b3a; stroke: #24321a; stroke-width: 0.6; }
+/* 向沙特出售预警机：国家标记 + 地图装饰 */
+.c-awacs circle:first-child { fill: #efe0bd; stroke: #8a6a3c; stroke-width: 1.3; }
+.c-awacs .aw-plane { fill: #3a4656; }
+.c-awacs .aw-dome { fill: #f3efe6; stroke: #3a4656; stroke-width: 0.5; }
+.c-awacs:hover circle:first-child { stroke-width: 2; }
+.awx-plane { cursor: help; animation: nsIn 1.2s ease-out, msSail 3s ease-in-out 1.2s infinite alternate; filter: drop-shadow(0 6px 4px #0005); }
+.awx-body, .awx-wing { fill: #d9dee4; stroke: #3a4656; stroke-width: 0.6; }
+.awx-dome { fill: #f3efe6; stroke: #3a4656; stroke-width: 0.8; }
+.awx-dome-line { stroke: #3a4656; stroke-width: 0.6; }
+.awx-dome-g { animation: awSpin 2.4s linear infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes awSpin { from { rotate: 0deg; } to { rotate: 360deg; } }
+.awx-ping { fill: none; stroke: #f5d76e; stroke-width: 1; animation: awPing 2s ease-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes awPing { from { opacity: 0.9; transform: scale(0.4); } to { opacity: 0; transform: scale(1.8); } }
+@media (prefers-reduced-motion: reduce) { .awx-dome-g, .awx-ping { animation: none; } }
+/* 文化大革命：残破宝塔 */
+.pg-wrap { cursor: help; animation: nsIn 1.2s ease-out; filter: drop-shadow(0 2px 2px #0006); }
+.pg-wall { fill: #c9a87a; stroke: #5a4024; stroke-width: 0.6; }
+.pg-roof { fill: #6b3a2a; stroke: #3a1e14; stroke-width: 0.5; }
+.pg-crack { fill: none; stroke: #3a2614; stroke-width: 0.7; }
+.pg-door { fill: #3a2614; }
+.pg-rubble { fill: #8a7a62; }
+/* 部署潘兴 II：导弹发射车 */
+.mt-truck { cursor: help; animation: nsIn 1.2s ease-out; filter: drop-shadow(0 2px 2px #0006); }
+.mt-bed, .mt-cab { fill: #5f6b4a; stroke: #2f3524; stroke-width: 0.6; }
+.mt-window { fill: #a8c4d8; }
+.mt-wheel { fill: #1f1f1f; stroke: #555; stroke-width: 0.6; }
+.mt-rail { fill: #3a3a32; }
+.mt-missile { fill: #e9e4d8; stroke: #3a3a32; stroke-width: 0.5; }
+.mt-fin { fill: #c9302a; }
+/* 古巴导弹危机：苏联潜艇 / 土耳其导弹井 */
+.sv-sub .sb-hull, .sv-sub .sb-sail, .sv-sub .sb-rudder { fill: #3a2a2a; }
+.sv-star { fill: #d8263a; }
+.ms-silo { cursor: help; animation: nsIn 1.2s ease-out; }
+.si-pad { fill: #8a8070; stroke: #4a4440; stroke-width: 0.6; }
+.si-hole { fill: #1b1712; }
+.si-lid { stroke: #4a4440; stroke-width: 2.4; stroke-linecap: round; }
+.si-missile { fill: #e9e4d8; stroke: #3a3a32; stroke-width: 0.5; }
+.si-band { stroke: #c9302a; stroke-width: 1; }
+/* 公开性：红墙塔楼 */
+.kr-wrap { cursor: help; animation: nsIn 1.2s ease-out; filter: drop-shadow(0 2px 2px #0006); }
+.kr-wall { fill: #a8322a; stroke: #5c1a14; stroke-width: 0.5; }
+.kr-tower { fill: #b8382e; stroke: #5c1a14; stroke-width: 0.5; }
+.kr-spire { fill: #3f6b4a; stroke: #24321a; stroke-width: 0.4; }
+.kr-star { fill: #ff4a3a; stroke: #f5d76e; stroke-width: 0.4; }
+.kr-gate { fill: #3a140f; }
