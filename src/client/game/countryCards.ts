@@ -1,4 +1,4 @@
-// 点名影响具体国家的卡：地图方框右下角的闪电标记，点开列出这些卡和它们现在的状态。
+// 点名影响具体国家的卡：地图方框下沿的各种标记（闪电、步枪、油滴……），悬停列出这些卡和它们现在的状态。
 import { CARDS, CHINA_CARD, type Side } from '../../data';
 import type { GameView } from '../../engine/view';
 
@@ -8,7 +8,6 @@ export const COUNTRY_CARDS: Record<string, number[]> = {
   vietnam: [9],
   westGermany: [10, 40, 55],
   eastGermany: [96],
-  northKorea: [11],
   southKorea: [11, 89],
   romania: [12, 22],
   czechoslovakia: [22],
@@ -74,17 +73,25 @@ export function cardStatus(v: GameView, id: number): CardStatus {
   return 'unseen';
 }
 
-export type CardKind = 'bolt' | 'war' | 'score' | 'missile' | 'oil' | 'muslim' | 'canal';
-/** 按一组国家生效的卡单独成标记：油滴（石油输出国组织）、新月（穆斯林革命）、河流（归还巴拿马运河）；
- *  后面跟着会让它失效的卡（北海油田、向沙特出售预警机） */
-const GROUP: Partial<Record<CardKind, { main: number; extra: number[] }>> = {
-  oil: { main: 61, extra: [86] },
-  muslim: { main: 56, extra: [110] },
-  canal: { main: 64, extra: [] },
+export type CardKind =
+  | 'bolt' | 'war' | 'score' | 'missile' | 'reds' | 'tent' | 'wall' | 'radar' | 'suez'
+  | 'oil' | 'muslim' | 'canal' | 'portugal' | 'kal' | 'leader' | 'pope' | 'lady' | 'shake';
+
+/** 单独成标记的卡 → 标记种类（其余：战争卡 = 交叉步枪，计分卡 = 皇冠，剩下的 = 闪电） */
+const SPECIAL_OF: Record<number, CardKind> = {
+  40: 'missile', 22: 'reds', 65: 'tent', 96: 'wall', 106: 'radar', 28: 'suez',
+  61: 'oil', 56: 'muslim', 64: 'canal', 52: 'portugal', 89: 'kal',
+  8: 'leader', 91: 'leader', 54: 'leader', 15: 'leader', 17: 'leader', 68: 'pope', 83: 'lady', 105: 'shake',
 };
-const GROUP_OF: Record<number, CardKind> = { 61: 'oil', 56: 'muslim', 64: 'canal' };
-/** 标记种类：战争卡 = 航弹，计分卡 = 皇冠，古巴导弹危机 = 导弹，成组国家卡 = 各自图标，其余 = 闪电 */
-export const cardKind = (id: number): CardKind => GROUP_OF[id] ?? (id === 40 ? 'missile' : CARDS[id].war ? 'war' : CARDS[id].scoring ? 'score' : 'bolt');
+/** 跟在主卡后面一起列出的“让它失效”的卡 */
+const EXTRA: Partial<Record<CardKind, number[]>> = { oil: [86], muslim: [110] };
+export const cardKind = (id: number): CardKind => SPECIAL_OF[id] ?? (CARDS[id].war ? 'war' : CARDS[id].scoring ? 'score' : 'bolt');
+const isSpecial = (k: CardKind) => k !== 'bolt' && k !== 'war' && k !== 'score';
+
+/** 方框右下角（从右往左，闪电永远最右，导弹最左）/ 左下角（从左往右） */
+export const RIGHT_KINDS: CardKind[] = ['bolt', 'war', 'score', 'reds', 'tent', 'wall', 'radar', 'suez', 'missile'];
+export const LEFT_KINDS: CardKind[] = ['oil', 'muslim', 'canal', 'portugal', 'kal', 'leader', 'pope', 'lady', 'shake'];
+
 export const GROUP_NOTE: Partial<Record<CardKind, string>> = {
   oil: '产油国：「石油输出国组织」打出时，苏联每控制一个产油国 +1 VP；「北海油田」发动后失效。',
   muslim: '穆斯林革命目标国：苏联打出「穆斯林革命」时，从这些国家里选两个清空美国影响力；「向沙特出售预警机」发动后失效。',
@@ -96,10 +103,32 @@ export const GROUP_NOTE: Partial<Record<CardKind, string>> = {
 export function countryCards(v: GameView, country: string, kind?: CardKind): number[] {
   const now = eraNow(v.turn);
   const opt = (id: number) => v.options?.optionalCards !== false || !CARDS[id].optional;
-  // 成组标记不按时期过滤：只要还没失效就一直显示
-  const g = kind && GROUP[kind];
-  if (g) return (COUNTRY_CARDS[country] ?? []).includes(g.main) ? [g.main, ...g.extra].filter(opt) : [];
+  // 单独成标记的卡不按时期过滤：只要还没失效就一直显示（未来时期的半透明）
+  if (kind && isSpecial(kind)) {
+    const mains = (COUNTRY_CARDS[country] ?? []).filter((id) => cardKind(id) === kind);
+    return mains.length ? [...mains, ...(EXTRA[kind] ?? [])].filter(opt) : [];
+  }
   return (COUNTRY_CARDS[country] ?? []).filter(
     (id) => ERA_IDX[CARDS[id].era] >= now && (v.options?.optionalCards !== false || !CARDS[id].optional) && (!kind || cardKind(id) === kind),
   );
+}
+
+/** 某国方框上要画的标记：左右两组，以及哪些是“还没到时期”的（半透明） */
+export function countryMarks(v: GameView, country: string): { right: CardKind[]; left: CardKind[]; future: Set<CardKind> } {
+  const now = eraNow(v.turn);
+  const future = new Set<CardKind>();
+  const pick = (kinds: CardKind[]) =>
+    kinds.filter((k) => {
+      const cards = countryCards(v, country, k);
+      if (!cards.length) return false;
+      const mains = isSpecial(k) ? cards.filter((id) => cardKind(id) === k) : cards;
+      if (isSpecial(k)) {
+        if (mains.every((id) => v.removed.includes(id))) return false;
+        if (k === 'oil' && v.flags.northSeaOil) return false;
+        if (k === 'muslim' && v.flags.awacs) return false;
+      }
+      if (mains.every((id) => ERA_IDX[CARDS[id].era] > now)) future.add(k);
+      return true;
+    });
+  return { right: pick(RIGHT_KINDS), left: pick(LEFT_KINDS), future };
 }

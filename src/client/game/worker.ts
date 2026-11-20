@@ -40,7 +40,7 @@ function send() {
   const rolls = log.slice(Math.min(sentLog, log.length)).filter((e) => e.roll).length;
   sentLog = log.length;
   rollWait = Math.min(rolls, 4) * ROLL_MS;
-  post({ type: 'view', view: viewFor(game, human), history: game.history, canUndo: game.history.some((h) => h.side === human) && !game.over });
+  post({ type: 'view', view: viewFor(game, human), history: game.history, canUndo: game.history.some((h) => h.side === human) });
 }
 
 function aiSide() {

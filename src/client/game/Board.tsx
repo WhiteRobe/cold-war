@@ -299,6 +299,10 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
             <p>最终 VP：{view.vp > 0 ? `美国 +${view.vp}` : view.vp < 0 ? `苏联 +${-view.vp}` : '0'} · 第 {view.turn} 回合</p>
             {view.finalScore && <FinalScoreTable view={view} />}
             <div class="row">
+              {/* 和 AI 打的离线局：终局后也能撤销回上一步接着玩 */}
+              {session.undo && session.canUndo.value && (
+                <button type="button" class="btn" onClick={() => { setOverSeen(false); session.undo!(); }}>↶ 撤销上一步</button>
+              )}
               <button type="button" class="btn" onClick={() => setOverSeen(true)}>查看棋盘</button>
               <button type="button" class="btn primary" onClick={() => go('/')}>返回首页</button>
             </div>

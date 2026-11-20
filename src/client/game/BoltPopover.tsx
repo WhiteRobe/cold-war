@@ -13,6 +13,17 @@ const TITLE: Record<CardKind, (n: string) => string> = {
   oil: (n) => `🛢 ${n}是产油国`,
   muslim: (n) => `☪ ${n}是穆斯林革命目标国`,
   canal: (n) => `🌊 ${n}受巴拿马运河事件影响`,
+  reds: (n) => `🚩 ${n}与「独立的红色」`,
+  tent: (n) => `⛺ ${n}与「戴维营协议」`,
+  wall: (n) => `🧱 ${n}与「推倒这堵墙」`,
+  portugal: (n) => `🇵🇹 ${n}与「葡萄牙帝国崩溃」`,
+  kal: (n) => `✈️ ${n}与「击落大韩航空 007」`,
+  leader: (n) => `👤 ${n}的人物事件`,
+  pope: (n) => `⛪ ${n}与「约翰·保罗二世当选教皇」`,
+  lady: (n) => `👩 ${n}与「铁娘子」`,
+  shake: (n) => `🤝 ${n}与「英美特殊关系」`,
+  suez: (n) => `🚢 ${n}与「苏伊士运河危机」`,
+  radar: (n) => `📡 ${n}与「北美防空司令部」`,
 };
 const SIDE_CLS = { US: 'us', USSR: 'ussr', NEUTRAL: 'neutral' } as const;
 

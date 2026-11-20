@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
+import type { JSX } from 'preact';
 import { COUNTRIES, COUNTRY_LIST, REGIONS, REGION_ZH, countriesIn, type RegionId, type Side } from '../../data';
+import type { SubRegionId } from '../../data/types';
 import { controller, scoreRegion, scoreSEA } from '../../engine/scoring';
 import type { GameView } from '../../engine/view';
 import { WORLD } from './worldmap.gen';
 import { remapX, remapY } from '../../data/layout';
 import { Flag, FogLayer, FxLayer, Tank, useMapFx } from './MapFx';
-import { countryCards, type CardKind } from './countryCards';
+import { countryMarks, type CardKind } from './countryCards';
 import { STAR_PTS, SubBadge } from './SubBadge';
 import { SpaceArsenal } from './SpaceArsenal';
 
@@ -357,7 +359,9 @@ export function MapView({ view, selectable, onPick, flash, onRegion, focus, onBo
         {bg}
         {chinaGlow}
         <FogLayer view={view} fresh={fresh} pos={pos} />
+        <PactOverlay view={view} />
         <g class="edges">{lines}</g>
+        <SpyLinks view={view} />
         {REGIONS.map((r) => (
           <RegionLabel key={r} region={r} view={view} onClick={() => onRegion?.(r)} />
         ))}
@@ -377,14 +381,12 @@ export function MapView({ view, selectable, onPick, flash, onRegion, focus, onBo
             flash={flash.has(c.id)}
             onPick={() => !drag.current?.moved && selectable.has(c.id) && onPick(c.id)}
             onHover={onHover}
-            marks={(['bolt', 'war', 'score', 'missile'] as const).filter((k) => countryCards(view, c.id, k).length > 0)}
-            groups={(['oil', 'muslim', 'canal'] as const).filter(
-              (k) => countryCards(view, c.id, k).length > 0 && !(k === 'oil' ? view.flags.northSeaOil : k === 'muslim' ? view.flags.awacs : view.removed.includes(64)),
-            )}
+            marks={countryMarks(view, c.id)}
             onBolt={(x, y, now, kind) => onBolt?.(c.id, x, y, now, kind)}
             onBoltLeave={() => onBoltLeave?.()}
           />
         ))}
+        <WarLinks view={view} />
         <g class="links">
           {clipped.filter((e) => e.gap < 14).map((e) => (
             <g key={e.a + e.b} class={`link${hover && (e.a === hover || e.b === hover) ? ' hl' : ''}`} transform={`translate(${e.mx},${e.my})`}>
@@ -626,7 +628,7 @@ function RegionLabel({ region, view, onClick }: { region: RegionId; view: GameVi
   );
 }
 
-function CountryBox({ id, view, selectable, dimmed, flash, adjHl, onPick, onHover, marks, groups, onBolt, onBoltLeave }: { id: string; view: GameView; selectable: boolean; dimmed: boolean; flash: boolean; adjHl: boolean; onPick: () => void; onHover: (id: string | null) => void; marks: CardKind[]; groups: CardKind[]; onBolt: (x: number, y: number, now?: boolean, kind?: CardKind) => void; onBoltLeave: () => void }) {
+function CountryBox({ id, view, selectable, dimmed, flash, adjHl, onPick, onHover, marks, onBolt, onBoltLeave }: { id: string; view: GameView; selectable: boolean; dimmed: boolean; flash: boolean; adjHl: boolean; onPick: () => void; onHover: (id: string | null) => void; marks: ReturnType<typeof countryMarks>; onBolt: (x: number, y: number, now?: boolean, kind?: CardKind) => void; onBoltLeave: () => void }) {
   const c = COUNTRIES[id];
   const [x, y] = pos(id);
   const [us, ussr] = view.inf[id];
@@ -646,8 +648,6 @@ function CountryBox({ id, view, selectable, dimmed, flash, adjHl, onPick, onHove
     >
       <rect class="c-box" x={left} y={top} width={BW} height={BH} rx="3" />
       <rect class="c-band" x={left} y={top} width={BW} height="17" rx="3" fill={bandFill(c)} />
-      {c.sub.includes('westernEurope') && <SubBadge x={left} y={top + BH - 10} kind="w" />}
-      {c.sub.includes('easternEurope') && <SubBadge x={left + BW} y={top + BH - 10} kind="e" />}
       <text class="c-name" x={left + (BW - 13) / 2} y={top + (name.length >= 5 ? 12.8 : 13.5)} style={name.length >= 5 ? { fontSize: '9.6px' } : undefined} textLength={name.length >= 4 ? BW - 16 : undefined} lengthAdjust="spacingAndGlyphs">{name}</text>
       {bg ? (
         <>
@@ -664,6 +664,9 @@ function CountryBox({ id, view, selectable, dimmed, flash, adjHl, onPick, onHove
       {ctl && bg && <Tank x={left + 21} y={top - 1} side={ctl} s={0.55} />}
       <Inf x={left + 2} y={top + 19.5} n={us} side="US" ctl={ctl === 'US'} />
       <Inf x={left + BW - 26} y={top + 19.5} n={ussr} side="USSR" ctl={ctl === 'USSR'} />
+      {/* 西欧 / 东欧徽记：在名字色条之下、下沿标记之上，画在影响力格子之后，不被遮挡 */}
+      {c.sub.includes('westernEurope') && <SubBadge x={left} y={top + 24} kind="w" />}
+      {c.sub.includes('easternEurope') && <SubBadge x={left + BW} y={top + 24} kind="e" />}
       {lock && (
         <g class="ban-icon" transform={`translate(${left},${top})`}>
           <title>{lock}</title>
@@ -671,12 +674,12 @@ function CountryBox({ id, view, selectable, dimmed, flash, adjHl, onPick, onHove
           <line x1="-3.9" y1="-3.9" x2="3.9" y2="3.9" />
         </g>
       )}
-      {/* 成组国家卡：油滴 / 新月 / 河流，从左往右并排在方框左下角；悬停和闪电一样展开卡列表 */}
-      {groups.map((k, i) => (
+      {/* 点名该国的卡：左下角从左往右、右下角从右往左（闪电永远最右）；还没到时期的半透明；悬停展开卡列表 */}
+      {[...marks.left.map((k, i) => [k, left + 1 + i * 15] as const), ...marks.right.map((k, i) => [k, left + BW - 1 - i * 16] as const)].map(([k, mx]) => (
         <g
           key={k}
-          class={`c-mark c-${k}`}
-          transform={`translate(${left + 1 + i * 15},${top + BH + 1})`}
+          class={`c-mark c-${k}${marks.future.has(k) ? ' future' : ''}`}
+          transform={`translate(${mx},${top + BH + 1})`}
           onPointerEnter={(e) => {
             const r = (e.currentTarget as SVGGElement).getBoundingClientRect();
             onBolt(r.right, r.top + r.height / 2, false, k);
@@ -687,49 +690,7 @@ function CountryBox({ id, view, selectable, dimmed, flash, adjHl, onPick, onHove
             onBolt(e.clientX, e.clientY, true, k);
           }}
         >
-          <circle r="7" />
-          {k === 'oil' && <path d="M0,-4.6 C2.6,-1.2 3.6,0.6 3.6,1.9 A3.6,3.6 0 0 1 -3.6,1.9 C-3.6,0.6 -2.6,-1.2 0,-4.6Z" />}
-          {k === 'muslim' && <path d="M1.8,-4.6 A4.8,4.8 0 1 0 1.8,4.6 A3.8,3.8 0 1 1 1.8,-4.6Z" />}
-          {k === 'canal' && <path class="cn-wave" d="M-4.6,-2.2 q1.15,-1.4 2.3,0 t2.3,0 t2.3,0 t2.3,0 M-4.6,1 q1.15,-1.4 2.3,0 t2.3,0 t2.3,0 t2.3,0 M-4.6,4.2 q1.15,-1.4 2.3,0 t2.3,0 t2.3,0 t2.3,0" />}
-        </g>
-      ))}
-      {/* 点名该国的卡：闪电（一般事件）永远在最右，往左依次是交叉步枪（战争卡）、皇冠（计分卡），导弹（古巴导弹危机）在最左 */}
-      {marks.map((k, i) => (
-        <g
-          key={k}
-          class={`c-mark c-${k}`}
-          transform={`translate(${left + BW - 1 - i * 16},${top + BH + 1})`}
-          onPointerEnter={(e) => {
-            const r = (e.currentTarget as SVGGElement).getBoundingClientRect();
-            onBolt(r.right, r.top + r.height / 2, false, k);
-          }}
-          onPointerLeave={onBoltLeave}
-          onClick={(e) => {
-            e.stopPropagation();
-            onBolt(e.clientX, e.clientY, true, k);
-          }}
-        >
-          <circle r="7" />
-          {k === 'bolt' && <polygon points="1,-6 -3.5,1 0,1 -1,6 3.5,-1 0,-1" />}
-          {k === 'war' && (
-            <g class="war-guns">
-              {[-40, 40].map((r) => (
-                <g key={r} transform={`rotate(${r})`}>
-                  {/* 枪管 + 枪身 + 枪托 */}
-                  <rect x="-0.55" y="-5.8" width="1.1" height="6.4" rx="0.3" />
-                  <path d="M-0.9,0.2 L0.9,0.2 L1.5,4.2 L1.8,5.6 L-1.3,5.6 L-1,3.6Z" class="wg-stock" />
-                </g>
-              ))}
-            </g>
-          )}
-          {k === 'missile' && (
-            <g transform="rotate(45)">
-              <path class="ms-body" d="M0,-5.6 C1.3,-4.4 1.5,-2.8 1.5,-1.6 L1.5,3 L-1.5,3 L-1.5,-1.6 C-1.5,-2.8 -1.3,-4.4 0,-5.6Z" />
-              <path class="ms-fin" d="M-1.5,1 L-3.2,4.4 L-1.5,3.6Z M1.5,1 L3.2,4.4 L1.5,3.6Z" />
-              <path class="ms-flame" d="M-1,3.2 L0,5.8 L1,3.2Z" />
-            </g>
-          )}
-          {k === 'score' && <path class="cr-body" d="M-4.6,3 L-5,-2.6 L-2.4,-0.4 L0,-4.2 L2.4,-0.4 L5,-2.6 L4.6,3Z" />}
+          <MarkGlyph k={k} />
         </g>
       ))}
     </g>
@@ -835,4 +796,283 @@ function CountryTip({ id, view }: { id: string; view: GameView }) {
       {hint && <div class="ct-odds">{hint}</div>}
     </div>
   );
+}
+
+/** 国家方框下沿的标记图形（局部坐标，半径 7 的圆章） */
+function MarkGlyph({ k }: { k: CardKind }) {
+  switch (k) {
+    case 'bolt':
+      return (<><circle r="7" /><polygon points="1,-6 -3.5,1 0,1 -1,6 3.5,-1 0,-1" /></>);
+    case 'war':
+      return (
+        <>
+          <circle r="7" />
+          <g class="war-guns">
+            {[-40, 40].map((r) => (
+              <g key={r} transform={`rotate(${r})`}>
+                <rect x="-0.55" y="-5.8" width="1.1" height="6.4" rx="0.3" />
+                <path d="M-0.9,0.2 L0.9,0.2 L1.5,4.2 L1.8,5.6 L-1.3,5.6 L-1,3.6Z" class="wg-stock" />
+              </g>
+            ))}
+          </g>
+        </>
+      );
+    case 'score':
+      return (<><circle r="7" /><path class="cr-body" d="M-4.6,3 L-5,-2.6 L-2.4,-0.4 L0,-4.2 L2.4,-0.4 L5,-2.6 L4.6,3Z" /></>);
+    case 'missile':
+      return (
+        <>
+          <circle r="7" />
+          <g transform="rotate(45)">
+            <path class="ms-body" d="M0,-5.6 C1.3,-4.4 1.5,-2.8 1.5,-1.6 L1.5,3 L-1.5,3 L-1.5,-1.6 C-1.5,-2.8 -1.3,-4.4 0,-5.6Z" />
+            <path class="ms-fin" d="M-1.5,1 L-3.2,4.4 L-1.5,3.6Z M1.5,1 L3.2,4.4 L1.5,3.6Z" />
+            <path class="ms-flame" d="M-1,3.2 L0,5.8 L1,3.2Z" />
+          </g>
+        </>
+      );
+    case 'reds':
+      // 黑红旗：左侧黑色竖条配白星，右侧红底中间一道黄带
+      return (
+        <>
+          <clipPath id="mk-clip"><circle r="7" /></clipPath>
+          <g clip-path="url(#mk-clip)">
+            <rect x="-7" y="-7" width="14" height="14" fill="#d42a1e" />
+            <rect x="-7" y="-1.8" width="14" height="3.6" fill="#f2c230" />
+            <rect x="-7" y="-7" width="5" height="14" fill="#111" />
+            <polygon points="1.2,0 -2.4,-1.3 -3.2,0 -2.4,1.3" fill="#fff" />
+          </g>
+          <circle r="7" class="mk-rim" />
+        </>
+      );
+    case 'tent':
+      return (
+        <>
+          <circle r="7" />
+          <path class="tn-body" d="M-5.4,4.2 L0,-4.8 L5.4,4.2Z" />
+          <path class="tn-door" d="M-1.4,4.2 L0,0.6 L1.4,4.2Z" />
+          <path class="tn-pole" d="M0,-4.8 L0,-6.2" />
+        </>
+      );
+    case 'wall':
+      return (
+        <>
+          <circle r="7" />
+          <g class="wl-bricks">
+            <rect x="-5" y="-3.6" width="4.6" height="2.2" /><rect x="0.4" y="-3.6" width="4.6" height="2.2" />
+            <rect x="-5" y="-1.1" width="2.2" height="2.2" /><rect x="-2.4" y="-1.1" width="4.8" height="2.2" /><rect x="2.8" y="-1.1" width="2.2" height="2.2" />
+            <rect x="-5" y="1.4" width="4.6" height="2.2" /><rect x="0.4" y="1.4" width="4.6" height="2.2" />
+          </g>
+        </>
+      );
+    case 'oil':
+      return (<><circle r="7" /><path d="M0,-4.6 C2.6,-1.2 3.6,0.6 3.6,1.9 A3.6,3.6 0 0 1 -3.6,1.9 C-3.6,0.6 -2.6,-1.2 0,-4.6Z" /></>);
+    case 'muslim':
+      return (<><circle r="7" /><path d="M1.8,-4.6 A4.8,4.8 0 1 0 1.8,4.6 A3.8,3.8 0 1 1 1.8,-4.6Z" /></>);
+    case 'canal':
+      return (<><circle r="7" /><path class="cn-wave" d="M-4.6,-2.2 q1.15,-1.4 2.3,0 t2.3,0 t2.3,0 t2.3,0 M-4.6,1 q1.15,-1.4 2.3,0 t2.3,0 t2.3,0 t2.3,0 M-4.6,4.2 q1.15,-1.4 2.3,0 t2.3,0 t2.3,0 t2.3,0" /></>);
+    case 'portugal':
+      // 葡萄牙国旗配色：左绿右红，交界处一个金色圆环
+      return (
+        <>
+          <clipPath id="mk-clip-pt"><circle r="7" /></clipPath>
+          <g clip-path="url(#mk-clip-pt)">
+            <rect x="-7" y="-7" width="14" height="14" fill="#d42a1e" />
+            <rect x="-7" y="-7" width="5.6" height="14" fill="#1f7a3a" />
+          </g>
+          <circle cx="-1.4" cy="0" r="2.3" class="pt-ring" />
+          <circle r="7" class="mk-rim" />
+        </>
+      );
+    case 'kal':
+      // 下坠的客机：白底蓝描边，机头朝左下，后面拖两道下落线
+      return (
+        <>
+          <circle r="7" />
+          <path class="kl-trail" d="M2.6,-5.8 L4.6,-3.4 M0.6,-6.2 L2.2,-4.4" />
+          <g transform="rotate(-135)">
+            <path class="kl-plane" d="M0,-5.2 C0.7,-5.2 0.9,-4.4 0.9,-3.6 L0.9,-1 L5,1.6 L5,2.6 L0.9,1.4 L0.7,3.6 L2.2,4.6 L2.2,5.3 L0,4.8 L-2.2,5.3 L-2.2,4.6 L-0.7,3.6 L-0.9,1.4 L-5,2.6 L-5,1.6 L-0.9,-1 L-0.9,-3.6 C-0.9,-4.4 -0.7,-5.2 0,-5.2Z" />
+          </g>
+        </>
+      );
+    case 'leader':
+      // 人物：白底黄框，红色头肩剪影
+      return (
+        <>
+          <circle r="7" />
+          <circle cx="0" cy="-1.6" r="2.4" class="ld-fig" />
+          <path class="ld-fig" d="M-4.6,5.2 C-4.4,2.2 -2.4,1 0,1 C2.4,1 4.4,2.2 4.6,5.2Z" />
+        </>
+      );
+    case 'shake':
+      // 英美特殊关系：两只手相握，一蓝袖一红袖
+      return (
+        <>
+          <circle r="7" />
+          <path class="sh-cuff-a" d="M-6,-1.2 L-3.6,-2.6 L-2.4,-0.4 L-4.8,1Z" />
+          <path class="sh-cuff-b" d="M6,-1.2 L3.6,-2.6 L2.4,-0.4 L4.8,1Z" />
+          <path class="sh-hand" d="M-3.2,-1.6 L-0.6,-3 L1.8,-2.2 L3.2,-1.4 L2.6,0.2 L1.4,1.8 L-0.6,2.6 L-2.2,1.6 L-3,0.2Z" />
+          <path class="sh-line" d="M-0.6,-0.8 L1.6,-1.6 M-0.8,0.6 L1.4,-0.2 M-0.6,1.8 L0.9,1.2" />
+        </>
+      );
+    case 'suez':
+      // 苏伊士运河危机：暗红底，两岸之间的河道里一艘货轮
+      return (
+        <>
+          <circle r="7" />
+          <path class="sz-bank" d="M-7,-2.2 L-2.2,-2.2 L-1.4,-7 M7,-2.2 L2.2,-2.2 L1.4,-7" />
+          <path class="sz-water" d="M-5.6,3.6 q1.4,-1 2.8,0 t2.8,0 t2.8,0 t2.8,0" />
+          <path class="sz-hull" d="M-4.4,0.2 L4.6,0.2 L3.4,2.6 L-3.4,2.6Z" />
+          <rect class="sz-deck" x="-2.8" y="-2.2" width="3.6" height="2.4" />
+          <rect class="sz-stack" x="1.4" y="-3.4" width="1.3" height="3.6" />
+        </>
+      );
+    case 'radar':
+      // 北美防空司令部：深绿底雷达屏，扫描扇区 + 两个光点
+      return (
+        <>
+          <circle r="7" />
+          <circle r="4.6" class="rd-ring" />
+          <circle r="2.3" class="rd-ring" />
+          <path class="rd-sweep" d="M0,0 L0,-6 A6,6 0 0 1 5.2,-3Z" />
+          <circle cx="2.4" cy="2.2" r="0.8" class="rd-dot" />
+          <circle cx="-3" cy="-1.4" r="0.7" class="rd-dot" />
+        </>
+      );
+    case 'lady':
+      // 铁娘子：蓝框，蓬松短发的女性侧影 + 珍珠项链
+      return (
+        <>
+          <circle r="7" />
+          <path class="ly-hair" d="M-3.6,-0.6 C-4.4,-4.4 -1.8,-6.4 0.8,-6 C3.4,-5.6 4.4,-3.4 3.8,-0.8 C3.4,0.6 2.6,1 2.2,0.6 L2.2,-1.6 C1.2,-2.6 -1.4,-2.8 -2.2,-1.4 L-2.4,0.8 C-3,0.8 -3.4,0.2 -3.6,-0.6Z" />
+          <path class="ly-face" d="M-2.2,-1.4 C-1.4,-2.8 1.2,-2.6 2.2,-1.6 L2.2,0.6 C1.8,1.8 1,2.4 0,2.4 C-1,2.4 -1.8,1.8 -2.2,0.8Z" />
+          <path class="ly-suit" d="M-4.8,5.8 C-4.6,3.6 -2.8,2.6 -1,2.4 L0,3.4 L1,2.4 C2.8,2.6 4.6,3.6 4.8,5.8Z" />
+          <path class="ly-pearl" d="M-1.2,2.9 Q0,3.9 1.2,2.9" />
+        </>
+      );
+    case 'pope':
+      // 教皇：低多边形主教冠 + 脸 + 披肩，蓝框
+      return (
+        <>
+          <circle r="7" />
+          <polygon class="pp-mitre" points="0,-6.2 2.6,-3.6 2.2,-1.4 -2.2,-1.4 -2.6,-3.6" />
+          <polygon class="pp-mitre-dark" points="0,-6.2 2.6,-3.6 0,-2.6" />
+          <path class="pp-cross" d="M0,-5 L0,-2.6 M-0.9,-4 L0.9,-4" />
+          <polygon class="pp-face" points="-1.9,-1.4 1.9,-1.4 1.5,1 0,1.8 -1.5,1" />
+          <polygon class="pp-robe" points="-4.8,5.6 -3.6,2.2 0,1.6 3.6,2.2 4.8,5.6" />
+          <polygon class="pp-robe-dark" points="0,1.6 3.6,2.2 4.8,5.6 0,5.6" />
+        </>
+      );
+  }
+}
+
+/** 敌方占着与本土相邻的国家：那条通往本土的连线一半敌色一半己色，中间画个间谍，旁边标 +1 VP（计分时占领方多得 1 分） */
+function SpyLinks({ view }: { view: GameView }) {
+  const out: JSX.Element[] = [];
+  for (const c of COUNTRY_LIST) {
+    for (const home of ['usa', 'ussr'] as const) {
+      if (!c.adj.includes(home)) continue;
+      const enemy: Side = home === 'usa' ? 'USSR' : 'US';
+      if (controller(view as never, c.id) !== enemy) continue;
+      const [x1, y1] = pos(c.id);
+      let [x2, y2] = pos(home);
+      // 日本连美国的线向右画出地图边缘
+      if (c.id === 'japan' && home === 'usa') {
+        x2 = MAP_W - 4;
+        y2 = y1;
+      }
+      const mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
+      const occ = enemy === 'US' ? 'us' : 'ussr';
+      const own = home === 'usa' ? 'us' : 'ussr';
+      out.push(
+        <g key={c.id + home} class="spy-link">
+          <title>{COUNTRIES[c.id].zh}与{home === 'usa' ? '美国' : '苏联'}本土相邻，被{enemy === 'US' ? '美国' : '苏联'}控制：{REGION_ZH[c.region]}计分时{enemy === 'US' ? '美国' : '苏联'}额外 +1 VP</title>
+          <line x1={x1} y1={y1} x2={mx} y2={my} class={`sl-half sl-${occ}`} />
+          <line x1={mx} y1={my} x2={x2} y2={y2} class={`sl-half sl-${own}`} />
+          <g transform={`translate(${mx},${my})`} class="sl-spy">
+            <circle r="9" />
+            {/* 礼帽 + 墨镜 + 竖领风衣的间谍剪影 */}
+            <path class="sp-hat" d="M-6,-2.6 L6,-2.6 L4,-3.6 L3.2,-7 L-3.2,-7 L-4,-3.6Z" />
+            <path class="sp-face" d="M-3.4,-2.4 L3.4,-2.4 L3,1 L0,2.2 L-3,1Z" />
+            <path class="sp-glass" d="M-3,-1.6 L-0.4,-1.6 L-0.6,-0.2 L-2.8,-0.2Z M0.4,-1.6 L3,-1.6 L2.8,-0.2 L0.6,-0.2Z" />
+            <path class="sp-coat" d="M-6.4,7.4 L-5,2.4 L-2.6,1.2 L0,3.4 L2.6,1.2 L5,2.4 L6.4,7.4Z" />
+          </g>
+          <text x={mx + 12} y={my + 4} class={`sl-vp sl-${occ}`}>+1 VP</text>
+        </g>,
+      );
+    }
+  }
+  return <g class="spy-links">{out}</g>;
+}
+
+/** 两国对打的战争卡：两国方框上的步枪标记之间连一条向下弯的虚线（从方框下方绕过去，不压方框、不被方框挡） */
+const WAR_PAIRS: [string, string][] = [['pakistan', 'india'], ['iraq', 'iran']];
+function WarLinks({ view }: { view: GameView }) {
+  const at = (id: string): [number, number] | null => {
+    const i = countryMarks(view, id).right.indexOf('war');
+    if (i < 0) return null;
+    const [x, y] = pos(id);
+    return [x - BW / 2 + BW - 1 - i * 16, y - BH / 2 + BH + 1];
+  };
+  return (
+    <g class="war-links">
+      {WAR_PAIRS.map(([a, b]) => {
+        const p = at(a), q = at(b);
+        if (!p || !q) return null;
+        const bow = 26 + Math.abs(q[0] - p[0]) * 0.12;
+        const cx = (p[0] + q[0]) / 2, cy = Math.max(p[1], q[1]) + bow;
+        // 两端从标记圆边出发，不盖住标记
+        const trim = (from: [number, number]) => {
+          const dx = cx - from[0], dy = cy - from[1], d = Math.hypot(dx, dy) || 1;
+          return [from[0] + (dx / d) * 9, from[1] + (dy / d) * 9];
+        };
+        const [x1, y1] = trim(p), [x2, y2] = trim(q);
+        return <path key={a + b} d={`M${x1},${y1} Q${cx},${cy} ${x2},${y2}`} class="war-link" />;
+      })}
+    </g>
+  );
+}
+
+/** 北约 / 华约成立后，在西欧 / 东欧的地图背景上铺一个半透明的大徽记 */
+function PactOverlay({ view }: { view: GameView }) {
+  const center = (sub: SubRegionId): [number, number] => {
+    const ps = COUNTRY_LIST.filter((c) => c.sub.includes(sub)).map((c) => pos(c.id));
+    return [ps.reduce((a, p) => a + p[0], 0) / ps.length, ps.reduce((a, p) => a + p[1], 0) / ps.length];
+  };
+  const out: JSX.Element[] = [];
+  if (view.flags.nato) {
+    // 西欧国家的重心偏德国，往大西洋一侧挪，避开和华约徽记重叠
+    const [cx0, cy0] = center('westernEurope');
+    const [x, y] = [cx0 - 120, cy0 + 10];
+    out.push(
+      <g key="nato" class="pact pact-nato" transform={`translate(${x},${y})`}>
+        <title>北约已成立：美国控制的西欧国家不能被政变或调整阵营</title>
+        <circle r="72" class="pk-ring" />
+        {/* 四角罗盘星：四个尖角各分明暗两半 */}
+        {[0, 90, 180, 270].map((r) => (
+          <g key={r} transform={`rotate(${r})`}>
+            <polygon points="0,-104 15,-15 0,0" class="pk-light" />
+            <polygon points="0,-104 -15,-15 0,0" class="pk-dark" />
+          </g>
+        ))}
+      </g>,
+    );
+  }
+  if (view.flags.warsawPact) {
+    const [cx1, cy1] = center('easternEurope');
+    const [x, y] = [cx1 + 40, cy1 + 20];
+    const star = Array.from({ length: 10 }, (_, i) => {
+      const a = -Math.PI / 2 + (i * Math.PI) / 5;
+      const r = i % 2 ? 26 : 62;
+      return `${(r * Math.cos(a)).toFixed(1)},${(r * Math.sin(a)).toFixed(1)}`;
+    }).join(' ');
+    out.push(
+      <g key="warsaw" class="pact pact-warsaw" transform={`translate(${x},${y})`}>
+        <title>华约已成立</title>
+        <circle r="80" class="pk-ring" />
+        <circle r="70" class="pk-ring thin" />
+        <polygon points={star} class="pk-star" />
+      </g>,
+    );
+  }
+  return <g class="pact-overlay">{out}</g>;
 }

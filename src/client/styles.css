@@ -1163,3 +1163,84 @@ g.links { pointer-events: none; }
 .pop-table tr.here-us td { background: #3d73a855; }
 .pop-table tr.here-ussr td { background: #c9503f55; }
 .pop-table tr.here-both td { background: linear-gradient(90deg, #3d73a855, #c9503f55); }
+
+/* 新增的人物 / 事件标记 */
+.c-mark .mk-rim { fill: none; stroke: #f3ecdb; stroke-width: 1.2; }
+.c-mark:hover .mk-rim { stroke-width: 1.9; }
+.c-tent circle { fill: #3a3326; stroke: #e8d6a8; stroke-width: 1.2; }
+.c-tent .tn-body { fill: #e8d6a8; stroke: #3a3326; stroke-width: 0.5; stroke-linejoin: round; }
+.c-tent .tn-door { fill: #3a3326; }
+.c-tent .tn-pole { stroke: #e8d6a8; stroke-width: 0.9; }
+.c-wall circle { fill: #4a4440; stroke: #d8cfc4; stroke-width: 1.2; }
+.c-wall .wl-bricks rect { fill: #c9b9a6; stroke: #4a4440; stroke-width: 0.35; }
+.c-portugal .pt-ring { fill: none; stroke: #f5d76e; stroke-width: 1.1; }
+.c-kal circle { fill: #f8f8f4; stroke: #2a5fa8; stroke-width: 1.3; }
+.c-kal .kl-plane { fill: #2a5fa8; }
+.c-kal .kl-trail { fill: none; stroke: #2a5fa8; stroke-width: 0.8; stroke-linecap: round; opacity: 0.7; }
+.c-leader circle { fill: #fbfaf6; stroke: #e0b020; stroke-width: 1.4; }
+.c-leader .ld-fig { fill: #c0322a; }
+.c-pope circle { fill: #fbfaf6; stroke: #2f5d8a; stroke-width: 1.4; }
+.c-pope .pp-mitre { fill: #f6e7b0; stroke: #b8962e; stroke-width: 0.4; stroke-linejoin: round; }
+.c-pope .pp-mitre-dark { fill: #e5cf7c; }
+.c-pope .pp-cross { stroke: #b8962e; stroke-width: 0.6; }
+.c-pope .pp-face { fill: #e9c6a2; }
+.c-pope .pp-robe { fill: #f1eee6; stroke: #b8962e; stroke-width: 0.4; stroke-linejoin: round; }
+.c-pope .pp-robe-dark { fill: #d9d4c6; }
+.c-tent:hover circle, .c-wall:hover circle, .c-kal:hover circle, .c-leader:hover circle, .c-pope:hover circle { stroke-width: 2; }
+/* 还没到时期的卡：标记半透明 */
+.c-mark.future { opacity: 0.45; }
+.c-mark.future:hover { opacity: 0.85; }
+.c-lady circle { fill: #fbfaf6; stroke: #2f5d8a; stroke-width: 1.4; }
+.c-lady .ly-hair { fill: #6b5a48; }
+.c-lady .ly-face { fill: #edcfb2; }
+.c-lady .ly-suit { fill: #2f5d8a; }
+.c-lady .ly-pearl { fill: none; stroke: #fff; stroke-width: 0.7; stroke-dasharray: 0.5 0.5; }
+.c-lady:hover circle { stroke-width: 2; }
+.c-radar circle { fill: #173326; stroke: #8fe0a8; stroke-width: 1.2; }
+.c-radar .rd-ring { fill: none; stroke: #8fe0a866; stroke-width: 0.6; }
+.c-radar .rd-sweep { fill: #8fe0a8aa; }
+.c-radar .rd-dot { fill: #d6ffe2; }
+.c-radar:hover circle:first-child { stroke-width: 2; }
+.c-shake circle { fill: #fbfaf6; stroke: #2f5d8a; stroke-width: 1.4; }
+.c-shake .sh-cuff-a { fill: #2f5d8a; }
+.c-shake .sh-cuff-b { fill: #b8231c; }
+.c-shake .sh-hand { fill: #e9c6a2; stroke: #8a6a4c; stroke-width: 0.4; stroke-linejoin: round; }
+.c-shake .sh-line { fill: none; stroke: #8a6a4c; stroke-width: 0.4; stroke-linecap: round; }
+.c-shake:hover circle { stroke-width: 2; }
+.c-suez circle { fill: #7a1f17; stroke: #f0a090; stroke-width: 1.2; }
+.c-suez .sz-bank { fill: none; stroke: #e8c9a0; stroke-width: 1; stroke-linejoin: round; }
+.c-suez .sz-water { fill: none; stroke: #9cc6f0; stroke-width: 0.8; stroke-linecap: round; }
+.c-suez .sz-hull { fill: #f3ecdb; }
+.c-suez .sz-deck { fill: #f3ecdb; }
+.c-suez .sz-stack { fill: #f5a540; }
+.c-suez:hover circle { stroke-width: 2; }
+
+/* 敌方占着与本土相邻的国家：半蓝半红连线 + 间谍 + 本土计分 +1 VP */
+.spy-links { pointer-events: none; }
+.spy-link { pointer-events: visiblePainted; }
+.sl-half { stroke-width: 3.4; stroke-linecap: round; }
+.sl-half.sl-us { stroke: #3d73a8; }
+.sl-half.sl-ussr { stroke: #c9503f; }
+.sl-spy circle { fill: #1f1a10; stroke: #f5d76e; stroke-width: 1.4; }
+.sl-spy .sp-hat, .sl-spy .sp-coat { fill: #6b6458; }
+.sl-spy .sp-face { fill: #e9c6a2; }
+.sl-spy .sp-glass { fill: #111; }
+.sl-vp { font-size: 13px; font-weight: 900; paint-order: stroke; stroke: #f3ecdbee; stroke-width: 3px; }
+.sl-vp.sl-us { fill: #2f5d8a; }
+.sl-vp.sl-ussr { fill: #b23a2e; }
+/* 两国对打的战争卡：步枪标记之间的弧形虚线 */
+.war-links { pointer-events: none; }
+.war-link { fill: none; stroke: #c9503f; stroke-width: 1.8; stroke-dasharray: 4 3; stroke-linecap: round; opacity: 0.9; }
+
+/* 北约 / 华约成立：西欧 / 东欧背景上的大徽记 */
+.pact-overlay { pointer-events: none; }
+.pact { opacity: 0.2; animation: pactIn 1.6s ease-out; }
+.pact title { pointer-events: auto; }
+.pact-nato .pk-ring { fill: none; stroke: #1d3d6e; stroke-width: 5; }
+.pact-nato .pk-light { fill: #f3f6fb; }
+.pact-nato .pk-dark { fill: #1d3d6e; }
+.pact-warsaw .pk-ring { fill: none; stroke: #8f2c23; stroke-width: 5; }
+.pact-warsaw .pk-ring.thin { stroke-width: 2; }
+.pact-warsaw .pk-star { fill: #b8231c; stroke: #f5d76e; stroke-width: 2; }
+@keyframes pactIn { from { opacity: 0; transform-box: fill-box; } 40% { opacity: 0.5; } to { opacity: 0.2; } }
+@media (prefers-reduced-motion: reduce) { .pact { animation: none; } }
