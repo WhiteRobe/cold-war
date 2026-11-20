@@ -123,6 +123,15 @@ const extra: [Pt, Pt][] = [
 ];
 ctrl.push(...extra.filter(([, b]) => b[0] !== 470).map(([a, b]) => [a, [remapX(b[0] / S) * S, remapY(b[0] / S, b[1] / S) * S]] as [Pt, Pt]));
 
+// 澳大利亚：以棋盘上的澳大利亚为中心、按同一比例（约 5.6 像素/度）直接投影，保持大陆原本的长宽比；
+// 同时沿海岸加一圈同样投影的锚点，让周边（印尼、海面）的变形和它对得上
+const AU_K = 5.6, AU_C: Pt = [134, -25];
+const australiaXY = ([lon, lat]: Pt): Pt => {
+  const [bx, by] = board('australia');
+  return [bx + AU_K * (lon - AU_C[0]), by - AU_K * (lat - AU_C[1])];
+};
+for (const p of [[114, -22], [116, -34.5], [122, -34], [131, -31.5], [137, -34], [141, -38], [150, -37], [153, -28], [146, -19], [142, -11], [136, -12], [129, -15]] as Pt[]) ctrl.push([p, australiaXY(p)]);
+
 // ---------- 薄板样条 ----------
 function tps(points: [Pt, Pt][], lambda: number) {
   const n = points.length;
@@ -247,10 +256,10 @@ function clipRect(r: Ring, x0: number, y0: number, x1: number, y1: number): Ring
 }
 
 const TOL = Number(process.env.TOL ?? 1.6);
-function toPath(rings: Ring[]): string {
+function toPath(rings: Ring[], fn: (p: Pt) => Pt = warp): string {
   const parts: string[] = [];
   for (const r of rings) {
-    const w = simplifyRing(densify(r).map(warp), TOL).map(([x, y]) => [Math.round(x), Math.round(y)] as Pt);
+    const w = simplifyRing(densify(r).map(fn), TOL).map(([x, y]) => [Math.round(x), Math.round(y)] as Pt);
     const dedup = w.filter((p, i) => i === 0 || p[0] !== w[i - 1][0] || p[1] !== w[i - 1][1]);
     if (dedup.length < 3) continue;
     if (Math.abs(area(dedup)) < 4) continue;
@@ -289,7 +298,8 @@ for (const f of geo.features) {
     }
     if (bd < 260 ** 2) kind = `${best}-x`;
   }
-  const d = toPath(rings);
+  // 澳大利亚不走样条变形（会被压扁拉长），按同一比例直接投到棋盘上的澳大利亚位置，保持真实轮廓
+  const d = n === 'Australia' ? toPath(rings, australiaXY) : toPath(rings);
   if (d) shapes.push({ id, kind, d });
   if (n === 'Germany') {
     const east = rings.map((r) => clipRect(r, 10.75, 50.3, 20, 56)).filter((r) => r.length >= 3);

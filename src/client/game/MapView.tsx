@@ -401,7 +401,7 @@ export function MapView({ view, selectable, onPick, flash, onRegion, focus, onBo
         {eventHappened(view, 90) && <KremlinWalls x={1092} y={226} />}
         {eventHappened(view, 26) && <TrenchSpy x={238} y={352} />}
         {view.flags.aldrichAmes && <IntelSeller x={1170} y={292} />}
-        {eventHappened(view, 71) && <PingPong x={1584} y={336} />}
+        {eventHappened(view, 71) && <PingPong x={1664} y={348} />}
         {eventHappened(view, 8) && <CubaFlag x={254} y={461} />}
         {view.flags.quagmire && <QuagmireHeli x={1620} y={512} />}
         {view.flags.formosan && <AAGun x={1662} y={474} />}
