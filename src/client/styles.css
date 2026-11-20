@@ -1527,3 +1527,40 @@ g.links { pointer-events: none; }
 .cv-plane { fill: #d9dee4; }
 .cv-flag { fill: #2f5d8a; }
 @media (prefers-reduced-motion: reduce) { .nr-dish, .nr-wave { animation: none; } }
+
+/* 戴高乐：法国三色旗 */
+.fr-flag { cursor: help; animation: nsIn 1.2s ease-out; filter: drop-shadow(0 2px 2px #0006); }
+.fr-base { fill: #0004; }
+.fr-pole { fill: #5a4a32; }
+.fr-knob { fill: #f5d76e; }
+.fr-cloth { animation: frWave 2.2s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: left center; }
+@keyframes frWave { to { transform: skewY(-5deg) scaleX(0.93); } }
+/* 花之力：苏联西部花田 */
+.flower-fields { cursor: help; animation: nsIn 1.4s ease-out; }
+.ff-grass { fill: #6f9a4e; opacity: 0.85; }
+.ff-stem { stroke: #3f6b2a; stroke-width: 0.7; }
+.ff-core { fill: #f5b030; }
+.ff-flower { animation: ffSway 2.6s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: center bottom; }
+@keyframes ffSway { from { rotate: -6deg; } to { rotate: 6deg; } }
+@media (prefers-reduced-motion: reduce) { .fr-cloth, .ff-flower { animation: none; } }
+
+/* 切尔诺贝利：核辐射标志 */
+.radiation .rd-bg { fill: #f5d33a; stroke: #1b1712; stroke-width: 1; }
+.radiation .rd-blade { fill: #1b1712; }
+.cb-ukr, .cb-label, .cb-box { cursor: help; }
+.cb-ukr { filter: drop-shadow(0 0 6px #f5d33a); animation: cbPulse 2s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: center; }
+@keyframes cbPulse { from { rotate: -8deg; } to { rotate: 8deg; } }
+@media (prefers-reduced-motion: reduce) { .cb-ukr { animation: none; } }
+.modal.modal-top { z-index: 70; }
+/* 核潜艇：大西洋 */
+.ns-sub { cursor: help; animation: nsIn 1.2s ease-out, subBob 3s ease-in-out 1.2s infinite alternate; filter: drop-shadow(0 2px 2px #0006); }
+@keyframes subBob { to { transform: translateY(2px); } }
+.sb-water { stroke: #e8f4fb; stroke-width: 1; opacity: 0.7; }
+.sb-hull { fill: #2b3542; stroke: #11161d; stroke-width: 0.8; }
+.sb-hull.under { fill: #2b354266; stroke: none; }
+.sb-sail { fill: #3a4656; stroke: #11161d; stroke-width: 0.8; }
+.sb-mast { stroke: #11161d; stroke-width: 1; }
+.sb-rudder { fill: #3a4656; stroke: #11161d; stroke-width: 0.6; }
+.sb-port { fill: #f5d76e; }
+.sb-wave { fill: none; stroke: #e8f4fb; stroke-width: 1; stroke-linecap: round; opacity: 0.8; }
+@media (prefers-reduced-motion: reduce) { .ns-sub { animation: none; } }

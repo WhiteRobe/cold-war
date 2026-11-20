@@ -380,6 +380,15 @@ export function MapView({ view, selectable, onPick, flash, onRegion, focus, onBo
         {view.flags.northSeaOil && <NorthSeaRig x={688} y={150} />}
         {view.flags.norad && <NoradRadar x={250} y={176} />}
         {view.flags.usJapan && <Carrier x={1812} y={490} />}
+        {view.flags.deGaulle && <FrenchFlag x={676} y={396} />}
+        {view.flags.nuclearSubs && <NuclearSub x={505} y={440} />}
+        {view.flags.chernobyl && (
+          <g transform="translate(1078,300)" class="cb-ukr">
+            <title>切尔诺贝利：本回合苏联不能用行动点在{REGION_ZH[view.flags.chernobyl]}放置影响力</title>
+            <Radiation r={11} />
+          </g>
+        )}
+        {view.flags.flowerPower && <FlowerFields at={[[1012, 232], [1062, 258], [1112, 226]]} />}
         <text x={MAP_W - 8} y={pos('japan')[1] + 38} class="edge-label" text-anchor="end">→ 美国</text>
         <text x={8} y={pos('usa')[1] - 10} class="edge-label">日本 ←</text>
         {COUNTRY_LIST.map((c) => (
@@ -629,6 +638,12 @@ function RegionLabel({ region, view, onClick }: { region: RegionId; view: GameVi
       )}
       <text x={x} y={y} class="rl-name">{REGION_ZH[region]}</text>
       {scoredNote(view, region) && <ScoredMark x={x + REGION_ZH[region].length * 27.6 + 8} y={y - 8} note={scoredNote(view, region)!} />}
+      {view.flags.chernobyl === region && (
+        <g transform={`translate(${x + REGION_ZH[region].length * 27.6 + (scoredNote(view, region) ? 28 : 10)},${y - 8})`} class="cb-label">
+          <title>切尔诺贝利：美国指定了{REGION_ZH[region]}，本回合苏联不能用行动点在这里放置影响力（政变、调整阵营不受影响）</title>
+          <Radiation r={8} />
+        </g>
+      )}
       <text x={x} y={y + 18} class="rl-score">
         <tspan class="us">美 {LV_ZH[sc.US.level]} {sc.points.US}</tspan>
         <tspan dx="10" class="ussr">苏 {LV_ZH[sc.USSR.level]} {sc.points.USSR}</tspan>
@@ -704,6 +719,12 @@ function CountryBox({ id, view, selectable, dimmed, flash, adjHl, onPick, onHove
       {/* 西欧 / 东欧徽记：在名字色条之下、下沿标记之上，画在影响力格子之后，不被遮挡 */}
       {c.sub.includes('westernEurope') && <SubBadge x={left} y={top + 24} kind="w" />}
       {c.sub.includes('easternEurope') && <SubBadge x={left + BW} y={top + 24} kind="e" />}
+      {view.me === 'USSR' && view.flags.chernobyl === c.region && (
+        <g transform={`translate(${left + (lock ? 14 : 0)},${top})`} class="cb-box">
+          <title>切尔诺贝利：本回合你不能用行动点在{REGION_ZH[c.region]}放置影响力</title>
+          <Radiation r={6} />
+        </g>
+      )}
       {lock && (
         <g class="ban-icon" transform={`translate(${left},${top})`}>
           <title>{lock}</title>
@@ -1036,6 +1057,90 @@ function Carrier({ x, y }: { x: number; y: number }) {
         <polygon points="-15,-6.2 -9,-6.2 -12,-8.6" class="cv-plane" />
         <polygon points="-3,-6.2 3,-6.2 0,-8.6" class="cv-plane" />
         <polygon points="-27,-2 -21,-2 -21,-1 -27,-1" class="cv-flag" />
+      </g>
+    </g>
+  );
+}
+
+/** 戴高乐领导法国生效：法国国土上插一面三色旗 */
+function FrenchFlag({ x, y }: { x: number; y: number }) {
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <g class="fr-flag">
+        <title>戴高乐领导法国：法国走自己的路，北约不再保护法国</title>
+        <ellipse cx="0" cy="0" rx="5" ry="1.6" class="fr-base" />
+        <rect x="-0.8" y="-30" width="1.6" height="30" class="fr-pole" />
+        <circle cx="0" cy="-30.6" r="1.4" class="fr-knob" />
+        <g class="fr-cloth">
+          <path d="M0.8,-29 Q4,-30.4 7,-29 L7,-17 Q4,-18.4 0.8,-17Z" fill="#1f4a9a" />
+          <path d="M7,-29 Q10,-27.6 13.4,-29 L13.4,-17 Q10,-15.6 7,-17Z" fill="#f6f4ee" />
+          <path d="M13.4,-29 Q16.6,-30.4 19.8,-29 L19.8,-17 Q16.6,-18.4 13.4,-17Z" fill="#d8262e" />
+        </g>
+      </g>
+    </g>
+  );
+}
+
+/** 花之力生效：苏联西部冒出几片花田 */
+function FlowerFields({ at }: { at: [number, number][] }) {
+  const COLORS = ['#f2a3c0', '#f5d76e', '#fbfaf6', '#c9a0e8', '#f08a7c'];
+  return (
+    <g class="flower-fields">
+      <title>花之力：美国每打出一张战争牌（太空竞赛除外），苏联 +2 VP</title>
+      {at.map(([x, y], fi) => (
+        <g key={fi} transform={`translate(${x},${y})`}>
+          <ellipse cx="0" cy="2" rx="20" ry="7" class="ff-grass" />
+          {Array.from({ length: 7 }, (_, i) => {
+            const fx = -14 + i * 4.6 + ((i * 7 + fi * 3) % 5) - 2;
+            const fy = -1 + ((i * 5 + fi) % 4) * 1.6;
+            const col = COLORS[(i + fi * 2) % COLORS.length];
+            return (
+              <g key={i} transform={`translate(${fx},${fy})`} class="ff-flower" style={{ animationDelay: `${-(i * 0.4 + fi)}s` }}>
+                <path d="M0,0 L0,5" class="ff-stem" />
+                {[0, 72, 144, 216, 288].map((r) => (
+                  <ellipse key={r} cx="0" cy="-1.6" rx="1.1" ry="1.7" fill={col} transform={`rotate(${r})`} />
+                ))}
+                <circle r="0.9" class="ff-core" />
+              </g>
+            );
+          })}
+        </g>
+      ))}
+    </g>
+  );
+}
+
+/** 核辐射标志：黄底黑色三叶 */
+function Radiation({ r }: { r: number }) {
+  const blade = (deg: number) => {
+    const a1 = ((deg - 30) * Math.PI) / 180, a2 = ((deg + 30) * Math.PI) / 180;
+    const ri = r * 0.28, ro = r * 0.86;
+    return `M${ri * Math.cos(a1)},${ri * Math.sin(a1)} L${ro * Math.cos(a1)},${ro * Math.sin(a1)} A${ro},${ro} 0 0 1 ${ro * Math.cos(a2)},${ro * Math.sin(a2)} L${ri * Math.cos(a2)},${ri * Math.sin(a2)} A${ri},${ri} 0 0 0 ${ri * Math.cos(a1)},${ri * Math.sin(a1)}Z`;
+  };
+  return (
+    <g class="radiation">
+      <circle r={r} class="rd-bg" />
+      {[-90, 30, 150].map((d) => <path key={d} d={blade(d)} class="rd-blade" />)}
+      <circle r={r * 0.17} class="rd-blade" />
+    </g>
+  );
+}
+
+/** 核潜艇生效：大西洋上浮着一艘核潜艇（指挥塔、尾舵，水线以下半透明） */
+function NuclearSub({ x, y }: { x: number; y: number }) {
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <g class="ns-sub">
+        <title>核潜艇：本回合美国在战场国政变不会降低 DEFCON</title>
+        <path d="M-34,6 L34,6" class="sb-water" />
+        <path d="M-30,6 C-30,-2 -22,-5 -12,-5 L22,-5 C30,-5 34,0 34,6Z" class="sb-hull" />
+        <path d="M-30,6 C-28,12 -18,13 -10,13 L22,13 C30,13 34,10 34,6Z" class="sb-hull under" />
+        <polygon points="-2,-5 2,-14 12,-14 13,-5" class="sb-sail" />
+        <path d="M0,-10 L-5,-10 M7,-14 L7,-19" class="sb-mast" />
+        <polygon points="-30,0 -38,-6 -38,8 -30,4" class="sb-rudder" />
+        <circle cx="16" cy="-1" r="1.2" class="sb-port" />
+        <circle cx="22" cy="-1" r="1.2" class="sb-port" />
+        <path d="M-40,8 q4,-3 8,0 t8,0 M36,8 q4,-3 8,0 t8,0" class="sb-wave" />
       </g>
     </g>
   );

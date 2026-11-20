@@ -253,7 +253,7 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
       <Coach view={view} force={tutorial} />
       {clockTurn !== null && <TurnClock key={clockTurn} turn={clockTurn} />}
       {confirm && (
-        <div class="modal" onClick={() => setConfirm(null)}>
+        <div class="modal modal-top" onClick={() => setConfirm(null)}>
           <div class="modal-box danger-box" onClick={(e) => e.stopPropagation()}>
             <h3>⚠️ 危险操作</h3>
             <p>{confirm.msg}</p>
@@ -265,7 +265,8 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
         </div>
       )}
       {zoomCard !== null && (
-        <div class="modal" onClick={() => setZoomCard(null)}>
+        // 可能从牌堆等弹窗里点开，要盖在它们上面
+        <div class="modal modal-top" onClick={() => setZoomCard(null)}>
           <div class="modal-card" onClick={(e) => e.stopPropagation()}>
             <CardFace id={zoomCard} faceDown={zoomCard === CHINA_CARD && !view.china.faceUp} />
             <CardPreview view={view} card={zoomCard} />
