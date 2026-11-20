@@ -1272,3 +1272,15 @@ g.links { pointer-events: none; }
 .c-scepter .sc-rod { fill: #f3e2b0; stroke: #7a5a1c; stroke-width: 0.35; stroke-linejoin: round; }
 .c-scepter .sc-crack { stroke: #f5d76e; stroke-width: 0.5; stroke-linecap: round; }
 .c-scepter:hover circle { stroke-width: 2; }
+/* 台湾决议：深蓝底浅色军舰 */
+.c-ship circle { fill: #1d3d6e; stroke: #9cc6f0; stroke-width: 1.2; }
+.c-ship .sh-hull, .c-ship .sh-top { fill: #dfe7f0; }
+.c-ship .sh-gun, .c-ship .sh-mast { stroke: #dfe7f0; stroke-width: 0.7; stroke-linecap: round; }
+.c-ship .sh-wave { fill: none; stroke: #9cc6f0; stroke-width: 0.6; stroke-linecap: round; }
+.c-ship:hover circle { stroke-width: 2; }
+/* 台湾决议：深蓝底浅色军舰 */
+.c-ship circle { fill: #1d3d6e; stroke: #9cc6f0; stroke-width: 1.2; }
+.c-ship .sh-hull, .c-ship .sh-top { fill: #dfe7f0; }
+.c-ship .sh-gun, .c-ship .sh-mast { stroke: #dfe7f0; stroke-width: 0.7; stroke-linecap: round; }
+.c-ship .sh-wave { fill: none; stroke: #9cc6f0; stroke-width: 0.6; stroke-linecap: round; }
+.c-ship:hover circle { stroke-width: 2; }

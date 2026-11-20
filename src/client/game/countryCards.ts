@@ -74,12 +74,12 @@ export function cardStatus(v: GameView, id: number): CardStatus {
 }
 
 export type CardKind =
-  | 'bolt' | 'war' | 'score' | 'missile' | 'reds' | 'tent' | 'wall' | 'radar' | 'suez' | 'usjp' | 'fist'
+  | 'bolt' | 'war' | 'score' | 'missile' | 'reds' | 'tent' | 'wall' | 'radar' | 'suez' | 'usjp' | 'fist' | 'ship'
   | 'oil' | 'muslim' | 'canal' | 'portugal' | 'kal' | 'leader' | 'pope' | 'lady' | 'shake' | 'leaderUs' | 'scepter';
 
 /** 单独成标记的卡 → 标记种类（其余：战争卡 = 交叉步枪，计分卡 = 皇冠，剩下的 = 闪电） */
 const SPECIAL_OF: Record<number, CardKind> = {
-  40: 'missile', 22: 'reds', 65: 'tent', 96: 'wall', 106: 'radar', 28: 'suez', 27: 'usjp', 9: 'fist',
+  40: 'missile', 22: 'reds', 65: 'tent', 96: 'wall', 106: 'radar', 28: 'suez', 27: 'usjp', 9: 'fist', 35: 'ship',
   61: 'oil', 56: 'muslim', 64: 'canal', 52: 'portugal', 89: 'kal',
   8: 'leader', 91: 'leader', 54: 'leader', 15: 'leader', 17: 'leader', 68: 'pope', 83: 'lady', 105: 'shake', 72: 'leaderUs', 55: 'leader', 12: 'scepter',
 };
@@ -89,7 +89,7 @@ export const cardKind = (id: number): CardKind => SPECIAL_OF[id] ?? (CARDS[id].w
 const isSpecial = (k: CardKind) => k !== 'bolt' && k !== 'war' && k !== 'score';
 
 /** 方框右下角（从右往左，闪电永远最右，导弹最左）/ 左下角（从左往右） */
-export const RIGHT_KINDS: CardKind[] = ['bolt', 'usjp', 'fist', 'war', 'score', 'reds', 'tent', 'wall', 'radar', 'suez', 'missile'];
+export const RIGHT_KINDS: CardKind[] = ['bolt', 'usjp', 'ship', 'fist', 'war', 'score', 'reds', 'tent', 'wall', 'radar', 'suez', 'missile'];
 export const LEFT_KINDS: CardKind[] = ['scepter', 'oil', 'muslim', 'canal', 'portugal', 'kal', 'leader', 'leaderUs', 'pope', 'lady', 'shake'];
 
 export const GROUP_NOTE: Partial<Record<CardKind, string>> = {
