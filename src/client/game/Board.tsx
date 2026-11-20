@@ -16,6 +16,7 @@ import { MapView } from './MapView';
 import { RADIAL_LIVE_TAGS, Radial, type RadialAnchor } from './Radial';
 import { BoltPopover } from './BoltPopover';
 import { TurnClock } from './TurnClock';
+import { NukeScene } from './NukeScene';
 import { cardView } from './cardCtx';
 import type { CardKind } from './countryCards';
 import { PeekCard, type PeekAnchor } from './PeekCard';
@@ -70,6 +71,7 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
   useGameSounds(view, view?.log ?? []);
   const clockTurn = useTurnClock(view);
   const [overSeen, setOverSeen] = useState(false);
+  const [nukeDone, setNukeDone] = useState(false);
   const [handOpen, setHandOpen] = useState(false);
   const [confirm, setConfirm] = useState<{ msg: string; v: Choice } | null>(null);
   // 出牌轮盘与预选路径
@@ -297,7 +299,9 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
         </PeekCard>
       )}
       {region && <RegionModal view={view} region={region} onClose={() => setRegion(null)} />}
-      {view.phase === 'over' && !overSeen && (
+      {/* 核战争结局：先播核爆过场，再弹胜负结算 */}
+      {view.phase === 'over' && /核战争/.test(view.winReason ?? '') && !nukeDone && <NukeScene onDone={() => setNukeDone(true)} />}
+      {view.phase === 'over' && !overSeen && (!/核战争/.test(view.winReason ?? '') || nukeDone) && (
         <VictoryScene winner={view.winner ?? null} me={me}>
           <div class="modal-box over-box">
             <h2>{view.winner ? `${names[view.winner]}（${SIDE_ZH[view.winner]}）获胜` : '平局'}</h2>

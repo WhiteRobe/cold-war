@@ -68,9 +68,16 @@ const DevSpace = import.meta.env.DEV ? lazy(() => import('./game/SpaceArsenal').
   );
 })) : null;
 
+/** 仅开发环境：#/dev-nuke 预览核战争过场（播完重播） */
+const DevNuke = import.meta.env.DEV ? lazy(() => import('./game/NukeScene').then((m) => () => {
+  const [k, setK] = useState(0);
+  return <m.NukeScene key={k} onDone={() => setTimeout(() => setK((x) => x + 1), 800)} />;
+})) : null;
+
 function App() {
   const r = route.value;
   if (DevVictory && location.hash.startsWith('#/dev-victory/')) return <DevVictory w={location.hash.split('/')[2]} />;
+  if (DevNuke && location.hash.startsWith('#/dev-nuke')) return <DevNuke />;
   if (DevSpace && location.hash.startsWith('#/dev-space')) return <DevSpace />;
   if (DevDefcon && location.hash.startsWith('#/dev-defcon')) return <DevDefcon />;
   if (DevEvent && location.hash.startsWith('#/dev-event/')) return <DevEvent ids={location.hash.split('/')[2]} />;

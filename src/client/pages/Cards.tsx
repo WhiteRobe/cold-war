@@ -1,5 +1,6 @@
 import { useState } from 'preact/hooks';
-import { CARD_LIST, type Era } from '../../data';
+import { CARDS, CARD_LIST, type Era } from '../../data';
+import { STORIES } from '../../data/stories';
 import { CardFace, MiniCard } from '../game/CardFace';
 import { go } from '../store';
 
@@ -50,8 +51,16 @@ export function Cards() {
       </div>
       {zoom !== null && (
         <div class="modal" onClick={() => setZoom(null)}>
-          <div class="modal-card" onClick={(e) => e.stopPropagation()}>
-            <CardFace id={zoom} />
+          <div class="modal-card with-story" onClick={(e) => e.stopPropagation()}>
+            <div class="story-wrap">
+              <CardFace id={zoom} />
+              {/* 右侧：卡牌背后的历史 */}
+              <div class="card-story">
+                <div class="cs-title">卡牌背后的故事</div>
+                <div class="cs-name">{CARDS[zoom].zh}<small>{CARDS[zoom].name}</small></div>
+                <p>{STORIES[zoom] ?? '暂无'}</p>
+              </div>
+            </div>
             <div class="row">
               <button type="button" class="btn" disabled={at <= 0} onClick={() => setZoom(list[at - 1].id)}>上一张</button>
               <button type="button" class="btn" onClick={() => setZoom(null)}>关闭</button>

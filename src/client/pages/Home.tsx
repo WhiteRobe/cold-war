@@ -3,6 +3,9 @@ import { AI_LEVEL_ZH, type AiLevel } from '../../ai';
 import { DEFAULT_OPTIONS, type Side } from '../../engine/types';
 import { deleteSave, listSaves, newSave } from '../game/offline';
 import { StrengthBar } from './StrengthBar';
+import { loadRecord } from '../game/record';
+
+const TUTORIAL_PANEL_KEY = 'cw.tutorialPanel';
 import { go, toast } from '../store';
 import { coachOn, resetCoach, setCoach } from '../game/Coach';
 import { AudioToggles } from '../game/Board';
@@ -20,7 +23,19 @@ export function Home() {
     go(`/offline/${s.id}`);
   };
 
+  // 新手教程面板：只有新人（没有任何对局、没开过教程、没手动关掉）才默认展开，否则收成右侧小球
+  const [tutorialOpen, setTutorialOpen] = useState(
+    () => !localStorage.getItem(TUTORIAL_PANEL_KEY) && !Object.keys(loadRecord()).length && !listSaves().length,
+  );
+  const [ballOpen, setBallOpen] = useState(false);
+  const hideTutorial = () => {
+    localStorage.setItem(TUTORIAL_PANEL_KEY, 'hidden');
+    setTutorialOpen(false);
+    setBallOpen(false);
+  };
+
   const tutorial = () => {
+    localStorage.setItem(TUTORIAL_PANEL_KEY, 'started');
     resetCoach();
     const s = newSave('USSR', 1, { ...DEFAULT_OPTIONS }, true);
     go(`/offline/${s.id}`);
@@ -39,23 +54,53 @@ export function Home() {
 
       <StrengthBar />
 
-      <section class="panel tutorial-panel">
-        <div>
-          <h2>第一次玩？</h2>
-          <p>
-            开一局新手教程：你执苏联，对手是最简单的 AI。每遇到一个新情况，都会弹出提示讲清楚规则和界面；
-            会让你当场输掉的操作也会先问一句。完整规则可以看<a href="#/rules">规则摘要</a>。
-          </p>
-        </div>
-        <div class="tutorial-actions">
-          <button type="button" class="btn primary big" onClick={tutorial}>开始新手教程</button>
-          <label class="check">
-            <input type="checkbox" checked={coachOn.value} onChange={(e) => setCoach((e.target as HTMLInputElement).checked)} />
-            普通对局也显示新手提示
-          </label>
-          <button type="button" class="btn small ghost" onClick={() => { resetCoach(); toast('新手提示已重置，会从头再显示一遍'); }}>重置新手提示</button>
-        </div>
-      </section>
+      {tutorialOpen ? (
+        <section class="panel tutorial-panel">
+          <button type="button" class="tp-close" title="收起（以后显示为右侧小球）" onClick={hideTutorial}>✕</button>
+          <div>
+            <h2>第一次玩？</h2>
+            <p>
+              开一局新手教程：你执苏联，对手是最简单的 AI。每遇到一个新情况，都会弹出提示讲清楚规则和界面；
+              会让你当场输掉的操作也会先问一句。完整规则可以看<a href="#/rules">规则摘要</a>。
+            </p>
+          </div>
+          <div class="tutorial-actions">
+            <button type="button" class="btn primary big" onClick={tutorial}>开始新手教程</button>
+            <label class="check">
+              <input type="checkbox" checked={coachOn.value} onChange={(e) => setCoach((e.target as HTMLInputElement).checked)} />
+              普通对局也显示新手提示
+            </label>
+            <button type="button" class="btn small ghost" onClick={() => { resetCoach(); toast('新手提示已重置，会从头再显示一遍'); }}>重置新手提示</button>
+          </div>
+        </section>
+      ) : (
+        <>
+          <button type="button" class={`tutorial-ball${ballOpen ? ' open' : ''}`} title="新手教程" onClick={() => setBallOpen(!ballOpen)}>
+            <span class="tb-icon">🎓</span>
+            <span class="tb-label">新手</span>
+          </button>
+          {ballOpen && (
+            <div class="tutorial-pop panel">
+              <button type="button" class="tp-close" onClick={() => setBallOpen(false)}>✕</button>
+              <div>
+                <h2>新手教程</h2>
+                <p>
+                  开一局新手教程：你执苏联，对手是最简单的 AI。每遇到一个新情况，都会弹出提示讲清楚规则和界面；
+                  会让你当场输掉的操作也会先问一句。完整规则可以看<a href="#/rules">规则摘要</a>。
+                </p>
+              </div>
+              <div class="tutorial-actions">
+                <button type="button" class="btn primary big" onClick={tutorial}>开始新手教程</button>
+                <label class="check">
+                  <input type="checkbox" checked={coachOn.value} onChange={(e) => setCoach((e.target as HTMLInputElement).checked)} />
+                  普通对局也显示新手提示
+                </label>
+                <button type="button" class="btn small ghost" onClick={() => { resetCoach(); toast('新手提示已重置，会从头再显示一遍'); }}>重置新手提示</button>
+              </div>
+            </div>
+          )}
+        </>
+      )}
 
       <div class="home-grid">
         <section class="panel">
