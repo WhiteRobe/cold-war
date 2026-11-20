@@ -19,10 +19,13 @@ const TITLE: Record<CardKind, (n: string) => string> = {
   portugal: (n) => `🇵🇹 ${n}与「葡萄牙帝国崩溃」`,
   kal: (n) => `✈️ ${n}与「击落大韩航空 007」`,
   leader: (n) => `👤 ${n}的人物事件`,
+  leaderUs: (n) => `👤 ${n}的人物事件（美方）`,
   pope: (n) => `⛪ ${n}与「约翰·保罗二世当选教皇」`,
   lady: (n) => `👩 ${n}与「铁娘子」`,
   shake: (n) => `🤝 ${n}与「英美特殊关系」`,
   suez: (n) => `🚢 ${n}与「苏伊士运河危机」`,
+  usjp: (n) => `🤝 ${n}与「美日共同防御协定」`,
+  fist: (n) => `✊ ${n}与「越南起义」`,
   radar: (n) => `📡 ${n}与「北美防空司令部」`,
 };
 const SIDE_CLS = { US: 'us', USSR: 'ussr', NEUTRAL: 'neutral' } as const;

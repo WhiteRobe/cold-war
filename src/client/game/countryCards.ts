@@ -74,14 +74,14 @@ export function cardStatus(v: GameView, id: number): CardStatus {
 }
 
 export type CardKind =
-  | 'bolt' | 'war' | 'score' | 'missile' | 'reds' | 'tent' | 'wall' | 'radar' | 'suez'
-  | 'oil' | 'muslim' | 'canal' | 'portugal' | 'kal' | 'leader' | 'pope' | 'lady' | 'shake';
+  | 'bolt' | 'war' | 'score' | 'missile' | 'reds' | 'tent' | 'wall' | 'radar' | 'suez' | 'usjp' | 'fist'
+  | 'oil' | 'muslim' | 'canal' | 'portugal' | 'kal' | 'leader' | 'pope' | 'lady' | 'shake' | 'leaderUs';
 
 /** 单独成标记的卡 → 标记种类（其余：战争卡 = 交叉步枪，计分卡 = 皇冠，剩下的 = 闪电） */
 const SPECIAL_OF: Record<number, CardKind> = {
-  40: 'missile', 22: 'reds', 65: 'tent', 96: 'wall', 106: 'radar', 28: 'suez',
+  40: 'missile', 22: 'reds', 65: 'tent', 96: 'wall', 106: 'radar', 28: 'suez', 27: 'usjp', 9: 'fist',
   61: 'oil', 56: 'muslim', 64: 'canal', 52: 'portugal', 89: 'kal',
-  8: 'leader', 91: 'leader', 54: 'leader', 15: 'leader', 17: 'leader', 68: 'pope', 83: 'lady', 105: 'shake',
+  8: 'leader', 91: 'leader', 54: 'leader', 15: 'leader', 17: 'leader', 68: 'pope', 83: 'lady', 105: 'shake', 72: 'leaderUs',
 };
 /** 跟在主卡后面一起列出的“让它失效”的卡 */
 const EXTRA: Partial<Record<CardKind, number[]>> = { oil: [86], muslim: [110] };
@@ -89,8 +89,8 @@ export const cardKind = (id: number): CardKind => SPECIAL_OF[id] ?? (CARDS[id].w
 const isSpecial = (k: CardKind) => k !== 'bolt' && k !== 'war' && k !== 'score';
 
 /** 方框右下角（从右往左，闪电永远最右，导弹最左）/ 左下角（从左往右） */
-export const RIGHT_KINDS: CardKind[] = ['bolt', 'war', 'score', 'reds', 'tent', 'wall', 'radar', 'suez', 'missile'];
-export const LEFT_KINDS: CardKind[] = ['oil', 'muslim', 'canal', 'portugal', 'kal', 'leader', 'pope', 'lady', 'shake'];
+export const RIGHT_KINDS: CardKind[] = ['bolt', 'usjp', 'fist', 'war', 'score', 'reds', 'tent', 'wall', 'radar', 'suez', 'missile'];
+export const LEFT_KINDS: CardKind[] = ['oil', 'muslim', 'canal', 'portugal', 'kal', 'leader', 'leaderUs', 'pope', 'lady', 'shake'];
 
 export const GROUP_NOTE: Partial<Record<CardKind, string>> = {
   oil: '产油国：「石油输出国组织」打出时，苏联每控制一个产油国 +1 VP；「北海油田」发动后失效。',

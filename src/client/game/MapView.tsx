@@ -912,6 +912,7 @@ function MarkGlyph({ k }: { k: CardKind }) {
           </g>
         </>
       );
+    case 'leaderUs':
     case 'leader':
       // 人物：白底黄框，红色头肩剪影
       return (
@@ -942,6 +943,30 @@ function MarkGlyph({ k }: { k: CardKind }) {
           <path class="sz-hull" d="M-4.4,0.2 L4.6,0.2 L3.4,2.6 L-3.4,2.6Z" />
           <rect class="sz-deck" x="-2.8" y="-2.2" width="3.6" height="2.4" />
           <rect class="sz-stack" x="1.4" y="-3.4" width="1.3" height="3.6" />
+        </>
+      );
+    case 'usjp':
+      // 美日共同防御：左半蓝底半颗白星，右半白底半个红日，在中线拼成一个
+      return (
+        <>
+          <clipPath id="mk-clip-l"><rect x="-8" y="-8" width="8" height="16" /></clipPath>
+          <clipPath id="mk-clip-r"><rect x="0" y="-8" width="8" height="16" /></clipPath>
+          <circle r="7" class="uj-us" clip-path="url(#mk-clip-l)" />
+          <circle r="7" class="uj-jp" clip-path="url(#mk-clip-r)" />
+          <polygon points={STAR_PTS(0, 0.4, 4.6)} class="uj-star" clip-path="url(#mk-clip-l)" />
+          <circle r="3.6" class="uj-sun" clip-path="url(#mk-clip-r)" />
+          <circle r="7" class="mk-rim uj-rim" />
+        </>
+      );
+    case 'fist':
+      // 越南起义：红框，拳头握住竹竿高举，竿头一面小旗
+      return (
+        <>
+          <circle r="7" />
+          <path class="fs-pole" d="M0.6,6.4 L0.6,-6" />
+          <path class="fs-flag" d="M0.6,-6 L5,-4.8 L0.6,-3.4Z" />
+          <path class="fs-hand" d="M-2.8,0.4 C-2.8,-1.4 -1.6,-2 -0.4,-1.9 L2.2,-1.9 C3,-1.9 3.2,-1 2.6,-0.6 L2.6,1.6 C2.6,2.8 1.6,3.4 0.4,3.4 L-1.6,3.4 L-2,5.8 L-4,5.8 L-3.4,2.8 C-3.2,2 -2.8,1.4 -2.8,0.4Z" />
+          <path class="fs-knuckle" d="M-1.6,-1.8 L-1.6,0 M-0.2,-1.9 L-0.2,0 M1.2,-1.9 L1.2,0" />
         </>
       );
     case 'radar':
