@@ -1293,3 +1293,26 @@ g.links { pointer-events: none; }
 .oil-barrel { animation: obIn 0.6s ease-out; transform-box: fill-box; transform-origin: center bottom; }
 @keyframes obIn { from { opacity: 0; transform: scale(0.4) translateY(-6px); } }
 @media (prefers-reduced-motion: reduce) { .oil-barrel { animation: none; } }
+
+/* 卡牌说明：国家名下划线（被控制时用控制方颜色），美国 / 苏联加粗 */
+.ct-country { text-decoration: underline; text-decoration-thickness: 1.5px; text-underline-offset: 3px; text-decoration-color: #8a8070; }
+.ct-country.ctl-us { color: #2f5d8a; text-decoration-color: #2f5d8a; font-weight: 700; }
+.ct-country.ctl-ussr { color: #b23a2e; text-decoration-color: #b23a2e; font-weight: 700; }
+.ct-side { font-weight: 800; }
+.ct-side.us { color: #2f5d8a; }
+.ct-side.ussr { color: #b23a2e; }
+/* 伊朗人质危机 / 南非动乱 / 团结工会 / 封锁 */
+.c-hostage .ir-sun { fill: #e0a91e; }
+.c-hostage .ir-ray { stroke: #e0a91e; stroke-width: 0.5; }
+.c-unrest circle:first-child { fill: #2a2420; stroke: #f0a050; stroke-width: 1.2; }
+.c-unrest .ur-smoke { fill: #8d8a85; opacity: 0.9; }
+.c-unrest .ur-fire { fill: #e8502a; }
+.c-unrest .ur-core { fill: #f5c542; }
+.c-solidarity circle:first-child { fill: #eef3fa; stroke: #2f5d8a; stroke-width: 1.4; }
+.c-solidarity .so-banner { fill: #3f74b0; }
+.c-solidarity .so-arm { stroke: #24497a; stroke-width: 0.8; stroke-linecap: round; }
+.c-solidarity .so-head { fill: #24497a; }
+.c-solidarity .so-body { fill: #3f74b0; }
+.c-chain circle:first-child { fill: #f1e6d8; stroke: #b5603a; stroke-width: 1.5; }
+.c-chain .ch-link { fill: none; stroke: #1b1b1b; stroke-width: 0.9; }
+.c-unrest:hover circle:first-child, .c-solidarity:hover circle:first-child, .c-chain:hover circle:first-child { stroke-width: 2; }

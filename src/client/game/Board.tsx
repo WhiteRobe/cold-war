@@ -15,6 +15,7 @@ import { SPACE } from '../../engine/space';
 import { MapView } from './MapView';
 import { RADIAL_LIVE_TAGS, Radial, type RadialAnchor } from './Radial';
 import { BoltPopover } from './BoltPopover';
+import { cardView } from './cardCtx';
 import type { CardKind } from './countryCards';
 import { PeekCard, type PeekAnchor } from './PeekCard';
 import type { GameSession } from './session';
@@ -815,6 +816,11 @@ function useGameSounds(view: GameView | null, log: LogEntry[]) {
       setMusicTrack('menu');
     };
   }, []);
+  // 卡牌说明里的国家按当前局面着色
+  useEffect(() => {
+    cardView.value = view;
+  }, [view]);
+  useEffect(() => () => { cardView.value = null; }, []);
   useEffect(() => {
     if (!view) return;
     setMood(view.phase === 'over' ? null : view.defcon, view.vp);

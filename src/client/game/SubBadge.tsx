@@ -1,4 +1,7 @@
 // 西欧 / 东欧徽记和战场国星章：地图方框和卡牌文字里共用，保持一致。
+import { COUNTRY_LIST } from '../../data';
+import { controller } from '../../engine/scoring';
+import type { GameView } from '../../engine/view';
 
 /** 战场国稳定度星章 */
 export function STAR_PTS(cx: number, cy: number, r: number) {
@@ -38,13 +41,23 @@ export function SubIcon({ kind }: { kind: 'w' | 'e' }) {
   );
 }
 
-/** 把文字里的「西欧」「东欧」后面接上对应徽记 */
-export function withSubIcons(text: string) {
-  return text.split(/(西欧|东欧)/).map((part, i) =>
-    part === '西欧' || part === '东欧' ? (
-      <span key={i} class="sub-word">{part}<SubIcon kind={part === '西欧' ? 'w' : 'e'} /></span>
-    ) : (
-      part
-    ),
-  );
+/** 卡牌说明排版：国家名加下划线（已被控制的用控制方颜色），「美国」「苏联」加粗红蓝，「西欧」「东欧」后接徽记 */
+const NAMES = [...COUNTRY_LIST].sort((a, b) => b.zh.length - a.zh.length);
+const BY_ZH = new Map(COUNTRY_LIST.map((c) => [c.zh, c.id]));
+const TOKEN = new RegExp(`(${[...NAMES.map((c) => c.zh), '美国', '苏联', '西欧', '东欧'].map((n) => n.replace(/[/]/g, '\\/')).join('|')})`);
+
+export function richCardText(text: string, view: GameView | null) {
+  return text.split(TOKEN).map((part, i) => {
+    if (part === '西欧' || part === '东欧') return <span key={i} class="sub-word">{part}<SubIcon kind={part === '西欧' ? 'w' : 'e'} /></span>;
+    if (part === '美国') return <b key={i} class="ct-side us">美国</b>;
+    if (part === '苏联') return <b key={i} class="ct-side ussr">苏联</b>;
+    const id = BY_ZH.get(part);
+    if (id) {
+      const ctl = view ? controller(view as never, id) : null;
+      return <span key={i} class={`ct-country${ctl ? ` ctl-${ctl.toLowerCase()}` : ''}`} title={ctl ? `${part}：${ctl === 'US' ? '美国' : '苏联'}控制` : part}>{part}</span>;
+    }
+    return part;
+  });
 }
+
+/** 把文字里的「西欧」「东欧」后面接上对应徽记 */

@@ -1008,6 +1008,61 @@ function MarkGlyph({ k }: { k: CardKind }) {
           <path class="sh-wave" d="M-5,4.8 q1.25,-0.9 2.5,0 t2.5,0 t2.5,0 t2.5,0" />
         </>
       );
+    case 'hostage':
+      // 伊朗人质危机：革命前的伊朗旗——绿白红三横条，中间一轮小金日
+      return (
+        <>
+          <clipPath id="mk-clip-ir"><circle r="7" /></clipPath>
+          <g clip-path="url(#mk-clip-ir)">
+            <rect x="-7" y="-7" width="14" height="4.7" fill="#239f40" />
+            <rect x="-7" y="-2.3" width="14" height="4.6" fill="#f8f8f4" />
+            <rect x="-7" y="2.3" width="14" height="4.7" fill="#da0000" />
+          </g>
+          <circle r="1.5" class="ir-sun" />
+          {[0, 45, 90, 135, 180, 225, 270, 315].map((r) => <path key={r} d="M0,-1.9 L0,-2.6" transform={`rotate(${r})`} class="ir-ray" />)}
+          <circle r="7" class="mk-rim" />
+        </>
+      );
+    case 'unrest':
+      // 南非动乱：深色底，火苗 + 上方两团灰烟
+      return (
+        <>
+          <circle r="7" />
+          <circle cx="-1.8" cy="-4" r="1.9" class="ur-smoke" />
+          <circle cx="1" cy="-4.8" r="2.2" class="ur-smoke" />
+          <path class="ur-fire" d="M0,5.6 C-3.4,5.6 -4,2.4 -2.6,0.2 C-2.2,1.6 -1.4,2 -1,1.8 C-1.6,-0.6 -0.4,-2.4 1,-3 C0.6,-1.4 1.6,-0.6 2.4,0.4 C3.6,1.8 3.4,5.6 0,5.6Z" />
+          <path class="ur-core" d="M0,5.2 C-1.6,5.2 -1.8,3.6 -1,2.6 C-0.6,3.2 0,3.2 0.2,2.6 C0.4,1.8 1,1.6 1.4,2.2 C2,3.2 1.6,5.2 0,5.2Z" />
+        </>
+      );
+    case 'solidarity':
+      // 团结工会：蓝框，三个并肩的人举起一面横幅（自绘，不用工会标志字体）
+      return (
+        <>
+          <circle r="7" />
+          <rect x="-5" y="-5.4" width="10" height="2.6" rx="0.4" class="so-banner" />
+          <path class="so-arm" d="M-3.6,-2.8 L-3.6,-0.6 M3.6,-2.8 L3.6,-0.6" />
+          {[-3.4, 0, 3.4].map((x) => (
+            <g key={x}>
+              <circle cx={x} cy="0.4" r="1.25" class="so-head" />
+              <path d={`M${x - 1.7},5.6 C${x - 1.6},2.8 ${x + 1.6},2.8 ${x + 1.7},5.6Z`} class="so-body" />
+            </g>
+          ))}
+        </>
+      );
+    case 'chain':
+      // 封锁：两条黑色铁链交叉，框偏橙褐
+      return (
+        <>
+          <circle r="7" />
+          {[-45, 45].map((r) => (
+            <g key={r} transform={`rotate(${r})`}>
+              <rect x="-1.3" y="-5.6" width="2.6" height="4.2" rx="1.3" class="ch-link" />
+              <rect x="-1.3" y="-1.9" width="2.6" height="3.8" rx="1.3" class="ch-link" />
+              <rect x="-1.3" y="1.4" width="2.6" height="4.2" rx="1.3" class="ch-link" />
+            </g>
+          ))}
+        </>
+      );
     case 'radar':
       // 北美防空司令部：深绿底雷达屏，扫描扇区 + 两个光点
       return (
