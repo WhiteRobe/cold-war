@@ -26,6 +26,7 @@ const TITLE: Record<CardKind, (n: string) => string> = {
   suez: (n) => `🚢 ${n}与「苏伊士运河危机」`,
   usjp: (n) => `🤝 ${n}与「美日共同防御协定」`,
   fist: (n) => `✊ ${n}与「越南起义」`,
+  scepter: (n) => `👑 ${n}与「罗马尼亚国王退位」`,
   radar: (n) => `📡 ${n}与「北美防空司令部」`,
 };
 const SIDE_CLS = { US: 'us', USSR: 'ussr', NEUTRAL: 'neutral' } as const;

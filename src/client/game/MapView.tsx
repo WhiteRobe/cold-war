@@ -914,82 +914,34 @@ function MarkGlyph({ k }: { k: CardKind }) {
       );
     case 'leaderUs':
     case 'leader':
-      // 人物：白底黄框，红色头肩剪影
+      // 人物：低多边形半身像——几何切面的头部、侧分发型、立领西装与领带，阵营色由 CSS 决定
       return (
         <>
           <circle r="7" />
-          <circle cx="0" cy="-1.6" r="2.4" class="ld-fig" />
-          <path class="ld-fig" d="M-4.6,5.2 C-4.4,2.2 -2.4,1 0,1 C2.4,1 4.4,2.2 4.6,5.2Z" />
+          <polygon class="ld-b" points="-4.9,6.4 -4.2,3.2 -1.6,2 0,3.4 1.6,2 4.2,3.2 4.9,6.4" />
+          <polygon class="ld-a" points="-4.9,6.4 -4.2,3.2 -1.6,2 0,3.4 0,6.4" />
+          <polygon class="ld-c" points="-1.6,2 0,3.4 1.6,2 0.9,1.6 0,2.2 -0.9,1.6" />
+          <polygon class="ld-b" points="-0.5,3.4 0.5,3.4 0.8,6.4 -0.8,6.4" />
+          <polygon class="ld-a" points="-1,1.7 1,1.7 0.8,0.9 -0.8,0.9" />
+          <polygon class="ld-a" points="-2.4,-2.6 -2.2,0 -0.9,1.3 0.9,1.3 2.2,0 2.4,-2.6 0,-3.4" />
+          <polygon class="ld-b" points="0,-3.4 2.4,-2.6 2.2,0 0.9,1.3 0,1.3" />
+          <polygon class="ld-h" points="-2.7,-2.2 -2.6,-4 -1.2,-5.2 1.2,-5.3 2.6,-4.2 2.7,-2.4 1.6,-3.6 -0.8,-3.2" />
         </>
       );
-    case 'shake':
-      // 英美特殊关系：两只手相握，一蓝袖一红袖
+    case 'scepter':
+      // 罗马尼亚国王退位：偏红底，顶着小王冠的权杖从中间折断，两截错开
       return (
         <>
           <circle r="7" />
-          <path class="sh-cuff-a" d="M-6,-1.2 L-3.6,-2.6 L-2.4,-0.4 L-4.8,1Z" />
-          <path class="sh-cuff-b" d="M6,-1.2 L3.6,-2.6 L2.4,-0.4 L4.8,1Z" />
-          <path class="sh-hand" d="M-3.2,-1.6 L-0.6,-3 L1.8,-2.2 L3.2,-1.4 L2.6,0.2 L1.4,1.8 L-0.6,2.6 L-2.2,1.6 L-3,0.2Z" />
-          <path class="sh-line" d="M-0.6,-0.8 L1.6,-1.6 M-0.8,0.6 L1.4,-0.2 M-0.6,1.8 L0.9,1.2" />
-        </>
-      );
-    case 'suez':
-      // 苏伊士运河危机：暗红底，两岸之间的河道里一艘货轮
-      return (
-        <>
-          <circle r="7" />
-          <path class="sz-bank" d="M-7,-2.2 L-2.2,-2.2 L-1.4,-7 M7,-2.2 L2.2,-2.2 L1.4,-7" />
-          <path class="sz-water" d="M-5.6,3.6 q1.4,-1 2.8,0 t2.8,0 t2.8,0 t2.8,0" />
-          <path class="sz-hull" d="M-4.4,0.2 L4.6,0.2 L3.4,2.6 L-3.4,2.6Z" />
-          <rect class="sz-deck" x="-2.8" y="-2.2" width="3.6" height="2.4" />
-          <rect class="sz-stack" x="1.4" y="-3.4" width="1.3" height="3.6" />
-        </>
-      );
-    case 'usjp':
-      // 美日共同防御：左半蓝底半颗白星，右半白底半个红日，在中线拼成一个
-      return (
-        <>
-          <clipPath id="mk-clip-l"><rect x="-8" y="-8" width="8" height="16" /></clipPath>
-          <clipPath id="mk-clip-r"><rect x="0" y="-8" width="8" height="16" /></clipPath>
-          <circle r="7" class="uj-us" clip-path="url(#mk-clip-l)" />
-          <circle r="7" class="uj-jp" clip-path="url(#mk-clip-r)" />
-          <polygon points={STAR_PTS(0, 0.4, 4.6)} class="uj-star" clip-path="url(#mk-clip-l)" />
-          <circle r="3.6" class="uj-sun" clip-path="url(#mk-clip-r)" />
-          <circle r="7" class="mk-rim uj-rim" />
-        </>
-      );
-    case 'fist':
-      // 越南起义：红框，拳头握住竹竿高举，竿头一面小旗
-      return (
-        <>
-          <circle r="7" />
-          <path class="fs-pole" d="M0.6,6.4 L0.6,-6" />
-          <path class="fs-flag" d="M0.6,-6 L5,-4.8 L0.6,-3.4Z" />
-          <path class="fs-hand" d="M-2.8,0.4 C-2.8,-1.4 -1.6,-2 -0.4,-1.9 L2.2,-1.9 C3,-1.9 3.2,-1 2.6,-0.6 L2.6,1.6 C2.6,2.8 1.6,3.4 0.4,3.4 L-1.6,3.4 L-2,5.8 L-4,5.8 L-3.4,2.8 C-3.2,2 -2.8,1.4 -2.8,0.4Z" />
-          <path class="fs-knuckle" d="M-1.6,-1.8 L-1.6,0 M-0.2,-1.9 L-0.2,0 M1.2,-1.9 L1.2,0" />
-        </>
-      );
-    case 'radar':
-      // 北美防空司令部：深绿底雷达屏，扫描扇区 + 两个光点
-      return (
-        <>
-          <circle r="7" />
-          <circle r="4.6" class="rd-ring" />
-          <circle r="2.3" class="rd-ring" />
-          <path class="rd-sweep" d="M0,0 L0,-6 A6,6 0 0 1 5.2,-3Z" />
-          <circle cx="2.4" cy="2.2" r="0.8" class="rd-dot" />
-          <circle cx="-3" cy="-1.4" r="0.7" class="rd-dot" />
-        </>
-      );
-    case 'lady':
-      // 铁娘子：蓝框，蓬松短发的女性侧影 + 珍珠项链
-      return (
-        <>
-          <circle r="7" />
-          <path class="ly-hair" d="M-3.6,-0.6 C-4.4,-4.4 -1.8,-6.4 0.8,-6 C3.4,-5.6 4.4,-3.4 3.8,-0.8 C3.4,0.6 2.6,1 2.2,0.6 L2.2,-1.6 C1.2,-2.6 -1.4,-2.8 -2.2,-1.4 L-2.4,0.8 C-3,0.8 -3.4,0.2 -3.6,-0.6Z" />
-          <path class="ly-face" d="M-2.2,-1.4 C-1.4,-2.8 1.2,-2.6 2.2,-1.6 L2.2,0.6 C1.8,1.8 1,2.4 0,2.4 C-1,2.4 -1.8,1.8 -2.2,0.8Z" />
-          <path class="ly-suit" d="M-4.8,5.8 C-4.6,3.6 -2.8,2.6 -1,2.4 L0,3.4 L1,2.4 C2.8,2.6 4.6,3.6 4.8,5.8Z" />
-          <path class="ly-pearl" d="M-1.2,2.9 Q0,3.9 1.2,2.9" />
+          <g transform="rotate(-30)">
+            <polygon class="sc-crown" points="-1.8,-4.4 -1.8,-6.2 -0.9,-5.2 0,-6.6 0.9,-5.2 1.8,-6.2 1.8,-4.4" />
+            <polygon class="sc-rod" points="-0.8,-4.4 0.8,-4.4 0.8,-0.9 0.1,-0.3 -0.6,-1.1 -0.8,-0.5" />
+          </g>
+          <g transform="translate(1.6,1.2) rotate(-12)">
+            <polygon class="sc-rod" points="-0.8,0.3 -0.1,-0.4 0.4,0.4 0.8,-0.1 0.8,4.6 -0.8,4.6" />
+            <circle cx="0" cy="5.1" r="1" class="sc-crown" />
+          </g>
+          <path class="sc-crack" d="M-2.6,-0.6 L-1.4,0.1 M2.6,-1.2 L3.6,-1.8 M-0.4,1.8 L-1.2,2.8" />
         </>
       );
     case 'pope':

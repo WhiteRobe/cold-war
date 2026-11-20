@@ -1178,7 +1178,11 @@ g.links { pointer-events: none; }
 .c-kal .kl-plane { fill: #2a5fa8; }
 .c-kal .kl-trail { fill: none; stroke: #2a5fa8; stroke-width: 0.8; stroke-linecap: round; opacity: 0.7; }
 .c-leader circle { fill: #fbfaf6; stroke: #e0b020; stroke-width: 1.4; }
-.c-leader .ld-fig { fill: #c0322a; }
+/* 人物半身像的四种切面色：亮面 / 暗面 / 衬衫领 / 头发 */
+.c-leader .ld-a { fill: #d8463a; }
+.c-leader .ld-b { fill: #a42a20; }
+.c-leader .ld-c { fill: #fbfaf6; }
+.c-leader .ld-h { fill: #5c1712; }
 .c-pope circle { fill: #fbfaf6; stroke: #2f5d8a; stroke-width: 1.4; }
 .c-pope .pp-mitre { fill: #f6e7b0; stroke: #b8962e; stroke-width: 0.4; stroke-linejoin: round; }
 .c-pope .pp-mitre-dark { fill: #e5cf7c; }
@@ -1257,5 +1261,14 @@ g.links { pointer-events: none; }
 .c-fist:hover circle { stroke-width: 2; }
 /* 美方人物（萨达特）：白底蓝框蓝色头像 */
 .c-leaderUs circle { fill: #fbfaf6; stroke: #2f5d8a; stroke-width: 1.4; }
-.c-leaderUs .ld-fig { fill: #2f5d8a; }
+.c-leaderUs .ld-a { fill: #3f74b0; }
+.c-leaderUs .ld-b { fill: #24497a; }
+.c-leaderUs .ld-c { fill: #fbfaf6; }
+.c-leaderUs .ld-h { fill: #142a4a; }
 .c-leaderUs:hover circle { stroke-width: 2; }
+/* 罗马尼亚国王退位：暗红底，金色折断权杖 */
+.c-scepter circle { fill: #8f2c23; stroke: #f0b0a0; stroke-width: 1.2; }
+.c-scepter .sc-crown { fill: #f5d76e; }
+.c-scepter .sc-rod { fill: #f3e2b0; stroke: #7a5a1c; stroke-width: 0.35; stroke-linejoin: round; }
+.c-scepter .sc-crack { stroke: #f5d76e; stroke-width: 0.5; stroke-linecap: round; }
+.c-scepter:hover circle { stroke-width: 2; }
