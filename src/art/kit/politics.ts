@@ -64,11 +64,23 @@ export function flag(o: At, kind: FlagKind, w = 50, h = 32, colors?: string[]): 
       face += R(x0 + w / 2 - 5, top, 10, h, C.white) + R(x0, top + h / 2 - 5, w, 10, C.white);
       face += R(x0 + w / 2 - 3, top, 6, h, C.su) + R(x0, top + h / 2 - 3, w, 6, C.su);
       break;
-    case 'nato':
+    case 'nato': {
+      // 深蓝底 + 圆环 + 四角罗盘星（每个尖角分亮暗两半）+ 四向延伸的白线
       face += R(x0, top, w, h, C.us3);
-      face += star(x0 + w / 2, top + h / 2, h * 0.36, C.white, C.white2);
-      face += line(x0 + w / 2 - h * 0.45, top + h / 2, x0 + w / 2 + h * 0.45, top + h / 2, 1, C.white);
+      const cx = x0 + w / 2, cy = top + h / 2, r = h * 0.4;
+      face += line(cx - r * 1.35, cy, cx - r * 0.55, cy, 1, C.white) + line(cx + r * 0.55, cy, cx + r * 1.35, cy, 1, C.white);
+      face += line(cx, cy - r * 1.1, cx, cy - r * 0.55, 1, C.white) + line(cx, cy + r * 0.55, cx, cy + r * 1.1, 1, C.white);
+      const ring = ngon(cx, cy, r * 0.62, 24, 0);
+      face += poly(ring, C.white) + poly(ngon(cx, cy, r * 0.52, 24, 0), C.us3);
+      for (let k = 0; k < 4; k++) {
+        const a = (k * Math.PI) / 2 - Math.PI / 2;
+        const tip = [cx + Math.cos(a) * r, cy + Math.sin(a) * r];
+        const l = [cx + Math.cos(a - Math.PI / 4) * r * 0.2, cy + Math.sin(a - Math.PI / 4) * r * 0.2];
+        const rr = [cx + Math.cos(a + Math.PI / 4) * r * 0.2, cy + Math.sin(a + Math.PI / 4) * r * 0.2];
+        face += poly([cx, cy, tip[0], tip[1], l[0], l[1]], C.white) + poly([cx, cy, tip[0], tip[1], rr[0], rr[1]], C.sky2);
+      }
       break;
+    }
     case 'un':
       face += R(x0, top, w, h, C.sky2);
       face += poly(ngon(x0 + w / 2, top + h / 2, h * 0.32, 8, 22.5), C.white);

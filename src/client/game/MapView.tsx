@@ -382,13 +382,14 @@ export function MapView({ view, selectable, onPick, flash, onRegion, focus, onBo
         {view.flags.usJapan && <Carrier x={1812} y={490} />}
         {view.flags.deGaulle && <FrenchFlag x={676} y={396} />}
         {view.flags.nuclearSubs && <NuclearSub x={505} y={440} />}
+        {view.flags.marshall && <AidShip x={452} y={262} />}
         {view.flags.chernobyl && (
           <g transform="translate(1078,300)" class="cb-ukr">
             <title>切尔诺贝利：本回合苏联不能用行动点在{REGION_ZH[view.flags.chernobyl]}放置影响力</title>
             <Radiation r={11} />
           </g>
         )}
-        {view.flags.flowerPower && <FlowerFields at={[[1012, 232], [1062, 258], [1112, 226]]} />}
+        {view.flags.flowerPower && <AntiWarProtest x={262} y={318} />}
         <text x={MAP_W - 8} y={pos('japan')[1] + 38} class="edge-label" text-anchor="end">→ 美国</text>
         <text x={8} y={pos('usa')[1] - 10} class="edge-label">日本 ←</text>
         {COUNTRY_LIST.map((c) => (
@@ -1081,31 +1082,36 @@ function FrenchFlag({ x, y }: { x: number; y: number }) {
   );
 }
 
-/** 花之力生效：苏联西部冒出几片花田 */
-function FlowerFields({ at }: { at: [number, number][] }) {
-  const COLORS = ['#f2a3c0', '#f5d76e', '#fbfaf6', '#c9a0e8', '#f08a7c'];
+/** 花之力生效：美国国土上一群反战游行的人举着标语牌 */
+function AntiWarProtest({ x, y }: { x: number; y: number }) {
+  const people = [
+    { dx: -18, sign: 'peace', c: '#c9a06a' },
+    { dx: -7, sign: 'NO WAR', c: '#7a9a5a' },
+    { dx: 5, sign: 'heart', c: '#b5703a' },
+    { dx: 16, sign: 'PEACE', c: '#8a6aa8' },
+  ];
   return (
-    <g class="flower-fields">
-      <title>花之力：美国每打出一张战争牌（太空竞赛除外），苏联 +2 VP</title>
-      {at.map(([x, y], fi) => (
-        <g key={fi} transform={`translate(${x},${y})`}>
-          <ellipse cx="0" cy="2" rx="20" ry="7" class="ff-grass" />
-          {Array.from({ length: 7 }, (_, i) => {
-            const fx = -14 + i * 4.6 + ((i * 7 + fi * 3) % 5) - 2;
-            const fy = -1 + ((i * 5 + fi) % 4) * 1.6;
-            const col = COLORS[(i + fi * 2) % COLORS.length];
-            return (
-              <g key={i} transform={`translate(${fx},${fy})`} class="ff-flower" style={{ animationDelay: `${-(i * 0.4 + fi)}s` }}>
-                <path d="M0,0 L0,5" class="ff-stem" />
-                {[0, 72, 144, 216, 288].map((r) => (
-                  <ellipse key={r} cx="0" cy="-1.6" rx="1.1" ry="1.7" fill={col} transform={`rotate(${r})`} />
-                ))}
-                <circle r="0.9" class="ff-core" />
-              </g>
-            );
-          })}
-        </g>
-      ))}
+    <g transform={`translate(${x},${y}) scale(1.4)`}>
+      <g class="aw-crowd">
+        <title>花之力：反战运动高涨——美国每打出一张战争牌（太空竞赛除外），苏联 +2 VP</title>
+        {people.map((p, i) => (
+          <g key={i} transform={`translate(${p.dx},${(i % 2) * 2})`} class="aw-person" style={{ animationDelay: `${-i * 0.35}s` }}>
+            <path d="M0,-8 L0,-20" class="aw-stick" />
+            <rect x="-6" y="-29" width="12" height="9" rx="1" class="aw-sign" />
+            {p.sign === 'peace' ? (
+              <g transform="translate(0,-24.5)"><circle r="3.2" class="aw-mark" /><path d="M0,-3.2 L0,3.2 M0,0.4 L-2.3,2.3 M0,0.4 L2.3,2.3" class="aw-mark" /></g>
+            ) : p.sign === 'heart' ? (
+              <path d="M0,-21.8 C-4,-24 -3.4,-27.6 0,-25.8 C3.4,-27.6 4,-24 0,-21.8Z" class="aw-heart" />
+            ) : (
+              <text x="0" y="-22.6" class="aw-text">{p.sign}</text>
+            )}
+            <circle cx="0" cy="-5" r="2.6" class="aw-head" />
+            <path d="M-3.4,6 L-2.8,-2 Q0,-3.4 2.8,-2 L3.4,6Z" fill={p.c} />
+            <path d="M1.8,-1.6 L0.6,-12" class="aw-arm" />
+          </g>
+        ))}
+        <path d="M-26,7 L26,7" class="aw-ground" />
+      </g>
     </g>
   );
 }
@@ -1141,6 +1147,28 @@ function NuclearSub({ x, y }: { x: number; y: number }) {
         <circle cx="16" cy="-1" r="1.2" class="sb-port" />
         <circle cx="22" cy="-1" r="1.2" class="sb-port" />
         <path d="M-40,8 q4,-3 8,0 t8,0 M36,8 q4,-3 8,0 t8,0" class="sb-wave" />
+      </g>
+    </g>
+  );
+}
+
+/** 马歇尔计划生效：北大西洋上一艘满载援助物资驶向欧洲的货船 */
+function AidShip({ x, y }: { x: number; y: number }) {
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <g class="ms-ship">
+        <title>马歇尔计划：美国援助西欧重建（之后《北大西洋公约组织》可以作为事件打出）</title>
+        <path d="M-30,8 q4,-3 8,0 t8,0 t8,0 t8,0 t8,0 t8,0 t8,0" class="cv-wave" />
+        <polygon points="-26,4 24,4 30,-3 -28,-3" class="ms-hull" />
+        <polygon points="-28,-3 30,-3 29,-1 -27,-1" class="ms-stripe" />
+        <rect x="-20" y="-10" width="8" height="7" class="ms-box a" />
+        <rect x="-11" y="-10" width="8" height="7" class="ms-box b" />
+        <rect x="-16" y="-16" width="8" height="6" class="ms-box b" />
+        <rect x="-2" y="-10" width="8" height="7" class="ms-box a" />
+        <polygon points="12,-3 22,-3 22,-11 14,-11" class="ms-bridge" />
+        <rect x="16" y="-17" width="3" height="6" class="ms-funnel" />
+        <circle cx="17.5" cy="-20" r="2" class="ms-smoke" />
+        <circle cx="15" cy="-23.5" r="2.6" class="ms-smoke" />
       </g>
     </g>
   );

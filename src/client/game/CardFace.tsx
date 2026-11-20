@@ -59,7 +59,7 @@ export function CardFace({ id, faceDown }: { id: number; faceDown?: boolean }) {
         {c.war && <span class="tag-war">战争</span>}
         {id === CHINA_CARD && <span>不计入手牌</span>}
       </div>
-      <div class="cf-text">{richCardText(c.text, cardView.value)}</div>
+      <div class="cf-text">{richCardText(c.text, cardView.value, id)}</div>
       <div class="cf-foot">
         <span>{ERA_ZH[c.era]}</span>
         {c.optional && <span>可选卡</span>}

@@ -6,6 +6,7 @@ import { setMusicTrack } from './audio';
 import { Home } from './pages/Home';
 import { lazy } from './ui/lazy';
 import { Board } from './game/Board';
+import { CardRefPeek } from './game/CardRefPeek';
 import { getSave, offlineSession } from './game/offline';
 import type { GameSession } from './game/session';
 
@@ -97,6 +98,7 @@ function App() {
     <>
       {page}
       {toastMsg.value && <div class="toast">{toastMsg.value}</div>}
+      <CardRefPeek />
     </>
   );
 }

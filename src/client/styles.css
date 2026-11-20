@@ -1535,14 +1535,19 @@ g.links { pointer-events: none; }
 .fr-knob { fill: #f5d76e; }
 .fr-cloth { animation: frWave 2.2s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: left center; }
 @keyframes frWave { to { transform: skewY(-5deg) scaleX(0.93); } }
-/* 花之力：苏联西部花田 */
-.flower-fields { cursor: help; animation: nsIn 1.4s ease-out; }
-.ff-grass { fill: #6f9a4e; opacity: 0.85; }
-.ff-stem { stroke: #3f6b2a; stroke-width: 0.7; }
-.ff-core { fill: #f5b030; }
-.ff-flower { animation: ffSway 2.6s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: center bottom; }
-@keyframes ffSway { from { rotate: -6deg; } to { rotate: 6deg; } }
-@media (prefers-reduced-motion: reduce) { .fr-cloth, .ff-flower { animation: none; } }
+/* 花之力：美国反战游行人群 */
+.aw-crowd { cursor: help; animation: nsIn 1.2s ease-out; filter: drop-shadow(0 2px 2px #0006); }
+.aw-person { animation: awMarch 1.1s ease-in-out infinite alternate; }
+@keyframes awMarch { to { transform: translateY(-1.5px); } }
+.aw-stick { stroke: #6b4a2a; stroke-width: 0.9; }
+.aw-sign { fill: #fbfaf6; stroke: #2a2420; stroke-width: 0.6; }
+.aw-mark { fill: none; stroke: #2a2420; stroke-width: 0.8; }
+.aw-heart { fill: #d8463a; }
+.aw-text { font-size: 3.6px; font-weight: 900; fill: #2a2420; text-anchor: middle; }
+.aw-head { fill: #e3b98f; }
+.aw-arm { stroke: #e3b98f; stroke-width: 1.3; stroke-linecap: round; }
+.aw-ground { stroke: #0003; stroke-width: 2; stroke-linecap: round; }
+@media (prefers-reduced-motion: reduce) { .fr-cloth, .aw-person { animation: none; } }
 
 /* 切尔诺贝利：核辐射标志 */
 .radiation .rd-bg { fill: #f5d33a; stroke: #1b1712; stroke-width: 1; }
@@ -1564,3 +1569,30 @@ g.links { pointer-events: none; }
 .sb-port { fill: #f5d76e; }
 .sb-wave { fill: none; stroke: #e8f4fb; stroke-width: 1; stroke-linecap: round; opacity: 0.8; }
 @media (prefers-reduced-motion: reduce) { .ns-sub { animation: none; } }
+
+/* 卡牌说明：计分规则单独一行、引用卡名、能否发动 */
+.ct-rule { font-weight: 800; color: #5c4a1c; background: #f5d76e33; border-left: 3px solid #c9a23a; padding: 2px 8px; margin: 0 0 6px; border-radius: 2px; }
+.ct-card { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; font-weight: 700; cursor: help; }
+.ct-card.side-us { color: #2f5d8a; text-decoration-color: #2f5d8a; }
+.ct-card.side-ussr { color: #b23a2e; text-decoration-color: #b23a2e; }
+.ct-card.side-neutral { color: #5a5448; text-decoration-color: #8a8070; }
+.ct-st { font-size: 0.72em; font-weight: 700; margin-left: 3px; padding: 0 4px; border-radius: 6px; text-decoration: none; display: inline-block; vertical-align: 0.1em; }
+.ct-st.on { background: #4f7d52; color: #fff; }
+.ct-st.off { background: #8a8070; color: #fff; }
+.ct-gated { text-decoration: line-through; opacity: 0.5; }
+.ct-ready { margin-top: 6px; font-size: 0.9em; font-weight: 800; }
+.ct-ready.ok { color: #3e7a3a; }
+.ct-ready.no { color: #a8331f; }
+.ref-peek { position: fixed; z-index: 200; pointer-events: none; filter: drop-shadow(0 12px 28px #000b); animation: rpIn 0.15s ease-out; }
+@keyframes rpIn { from { opacity: 0; transform: translateY(4px); } }
+/* 马歇尔计划：大西洋援助货船 */
+.ms-ship { cursor: help; animation: nsIn 1.2s ease-out, msSail 4s ease-in-out 1.2s infinite alternate; filter: drop-shadow(0 2px 2px #0006); }
+@keyframes msSail { to { transform: translate(6px, 1px); } }
+.ms-hull { fill: #3a4656; stroke: #11161d; stroke-width: 0.7; }
+.ms-stripe { fill: #c9302a; }
+.ms-box.a { fill: #c9a06a; stroke: #5a4024; stroke-width: 0.5; }
+.ms-box.b { fill: #b5864e; stroke: #5a4024; stroke-width: 0.5; }
+.ms-bridge { fill: #e9e4d8; stroke: #11161d; stroke-width: 0.5; }
+.ms-funnel { fill: #2f5d8a; }
+.ms-smoke { fill: #c8c4bc; opacity: 0.7; }
+@media (prefers-reduced-motion: reduce) { .ms-ship { animation: none; } }
