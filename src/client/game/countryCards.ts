@@ -84,7 +84,7 @@ const SPECIAL_OF: Record<number, CardKind> = {
   8: 'leader', 91: 'leader', 54: 'leader', 15: 'leader', 17: 'leader', 68: 'pope', 83: 'lady', 105: 'shake', 72: 'leaderUs', 55: 'leader', 12: 'scepter',
 };
 /** 跟在主卡后面一起列出的“让它失效”的卡 */
-const EXTRA: Partial<Record<CardKind, number[]>> = { oil: [86], muslim: [110] };
+const EXTRA: Partial<Record<CardKind, number[]>> = { oil: [86] };
 export const cardKind = (id: number): CardKind => SPECIAL_OF[id] ?? (CARDS[id].war ? 'war' : CARDS[id].scoring ? 'score' : 'bolt');
 const isSpecial = (k: CardKind) => k !== 'bolt' && k !== 'war' && k !== 'score';
 
@@ -94,7 +94,7 @@ export const LEFT_KINDS: CardKind[] = ['scepter', 'oil', 'muslim', 'canal', 'por
 
 export const GROUP_NOTE: Partial<Record<CardKind, string>> = {
   oil: '产油国：「石油输出国组织」打出时，苏联每控制一个产油国 +1 VP；「北海油田」发动后失效。',
-  muslim: '穆斯林革命目标国：苏联打出「穆斯林革命」时，从这些国家里选两个清空美国影响力；「向沙特出售预警机」发动后失效。',
+  muslim: '穆斯林革命目标国：苏联打出「穆斯林革命」时，从这些国家里选两个清空美国影响力；美国的「向沙特出售预警机」（见沙特的闪电标记）发动后失效。',
   canal: '巴拿马运河：美国打出「归还巴拿马运河」时，在巴拿马、哥斯达黎加、委内瑞拉各加 1 点美国影响力。',
 };
 
