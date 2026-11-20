@@ -1,6 +1,6 @@
 // 地图特效：放影响力插旗、取得控制的冲击波、按「现在计分」实时着色的阵营雾气。
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { COUNTRY_LIST, REGIONS, countriesIn, type RegionId, type Side } from '../../data';
+import { COUNTRIES, COUNTRY_LIST, REGIONS, countriesIn, type RegionId, type Side } from '../../data';
 import { controller, scoreRegion, scoreSEA } from '../../engine/scoring';
 import type { GameView } from '../../engine/view';
 import { sfx } from '../audio';
@@ -182,7 +182,14 @@ export function FxLayer({ fx, pos }: { fx: Fx[]; pos: Pos }) {
 /** 每个区域此刻打出计分卡谁领先、领先多少；领先越多雾越浓。
  *  双方在区域里都控制了国家时不再整片铺色，只在各自控制的国家周围起雾，红蓝交错；
  *  但领先方已经支配或控制该区域时，仍然整片铺领先方的颜色；控制时雾最浓、范围更大并缓慢脉动。 */
-interface FogEntry { key: string; region: string; side: Side; k: number; ids: string[]; r: number; strong?: boolean }
+interface FogEntry { key: string; region: string; side: Side; k: number; ids: string[]; r: number; strong?: boolean; pairs: [string, string][] }
+/** ids 里两两相邻的国家对：在连线中点补一团雾，让分散的国家（亚洲尤其）光晕连成片 */
+function adjPairs(ids: string[]): [string, string][] {
+  const set = new Set(ids);
+  const out: [string, string][] = [];
+  for (const a of ids) for (const b of COUNTRIES[a].adj) if (b > a && set.has(b)) out.push([a, b]);
+  return out;
+}
 function liveFog(view: GameView): FogEntry[] {
   const out: FogEntry[] = [];
   const sea = new Set(countriesIn('southeastAsia').map((c) => c.id));
@@ -199,22 +206,23 @@ function liveFog(view: GameView): FogEntry[] {
     if (ctl.US.length && ctl.USSR.length && !(whole && side)) {
       // 交错：领先方用原浓度（不低于 0.5），落后方 / 平手固定 0.45；半径收小，避免两色糊成紫
       for (const sd of ['US', 'USSR'] as const) {
-        out.push({ key: `${region}-${sd}`, region, side: sd, k: sd === side ? Math.max(0.5, k) : 0.45, ids: ctl[sd], r: radius(region) * 0.72 });
+        out.push({ key: `${region}-${sd}`, region, side: sd, k: sd === side ? Math.max(0.5, k) : 0.45, ids: ctl[sd], r: radius(region) * 0.72, pairs: adjPairs(ctl[sd]) });
       }
-    } else if (side) out.push({ key: region, region, side, k: strong ? 1 : k, ids, r: radius(region) * (strong ? 1.2 : 1), strong });
+    } else if (side) out.push({ key: region, region, side, k: strong ? 1 : k, ids, r: radius(region) * (strong ? 1.2 : 1), strong, pairs: adjPairs(ids) });
   };
   for (const r of REGIONS) {
     const shuttle = !!view.flags.shuttle && (r === 'asia' || r === 'middleEast');
     const sc = scoreRegion(view as never, r, { formosan: view.flags.formosan, shuttle });
     const side = sc.autoWin ?? (sc.net > 0 ? 'US' : sc.net < 0 ? 'USSR' : null);
     const ids = countriesIn(r as never).map((c) => c.id);
-    // 亚洲的雾不盖到东南亚（东南亚单独计分）
+    // 东南亚本身就属于亚洲计分，亚洲的雾也要盖到东南亚国家
     const strong = !!side && sc[side].level === 'control';
     const whole = !!sc.autoWin || strong || (!!side && sc[side].level === 'domination');
-    push(r, r === 'asia' ? ids.filter((id) => !sea.has(id)) : ids, side, sc.autoWin ? 1 : Math.min(1, 0.22 + Math.abs(sc.net) * 0.12), whole, strong);
+    push(r, ids, side, sc.autoWin ? 1 : Math.min(1, 0.22 + Math.abs(sc.net) * 0.12), whole, strong);
   }
+  // 东南亚单独计分只有一次：计分卡打出移除后不再单独起雾
   const s = scoreSEA(view as never);
-  push('southeastAsia', [...sea], s.net > 0 ? 'US' : s.net < 0 ? 'USSR' : null, Math.min(1, 0.22 + Math.abs(s.net) * 0.16));
+  if (!view.removed.includes(38)) push('southeastAsia', [...sea], s.net > 0 ? 'US' : s.net < 0 ? 'USSR' : null, Math.min(1, 0.22 + Math.abs(s.net) * 0.16));
   return out;
 }
 
@@ -234,9 +242,15 @@ export function FogLayer({ view, fresh, pos }: { view: GameView; fresh: Set<stri
           <stop offset="1" stop-color="#c9503f" stop-opacity="0" />
         </radialGradient>
       </defs>
-      {entries.map(({ key, region: r, side, k, ids, r: rad, strong }) => (
+      {entries.map(({ key, region: r, side, k, ids, r: rad, strong, pairs }) => (
         <g key={key} opacity={k.toFixed(2)} class={`fog-wrap${strong ? ' strong' : ''}`}>
           <g class={`fog fog-${side.toLowerCase()}${fresh.has(r) ? ' fresh' : ''}`}>
+            {pairs.map(([a, b], i) => {
+              const [x1, y1] = pos(a), [x2, y2] = pos(b);
+              // 两国太近就不必补（本身已经连上）
+              if (Math.hypot(x2 - x1, y2 - y1) < rad * 0.9) return null;
+              return <circle key={a + b} cx={(x1 + x2) / 2} cy={(y1 + y2) / 2} r={rad * 0.8} fill={`url(#fog${side})`} class="fog-puff" style={{ animationDelay: `${-((i * 2.3) % 9)}s`, animationDuration: `${9 + (i % 4)}s` }} />;
+            })}
             {ids.map((id, i) => {
               const [x, y] = pos(id);
               return (
