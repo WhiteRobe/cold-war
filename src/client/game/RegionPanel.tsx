@@ -42,15 +42,18 @@ export function RegionCard({ v, region }: { v: GameView; region: RegionId | 'sou
   const ussr = list.filter((c) => ctl(c.id) === 'USSR').length;
   const bgs = list.filter((c) => c.bg || (region === 'asia' && c.id === 'taiwan' && v.flags.formosan && ctl('taiwan') === 'US'));
   let now: string, lvUs = '', lvUssr = '', final: number | null = null, auto: Side | undefined;
+  let tilt = 0;
   if (region === 'southeastAsia') {
     const sc = scoreSEA(v as never);
     now = signed(sc.net);
+    tilt = sc.net;
     lvUs = `${sc.points.US} 分`;
     lvUssr = `${sc.points.USSR} 分`;
   } else {
     const shuttle = !!v.flags.shuttle && (region === 'asia' || region === 'middleEast');
     const sc = scoreRegion(v as never, region, { formosan: v.flags.formosan, shuttle });
     now = sc.autoWin ? `${sc.autoWin === 'US' ? '美' : '苏'}控制即胜` : signed(sc.net);
+    tilt = sc.autoWin ? (sc.autoWin === 'US' ? 99 : -99) : sc.net;
     lvUs = `${LV_ZH[sc.US.level]} ${sc.points.US}`;
     lvUssr = `${LV_ZH[sc.USSR.level]} ${sc.points.USSR}`;
     const fin = scoreRegion(v as never, region, { formosan: v.flags.formosan });
@@ -65,6 +68,7 @@ export function RegionCard({ v, region }: { v: GameView; region: RegionId | 'sou
         <span class="rp-lv us">{lvUs}</span>
         <span class="rp-lv ussr">{lvUssr}</span>
       </div>
+      <Balance net={tilt} />
       <Bar us={us} ussr={ussr} total={list.length} />
       <div class="rp-bgs">
         <span class="rp-k">战场国</span>
@@ -111,5 +115,33 @@ export function RegionPanel({ view }: { view: GameView }) {
       <RegionCard v={view} region="southeastAsia" />
       <div class="pop-note">现在计分 = 此刻打出计分卡的结果；终局 = 第 10 回合结束时的得分。</div>
     </div>
+  );
+}
+
+/** 天平：「现在计分」谁领先就往谁那边沉（美左苏右），领先越多倾得越厉害 */
+function Balance({ net }: { net: number }) {
+  const deg = -Math.max(-16, Math.min(16, net * 2.6));
+  const rad = (deg * Math.PI) / 180;
+  const L = 52;
+  const end = (s: number) => [60 + s * L * Math.cos(rad), 14 + s * L * Math.sin(rad)];
+  const [lx, ly] = end(-1), [rx, ry] = end(1);
+  const lean = net > 0 ? '美国' : net < 0 ? '苏联' : '';
+  return (
+    <svg class="rp-balance" viewBox="0 0 120 40" width="120" height="40">
+      <title>{lean ? `现在计分${lean}领先，天平向${lean}一侧倾斜` : '现在计分双方打平'}</title>
+      <path d="M60,14 L60,34 M50,36 L70,36" class="bl-post" />
+      <path d="M56,36 L60,32 L64,36Z" class="bl-post-fill" />
+      <g class="bl-beam-g">
+        <line x1={lx} y1={ly} x2={rx} y2={ry} class="bl-beam" />
+      </g>
+      <circle cx="60" cy="14" r="2.4" class="bl-pivot" />
+      {([[lx, ly, 'us'], [rx, ry, 'ussr']] as const).map(([x, y, side]) => (
+        <g key={side} class={`bl-pan ${side}`}>
+          <path d={`M${x},${y} L${x - 9},${y + 12} M${x},${y} L${x + 9},${y + 12}`} class="bl-string" />
+          <path d={`M${x - 11},${y + 12} Q${x},${y + 19} ${x + 11},${y + 12}Z`} class="bl-dish" />
+          <text x={x} y={y + 11} class="bl-label">{side === 'us' ? '美' : '苏'}</text>
+        </g>
+      ))}
+    </svg>
   );
 }

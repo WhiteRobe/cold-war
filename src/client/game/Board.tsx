@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { CARDS, CARD_LIST, CHINA_CARD, COUNTRY_LIST, REGION_ZH, type RegionId, type Side } from '../../data';
 import { REGION_POINTS, scoreRegion } from '../../engine/scoring';
 import type { Choice, Decision, LogEntry } from '../../engine/types';
-import { Coach, coachOn, danger, setCoach, suicide } from './Coach';
+import { Coach, coachOn, danger, instantOutcome, setCoach, suicide } from './Coach';
 import type { GameView } from '../../engine/view';
 import { audioPrefs, setAudioPrefs, setMood, setMusicTrack, sfx } from '../audio';
 import { go, toast } from '../store';
@@ -15,6 +15,7 @@ import { SPACE } from '../../engine/space';
 import { MapView } from './MapView';
 import { RADIAL_LIVE_TAGS, Radial, type RadialAnchor } from './Radial';
 import { BoltPopover } from './BoltPopover';
+import { TurnClock } from './TurnClock';
 import { cardView } from './cardCtx';
 import type { CardKind } from './countryCards';
 import { PeekCard, type PeekAnchor } from './PeekCard';
@@ -67,6 +68,7 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
   const [tab, setTab] = useState<'log' | 'headlines' | 'cards' | 'regions' | 'help'>('log');
   const flash = useFlash(view);
   useGameSounds(view, view?.log ?? []);
+  const clockTurn = useTurnClock(view);
   const [overSeen, setOverSeen] = useState(false);
   const [handOpen, setHandOpen] = useState(false);
   const [confirm, setConfirm] = useState<{ msg: string; v: Choice } | null>(null);
@@ -191,8 +193,10 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
           {myHand.map((c) => {
             const isChina = c === CHINA_CARD;
             const active = handOpts.has(c);
+            // 轮到你出牌时：打出就赢的牌泛金光，打出就输的牌泛紫黑光
+            const fate = active && (d?.tag === 'play' || d?.tag === 'headline') ? instantOutcome(view, c) : null;
             return (
-              <div key={c} data-hand={c} class={`hand-slot${lift?.id === c || radial?.card === c ? ' lifted' : ''}`} onPointerEnter={(e) => !radial && liftCard(c, e.currentTarget as HTMLElement)} onPointerLeave={dropCard}>
+              <div key={c} data-hand={c} title={fate?.why} class={`hand-slot${lift?.id === c || radial?.card === c ? ' lifted' : ''}${fate ? ` fate-${fate.kind}` : ''}`} onPointerEnter={(e) => !radial && liftCard(c, e.currentTarget as HTMLElement)} onPointerLeave={dropCard}>
                 <MiniCard
                   id={c}
                   active={active}
@@ -245,6 +249,7 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
         />
       )}
       <Coach view={view} force={tutorial} />
+      {clockTurn !== null && <TurnClock key={clockTurn} turn={clockTurn} />}
       {confirm && (
         <div class="modal" onClick={() => setConfirm(null)}>
           <div class="modal-box danger-box" onClick={(e) => e.stopPropagation()}>
@@ -803,6 +808,22 @@ export function AudioToggles({ musicOnly }: { musicOnly?: boolean }) {
       )}
     </div>
   );
+}
+
+/** 回合数增加时播一次时钟过场（读档、首次进入不播） */
+function useTurnClock(view: GameView | null) {
+  const last = useRef<number | null>(null);
+  const [turn, setTurn] = useState<number | null>(null);
+  useEffect(() => {
+    if (!view) return;
+    const p = last.current;
+    last.current = view.turn;
+    if (p === null || view.turn <= p || view.phase === 'over') return;
+    setTurn(view.turn);
+    const t = setTimeout(() => setTurn(null), 3000);
+    return () => clearTimeout(t);
+  }, [view?.turn]);
+  return turn;
 }
 
 /** 根据局面变化播放音效，并切换对局音乐 */

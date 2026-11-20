@@ -1,7 +1,8 @@
 // 新手引导：按局面依次弹出提示，并把相关界面圈出来。每条只出现一次；教学局里强制开启。
 import { signal } from '@preact/signals';
 import { useEffect, useLayoutEffect, useState } from 'preact/hooks';
-import { CARDS, CHINA_CARD, COUNTRIES, type Side } from '../../data';
+import { CARDS, CHINA_CARD, COUNTRIES, type RegionId, type Side } from '../../data';
+import { scoreRegion, scoreSEA } from '../../engine/scoring';
 import type { Choice, Decision } from '../../engine/types';
 import type { GameView } from '../../engine/view';
 
@@ -290,6 +291,39 @@ export function danger(v: GameView, d: Decision, choice: Choice): string | null 
     if (scoring > 0 && (choice === CHINA_CARD || !CARDS[choice].scoring) && scoring >= left) {
       return `你手里还有 ${scoring} 张计分卡，本回合只剩 ${left} 个行动轮。回合结束时还持有计分卡会直接判负。确定先打这张吗？`;
     }
+  }
+  return null;
+}
+
+// =====================================================================
+// 手牌提示：打出这张牌会当场获胜 / 当场判负
+// =====================================================================
+
+const SCORING_REGION: Record<number, RegionId | 'southeastAsia'> = { 1: 'asia', 2: 'europe', 3: 'middleEast', 37: 'centralAmerica', 38: 'southeastAsia', 79: 'africa', 81: 'southAmerica' };
+
+/** 只看能直接算出来的情形：计分卡（控制欧洲、计分后到 20 VP）和 DEFCON 2 时会再降一级的事件 */
+export function instantOutcome(v: GameView, card: number): { kind: 'win' | 'lose'; why: string } | null {
+  const me = v.me;
+  if (!me || card === CHINA_CARD) return null;
+  const def = CARDS[card];
+  const region = SCORING_REGION[card];
+  if (def.scoring && region) {
+    let net: number;
+    if (region === 'southeastAsia') net = scoreSEA(v as never).net;
+    else {
+      const sc = scoreRegion(v as never, region, { formosan: v.flags.formosan, shuttle: !!v.flags.shuttle && (region === 'asia' || region === 'middleEast') });
+      if (sc.autoWin) return sc.autoWin === me ? { kind: 'win', why: `你控制欧洲：打出「${def.zh}」直接获胜` } : { kind: 'lose', why: `对手控制欧洲：打出「${def.zh}」对手直接获胜` };
+      net = sc.net;
+    }
+    const vp = v.vp + net;
+    const mine = me === 'US' ? vp : -vp;
+    if (mine >= 20) return { kind: 'win', why: `打出「${def.zh}」计分后你达到 ${mine} VP，直接获胜` };
+    if (mine <= -20) return { kind: 'lose', why: `打出「${def.zh}」计分后对手达到 ${-mine} VP，对手直接获胜` };
+    return null;
+  }
+  if (v.defcon === 2 && DEGRADE.has(card)) {
+    const forced = def.side !== me && def.side !== 'NEUTRAL';
+    return { kind: 'lose', why: forced ? `「${def.zh}」是对手的牌，用行动点打出事件也会发动，DEFCON 降到 1，你直接输（只有拿去太空竞赛能避开）` : `「${def.zh}」作为事件打出会让 DEFCON 降到 1，你直接输` };
   }
   return null;
 }
