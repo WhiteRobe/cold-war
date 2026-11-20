@@ -32,6 +32,8 @@ const NUDGE: Record<string, [number, number]> = {
   nicaragua: [0, 5],
   costaRica: [0, 14],
   panama: [0, 14],
+  // 巴拿马下移后和哥伦比亚几乎同高，连线成了横线：哥伦比亚往东南挪
+  colombia: [12, 16],
 };
 
 export const pos = (id: string): [number, number] => {
