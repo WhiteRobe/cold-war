@@ -1786,3 +1786,12 @@ g.links { pointer-events: none; }
 .fs-body { fill: #6b6a64; stroke: #2a2a26; stroke-width: 0.5; }
 .fs-body.d { fill: #57564f; }
 .fs-crack { fill: none; stroke: #2a2a26; stroke-width: 0.5; }
+/* 戴维营协议：和平鸽 */
+.pd-dove { cursor: help; animation: nsIn 1.2s ease-out, subBob 2s ease-in-out 1.2s infinite alternate; filter: drop-shadow(0 2px 2px #0006); }
+.pd-body, .pd-wing { fill: #fbfaf6; stroke: #8a8070; stroke-width: 0.4; }
+.pd-wing.back { fill: #e3e3dc; }
+.pd-wing { animation: dvFlap 0.5s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: 100% 100%; }
+.pd-wing.back { transform-origin: 0% 100%; }
+.pd-eye { fill: #1b1b1b; }
+.pd-branch { stroke: #4f7a2e; stroke-width: 0.8; stroke-linecap: round; }
+@media (prefers-reduced-motion: reduce) { .pd-dove, .pd-wing { animation: none; } }

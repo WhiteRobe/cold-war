@@ -390,7 +390,7 @@ export function MapView({ view, selectable, onPick, flash, onRegion, focus, onBo
         {view.flags.bearTrap && <WreckedTank x={1244} y={398} />}
         {view.flags.iranContra && <Reporter x={300} y={296} />}
         {view.flags.brezhnev && <TankColumn x={1384} y={262} />}
-        {eventHappened(view, 15) && <EgyptFlag x={922} y={534} />}
+        {eventHappened(view, 15) && <EgyptFlag x={976} y={533} />}
         {eventHappened(view, 83) && <RoyalNavy x={440} y={950} />}
         {eventHappened(view, 76) && <UssuriStandoff x={1612} y={246} />}
         {view.flags.awacs && <Awacs x={1224} y={598} />}
@@ -407,6 +407,7 @@ export function MapView({ view, selectable, onPick, flash, onRegion, focus, onBo
         {view.flags.formosan && <AAGun x={1662} y={474} />}
         {eventHappened(view, 82) && <BlackCrescent x={1238} y={466} />}
         {eventHappened(view, 33) && <FallenStatue x={1330} y={302} />}
+        {eventHappened(view, 65) && <PeaceDove x={1027} y={556} />}
         {eventHappened(view, 9) && <VietnamFire x={1588} y={548} active={!!view.flags.vietnamRevolts} />}
         {view.flags.containment && <Carrier x={1690} y={612} tip={decorTip('1946 年凯南提出“遏制”构想：在苏联试图扩张的每一处坚定地加以阻挡，美国舰队由此常驻亚太。', '本回合美国打出的每张牌行动点 +1（最多 4）')} />}
         {view.flags.chernobyl && (
@@ -1764,6 +1765,22 @@ function FallenStatue({ x, y }: { x: number; y: number }) {
         </g>
         <polygon points="-4,8 -2,6 0,8" class="pg-rubble" />
         <polygon points="18,8 20,6.4 21,8" class="pg-rubble" />
+      </g>
+    </g>
+  );
+}
+
+/** 戴维营协议之后：埃及方框右边一只衔橄榄枝的和平鸽 */
+function PeaceDove({ x, y }: { x: number; y: number }) {
+  return (
+    <g transform={`translate(${x},${y}) scale(1.6)`}>
+      <g class="pd-dove">
+        <title>{decorTip('1978 年卡特邀请埃及总统萨达特与以色列总理贝京在戴维营密谈十三天，次年两国签订和约，埃及转向美国。', '「阿拉伯—以色列战争」不能再作为事件打出')}</title>
+        <path class="pd-wing back" d="M1,-1 Q6,-10 11,-11 Q8,-5 5,-1Z" />
+        <path class="pd-body" d="M-9,1 Q-2,-3 5,-1 Q9,-4 11,-3 L13,-3 L11,-1.4 Q10,3 4,3 L-3,3 Q-7,3 -9,1Z" />
+        <path class="pd-wing" d="M-1,-1 Q-6,-10 -12,-10 Q-8,-4 -4,0Z" />
+        <circle cx="9.6" cy="-2.6" r="0.5" class="pd-eye" />
+        <path d="M13,-2.6 L16,-1 M14.6,-1.8 L15.4,-3.4 M15.6,-1.4 L17,-2.2" class="pd-branch" />
       </g>
     </g>
   );
