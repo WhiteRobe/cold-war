@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
-import { cloudCountries } from '../../engine/endless';
+import { cloudCountries, keyProgress } from '../../engine/endless';
 import type { JSX } from 'preact';
 import { CARDS, COUNTRIES, COUNTRY_LIST, REGIONS, REGION_ZH, countriesIn, endlessWorld, getWorldVersion, type RegionId, type Side } from '../../data';
 import type { SubRegionId } from '../../data/types';
@@ -621,12 +621,12 @@ function WinAlerts({ view }: { view: GameView }) {
   const items: { key: string; cls: string; text: string; tip: string }[] = [];
   const endless = !!view.options.endless;
   if (endless) {
-    // 不死不休：只看控制全球
+    // 不死不休：只看关键国（全部战场国 + 对手本土邻国）
     for (const side of ['US', 'USSR'] as Side[]) {
-      const miss = REGIONS.filter((r) => scoreRegion(view as never, r, { formosan: view.flags.formosan })[side].level !== 'control');
-      if (miss.length > 2) continue;
+      const p = keyProgress(view as never, side);
+      if (p.missing.length > 3) continue;
       const name = side === 'US' ? '美国' : '苏联';
-      items.push({ key: `g-${side}`, cls: side.toLowerCase(), text: `${name}已控制 ${6 - miss.length}/6 个洲：再控制${miss.map((r) => REGION_ZH[r]).join('、')}即控制全球`, tip: '不死不休：一方在六个洲都达到「控制」时立即获胜，在每个行动轮结束时检查。' });
+      items.push({ key: `g-${side}`, cls: side.toLowerCase(), text: `${name}关键国 ${p.have}/${p.total}：再控制${p.missing.map((c) => COUNTRIES[c].zh).join('、')}即获胜`, tip: '不死不休：一方控制全部战场国和对手本土的全部邻国时立即获胜。' });
     }
   }
   const eu = endless ? undefined : scoreRegion(view as never, 'europe').autoWin;
@@ -693,6 +693,8 @@ function RegionLabel({ region, view, onClick }: { region: RegionId; view: GameVi
   const vpText = (net: number, win?: Side) =>
     win && view.options.endless ? `${win === 'US' ? '美' : '苏'} +10 VP` : win ? `${win === 'US' ? '美' : '苏'}直接获胜` : net > 0 ? `美 +${net} VP` : net < 0 ? `苏 +${-net} VP` : '打平 0 VP';
   const sea = region === 'asia' ? scoreSEA(view as never) : null;
+  // 不死不休（第 11 回合起）没有计分：只显示存在 / 支配 / 控制
+  const ewOn = !!view.flags.endlessWorld;
   return (
     <g class="region-label" onClick={onClick}>
       <RegionGlyph region={region} x={x - 16} y={y - 8} r={11} />
@@ -714,13 +716,13 @@ function RegionLabel({ region, view, onClick }: { region: RegionId; view: GameVi
       {view.flags.endlessWorld && <EndlessTroops x={x + TROOP_AT[region][0]} y={y + TROOP_AT[region][1]} sc={sc} />}
       {view.flags.endlessWorld && <EndlessEmblems x={x + REGION_ZH[region].length * 27.6 + (scoredNote(view, region) ? 28 : 10) + (view.flags.chernobyl === region ? 22 : 0)} y={y - 8} region={region} sc={sc} />}
       <text x={x} y={y + 18} class="rl-score">
-        <tspan class="us">美 {LV_ZH[sc.US.level]} {sc.points.US}</tspan>
-        <tspan dx="10" class="ussr">苏 {LV_ZH[sc.USSR.level]} {sc.points.USSR}</tspan>
+        <tspan class="us">美 {LV_ZH[sc.US.level]}{ewOn ? '' : ` ${sc.points.US}`}</tspan>
+        <tspan dx="10" class="ussr">苏 {LV_ZH[sc.USSR.level]}{ewOn ? '' : ` ${sc.points.USSR}`}</tspan>
       </text>
-      <text x={x} y={y + 35} class={`rl-vp ${sc.autoWin ? sc.autoWin.toLowerCase() : sc.net > 0 ? 'us' : sc.net < 0 ? 'ussr' : 'even'}`}>
+      {!ewOn && <text x={x} y={y + 35} class={`rl-vp ${sc.autoWin ? sc.autoWin.toLowerCase() : sc.net > 0 ? 'us' : sc.net < 0 ? 'ussr' : 'even'}`}>
         {sc.autoWin && <title>{EUROPE_WIN}</title>}
         现在计分：{vpText(sc.net, sc.autoWin)}
-      </text>
+      </text>}
       {region === 'europe' && (
         <g class="sub-legend">
           <SubBadge x={x + 6} y={y + 50} kind="w" />
@@ -740,7 +742,7 @@ function RegionLabel({ region, view, onClick }: { region: RegionId; view: GameVi
       {sea && (
         <>{scoredNote(view, 'southeastAsia') && <ScoredMark x={x - 12} y={y + 47} note={scoredNote(view, 'southeastAsia')!} />}</>
       )}
-      {sea && (
+      {sea && !ewOn && (
         <text x={x} y={y + 52} class={`rl-vp ${sea.net > 0 ? 'us' : sea.net < 0 ? 'ussr' : 'even'}${view.removed.includes(SCORING_CARD.southeastAsia) ? ' done' : ''}`}>
           东南亚计分：{vpText(sea.net)}
         </text>

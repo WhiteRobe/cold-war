@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { CARDS, REGIONS, REGION_ZH } from '../../data';
-import { scoreRegion } from '../../engine/scoring';
+import { CARDS, REGION_ZH } from '../../data';
+import { keyProgress } from '../../engine/endless';
 import { SPACE } from '../../engine/space';
 import type { Flags, Side } from '../../engine/types';
 import type { GameView } from '../../engine/view';
@@ -275,11 +275,13 @@ function Vp({ vp, view }: { vp: number; view: GameView }) {
         <div class="vp-us">美 20</div>
       </div>
       <div class="trk-sub">
-        {vp === 0 ? '平' : vp > 0 ? `美国领先 ${vp}` : `苏联领先 ${-vp}`}
-        {view.options.endless ? (
-          <span class="vp-proj"> · 控制洲：美 {ctlCount(view, 'US')} / 苏 {ctlCount(view, 'USSR')}（6 洲全控即胜）</span>
+        {view.flags.endlessWorld ? (
+          <span class="vp-proj" title="不死不休：控制全部战场国和对手本土的全部邻国即获胜">胜利点已冻结 · 关键国 美 {keyText(view, 'US')} / 苏 {keyText(view, 'USSR')}</span>
+        ) : view.options.endless ? (
+          <span class="vp-proj">{vp === 0 ? '平' : vp > 0 ? `美国领先 ${vp}` : `苏联领先 ${-vp}`} · 不死不休：第 11 回合起不再计分</span>
         ) : (
-          <span class={`vp-proj ${pj.autoWin ? pj.autoWin.toLowerCase() : pj.total > 0 ? 'us' : pj.total < 0 ? 'ussr' : ''}`}> · 若现在终局：{proj}</span>
+          <>{vp === 0 ? '平' : vp > 0 ? `美国领先 ${vp}` : `苏联领先 ${-vp}`}
+          <span class={`vp-proj ${pj.autoWin ? pj.autoWin.toLowerCase() : pj.total > 0 ? 'us' : pj.total < 0 ? 'ussr' : ''}`}> · 若现在终局：{proj}</span></>
         )}
       </div>
       <div class="trk-pop">
@@ -320,7 +322,10 @@ function ScoreTable({ view, vp, pj, milops }: { view: GameView; vp: number; pj: 
 }
 
 /** 不死不休：一方控制的洲数 */
-const ctlCount = (v: GameView, side: Side) => REGIONS.filter((r) => scoreRegion(v as never, r, { formosan: v.flags.formosan })[side].level === 'control').length;
+const keyText = (v: GameView, side: Side) => {
+  const p = keyProgress(v as never, side);
+  return `${p.have}/${p.total}`;
+};
 
 const leadShort = (n: number) => (n > 0 ? `美 +${n}` : n < 0 ? `苏 +${-n}` : '0');
 

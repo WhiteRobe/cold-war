@@ -1,4 +1,4 @@
-// 不死不休（第 11 回合起）的新机制：区域红利、区域压制、乌云压境、落后补给、轨道打击、石油经济、铁幕纵深。
+// 不死不休（第 11 回合起）的新机制：区域红利、区域压制、乌云压境、轨道打击、石油经济、铁幕纵深。
 // 每个触发都写一条带过场（scene）的日志，界面逐条点击展开，不会一闪而过。
 import { COUNTRIES, COUNTRY_LIST, REGIONS, REGION_ZH, koreaKeep, setWorld, worldOf, type RegionId } from '../data';
 import type { Game, Gen } from './game';
@@ -120,7 +120,7 @@ export function* oil(g: Game): Gen {
 }
 
 /**
- * 每回合第一张用行动点打出的牌：乌云压境（对手占着我方本土邻国，每国 -1）与落后补给（支配 / 控制的洲比对手少，+1）。
+ * 每回合第一张用行动点打出的牌：乌云压境（对手占着我方本土邻国，每国 -1）。
  * 返回行动点的增减；削减超出这张牌点数的部分，由乌云的主人放置影响力。
  */
 export function* firstOpsCard(g: Game, side: Side, eff: number): Gen<number> {
@@ -129,19 +129,9 @@ export function* firstOpsCard(g: Game, side: Side, eff: number): Gen<number> {
   f.firstOps = [...(f.firstOps ?? []), side];
   const enemy = opp(side);
   const clouds = cloudCountries(g.s, enemy);
-  const mine = strongRegions(g.s, side), theirs = strongRegions(g.s, enemy);
-  const catchUp = mine < theirs ? 1 : 0;
-  if (catchUp) {
-    g.log(`落后补给：${SIDE_ZH[side]}支配 / 控制 ${mine} 个洲，少于${SIDE_ZH[enemy]}的 ${theirs} 个，本回合第一张行动点牌 +1`, {
-      side,
-      scene: firstTime(g, `catchUp${side}`)
-        ? { title: '落后补给', side, art: 'bonus', sub: '落后的一方会得到更多支援：每回合第一张用行动点打出的牌，若己方支配 / 控制的洲比对手少，行动点 +1。', steps: [{ text: `${SIDE_ZH[side]} ${mine} 个洲，${SIDE_ZH[enemy]} ${theirs} 个：这张牌 +1 行动点。` }] }
-        : undefined,
-    });
-  }
-  if (!clouds.length) return catchUp;
+  if (!clouds.length) return 0;
   const n = clouds.length;
-  const cut = Math.min(n, eff + catchUp);
+  const cut = Math.min(n, eff);
   const over = n - cut;
   g.log(`乌云压境：${SIDE_ZH[enemy]}控制${SIDE_ZH[side]}本土邻国 ${names(clouds)}，这张牌 -${cut} 行动点${over ? `，差额 ${over} 点由${SIDE_ZH[enemy]}放置影响力` : ''}`, {
     side: enemy,
@@ -150,13 +140,26 @@ export function* firstOpsCard(g: Game, side: Side, eff: number): Gen<number> {
       sub: `${SIDE_ZH[enemy]}占着${SIDE_ZH[side]}家门口的国家，${SIDE_ZH[side]}每回合第一张用行动点打出的牌，每个这样的国家 -1 行动点。`,
       steps: [
         { text: `${SIDE_ZH[enemy]}控制的${SIDE_ZH[side]}本土邻国：${names(clouds)}（共 ${n} 个）。`, country: clouds[0] },
-        { text: `${SIDE_ZH[side]}这张牌 ${eff + catchUp} 点 → ${eff + catchUp - cut} 点。` },
+        { text: `${SIDE_ZH[side]}这张牌 ${eff} 点 → ${eff - cut} 点。` },
         ...(over ? [{ text: `还差 ${over} 点扣不下来：改由${SIDE_ZH[enemy]}在全图任意国家放置 ${over} 点影响力。` }] : []),
       ],
     },
   });
   if (over) yield* g.placeInfluence(enemy, 0, over, () => true, { prompt: `乌云压境：差额 ${over} 点，在全图任意国家放置影响力` });
-  return catchUp - cut;
+  return -cut;
+}
+
+/** 胜利所需的关键国：全部战场国 + 对手本土的邻国 */
+export function keyCountries(side: Side): string[] {
+  const home = side === 'US' ? 'ussr' : 'usa';
+  return COUNTRY_LIST.filter((c) => c.bg || c.adj.includes(home)).map((c) => c.id);
+}
+
+/** 关键国的控制进度 */
+export function keyProgress(s: GameState, side: Side): { have: number; total: number; missing: string[] } {
+  const all = keyCountries(side);
+  const missing = all.filter((c) => !s.inf[c] || controller(s, c) !== side);
+  return { have: all.length - missing.length, total: all.length, missing };
 }
 
 /** 轨道打击：空间站之后每次太空竞赛成功，在没有被任何一方控制的洲里免费政变一次（不降 DEFCON） */

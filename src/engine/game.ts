@@ -9,7 +9,7 @@ import {
 import { EFFECTS } from './effects';
 import { EVENT_FLAGS, erasUpTo } from './scenario';
 import { GameOver, cardName, countryName } from './util';
-import { ORBIT, bonusBeforeAR, firstOpsCard, ironDepth, missile, oil, orbitalStrike, squeeze, unifyBonus, unifyCheck } from './endless';
+import { ORBIT, bonusBeforeAR, firstOpsCard, ironDepth, keyProgress, missile, oil, orbitalStrike, squeeze, unifyBonus, unifyCheck } from './endless';
 
 export { GameOver, cardName, countryName };
 
@@ -81,6 +81,10 @@ export class Game {
   answers: (Choice | undefined)[] = [];
   /** 本次结算中不需要再安置的牌（Missile Envy 等事件自己挪了位置） */
   private moved = new Set<number>();
+  /** 不死不休：正在结算的事件层数，以及事件里 VP 换成的行动点 */
+  private eventDepth = 0;
+  private pendingOps: Record<Side, number> = { US: 0, USSR: 0 };
+  private pendingWhy: Record<Side, string[]> = { US: [], USSR: [] };
   private gen: Gen;
 
   constructor(public setup: GameSetup) {
@@ -196,6 +200,15 @@ export class Game {
   /** 加 VP（side 得分）。到达 ±20 时对局立即结束（终局计分除外）。 */
   vp(side: Side, n: number, why?: string) {
     if (n === 0) return;
+    if (this.endlessOn) {
+      // 不死不休没有胜利点：事件给的 VP 改成同样多的行动点（事件结算完立刻使用），其他来源的 VP 直接作废
+      if (this.eventDepth > 0 && n > 0) {
+        this.pendingOps[side] += n;
+        this.pendingWhy[side] = [...this.pendingWhy[side], why ?? '事件'];
+        this.log(`${SIDE_ZH[side]} +${n} VP${why ? `（${why}）` : ''} → 不死不休改为 +${n} 行动点`, { side, kind: 'score' });
+      }
+      return;
+    }
     this.s.vp += side === 'US' ? n : -n;
     this.log(`${SIDE_ZH[side]} ${n > 0 ? '+' : ''}${n} VP${why ? `（${why}）` : ''}`, { side, kind: 'score' });
     this.checkVp();
@@ -402,10 +415,10 @@ export class Game {
       kind: 'turn',
       scene: {
         title: '不死不休',
-        sub: '冷战没有在 1989 年结束。从这一回合起，胜负只看一件事：谁能控制全部六个洲。',
+        sub: '冷战没有在 1989 年结束。从这一回合起，胜负只看一件事：谁能控制全部战场国，外加对手本土的全部邻国。',
         art: 'endless',
         steps: [
-          { text: '胜利点、控制欧洲、回合末持有计分卡都不再结束对局，也没有回合上限。' },
+          { text: '不再有计分：计分卡全部移出游戏，胜利点冻结。事件里的「+N VP」改为得分方立刻获得 N 点行动点；其他来源（军事行动、太空竞赛）的 VP 作废。没有回合上限。' },
           { text: '新机制从这一回合起生效：支配 / 控制一个洲有免费影响力，控制的洲会压制敌方；占着敌方本土邻国会削弱敌方每回合的第一张牌；太空竞赛到顶后可以发动轨道打击；苏联还有石油经济。' },
           { text: `${CARD_LIST.filter((c) => c.endless).length} 张不死不休专属卡洗入牌库：${CARD_LIST.filter((c) => c.endless).map((c) => `#${c.id} ${c.zh}`).join('、')}。地图也要变了——` },
         ],
@@ -433,6 +446,8 @@ export class Game {
     });
     s.china = { holder: 'USSR', faceUp: true };
     s.inf.australia[1] += 1;
+    // 不死不休没有计分：计分卡全部移出游戏
+    for (const c of CARD_LIST.filter((x) => x.scoring)) this.purgeCard(c.id);
     const extra = CARD_LIST.filter((c) => c.endless).map((c) => c.id);
     s.deck = shuffle(s, [...s.deck, ...extra]);
     this.log('太平洋战略：澳大利亚、菲律宾成为美国本土邻国，澳大利亚 +1 苏联影响力', {
@@ -450,13 +465,11 @@ export class Game {
     });
   }
 
-  /** 不死不休的胜利条件：一方在六个洲都达到“控制” */
+  /** 不死不休的胜利条件：一方控制全部战场国和对手本土的全部邻国 */
   checkGlobal() {
     if (!this.endless) return;
-    const f = this.s.flags;
     for (const side of ['US', 'USSR'] as Side[]) {
-      const all = REGIONS.every((r) => scoreRegion(this.s, r, { formosan: f.formosan })[side].level === 'control');
-      if (all) throw new GameOver(side, '控制全球');
+      if (!keyProgress(this.s, side).missing.length) throw new GameOver(side, '控制全部战场国和敌方本土邻国');
     }
   }
 
@@ -829,6 +842,19 @@ export class Game {
     s.playing = prevPlaying;
   }
 
+  /** 不死不休：事件里 VP 换成的行动点，事件结算完后由得分方使用 */
+  private *spendPendingOps(): Gen {
+    for (const side of [opp(this.s.phasing), this.s.phasing] as Side[]) {
+      const n = this.pendingOps[side];
+      if (!n) continue;
+      const why = [...new Set(this.pendingWhy[side])].join('、');
+      this.pendingOps[side] = 0;
+      this.pendingWhy[side] = [];
+      this.log(`${SIDE_ZH[side]}使用「${why}」的 VP 换来的 ${n} 点行动点`, { side });
+      yield* this.opsPlay(side, n, { raw: true });
+    }
+  }
+
   /** 用行动点打出：不死不休里每回合第一张要先结算乌云压境 / 落后补给 */
   private *opsWithEndless(side: Side, card: number, base: number, snapshot: Set<string>): Gen {
     if (this.endlessOn) {
@@ -875,7 +901,13 @@ export class Game {
       return false;
     }
     this.log(`事件：${cardName(card)}`, { side: executor });
-    yield* eff.run(this, executor, { player, headline: !!o.headline });
+    this.eventDepth++;
+    try {
+      yield* eff.run(this, executor, { player, headline: !!o.headline });
+    } finally {
+      this.eventDepth--;
+    }
+    if (this.eventDepth === 0) yield* this.spendPendingOps();
     return true;
   }
 

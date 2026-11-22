@@ -35,7 +35,7 @@ export function TurnClock({ turn, last: lastTurn = 10 }: { turn: number; last?: 
       </svg>
       <div class="tc-text">
         <div class="tc-turn">第 {turn} 回合</div>
-        <div class="tc-years">{endless ? '不死不休 · 直到一方控制全球' : `${YEARS[turn - 1]}–${YEARS[turn]} · ${ERA(turn)}`}</div>
+        <div class="tc-years">{endless ? '不死不休 · 控制全部战场国与敌方本土邻国者胜' : `${YEARS[turn - 1]}–${YEARS[turn]} · ${ERA(turn)}`}</div>
         {last && <div class="tc-last">最后一回合！回合结束即终局计分</div>}
       </div>
     </div>
