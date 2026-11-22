@@ -92,6 +92,14 @@ self.onmessage = (e: MessageEvent<WorkerIn>) => {
       if (err) post({ type: 'error', msg: err });
       send();
       pump();
+    } else if (m.type === 'endless') {
+      // 不死不休：同一份历史按新规则重放，对局在原来结束的地方接着走下去
+      if (!game) return;
+      clearTimeout(timer);
+      game = Game.replay({ seed, options: { ...game.setup.options, endless: true } }, game.history);
+      sentLog = game.s.log.length;
+      send();
+      pump();
     } else if (m.type === 'undo') {
       if (!game) return;
       clearTimeout(timer);

@@ -7,8 +7,11 @@ const ERA = (t: number) => (t <= 3 ? '冷战早期' : t <= 7 ? '冷战中期' : 
 export function TurnClock({ turn, last: lastTurn = 10 }: { turn: number; last?: number }) {
   const R = 84;
   const ang = (t: number) => -90 + (t - 0.5) * 36; // 每回合占 36°，指针指在该格中间
-  const from = ang(Math.max(1, turn - 1)), to = ang(turn);
-  const last = turn >= lastTurn;
+  // 不死不休（第 11 回合起）：表盘转第二圈
+  const dial = ((turn - 1) % 10) + 1;
+  const from = ang(Math.max(1, dial - 1)), to = ang(dial);
+  const endless = turn > 10;
+  const last = !endless && turn >= lastTurn;
   return (
     <div class={`turn-clock${last ? ' last' : ''}`}>
       <svg viewBox="-110 -110 220 220" width="220" height="220">
@@ -18,7 +21,7 @@ export function TurnClock({ turn, last: lastTurn = 10 }: { turn: number; last?: 
           const mid = ((-90 + (i + 0.5) * 36) * Math.PI) / 180;
           const t = i + 1;
           return (
-            <g key={i} class={`tc-seg${t < turn ? ' past' : t === turn ? ' now' : ''}${t <= 3 ? ' early' : t <= 7 ? ' mid' : ' late'}`}>
+            <g key={i} class={`tc-seg${t < dial ? ' past' : t === dial ? ' now' : ''}${t <= 3 ? ' early' : t <= 7 ? ' mid' : ' late'}`}>
               <path d={`M${92 * Math.cos(a)},${92 * Math.sin(a)} L${100 * Math.cos(a)},${100 * Math.sin(a)}`} class="tc-tick" />
               <path d={`M${R * Math.cos(a)},${R * Math.sin(a)} A${R},${R} 0 0 1 ${R * Math.cos(a + Math.PI / 5)},${R * Math.sin(a + Math.PI / 5)}`} class="tc-arc" />
               <text x={68 * Math.cos(mid)} y={68 * Math.sin(mid)} class="tc-num">{t}</text>
@@ -32,7 +35,7 @@ export function TurnClock({ turn, last: lastTurn = 10 }: { turn: number; last?: 
       </svg>
       <div class="tc-text">
         <div class="tc-turn">第 {turn} 回合</div>
-        <div class="tc-years">{YEARS[turn - 1]}–{YEARS[turn]} · {ERA(turn)}</div>
+        <div class="tc-years">{endless ? '不死不休 · 直到一方控制全球' : `${YEARS[turn - 1]}–${YEARS[turn]} · ${ERA(turn)}`}</div>
         {last && <div class="tc-last">最后一回合！回合结束即终局计分</div>}
       </div>
     </div>

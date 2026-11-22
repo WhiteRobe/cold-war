@@ -1,4 +1,4 @@
-import { CARDS, CARD_LIST, CHINA_CARD, COUNTRIES, COUNTRY_LIST, REGION_ZH, countriesIn, inRegion, type CardDef, type RegionId, type SubRegionId } from '../data';
+import { CARDS, CARD_LIST, CHINA_CARD, COUNTRIES, COUNTRY_LIST, REGIONS, REGION_ZH, countriesIn, inRegion, type CardDef, type RegionId, type SubRegionId } from '../data';
 import { nextRandom, randInt, shuffle } from './rng';
 import { controller, controls, scoreRegion, scoreSEA } from './scoring';
 import { SPACE } from './space';
@@ -207,6 +207,7 @@ export class Game {
   private finalScoring = false;
   checkVp() {
     if (this.finalScoring) return;
+    if (this.endless) return;
     if (this.s.vp >= 20) throw new GameOver('US', '胜利点达到 20');
     if (this.s.vp <= -20) throw new GameOver('USSR', '胜利点达到 20');
   }
@@ -352,10 +353,34 @@ export class Game {
     return this.scenario?.endTurn ?? 10;
   }
 
+  /** 不死不休模式（只在人机局、对局结束后选择继续时开启） */
+  get endless() {
+    return !!this.s.options.endless;
+  }
+  /** 不死不休的新机制从第 11 回合起生效 */
+  get endlessOn() {
+    return this.endless && this.s.turn > 10;
+  }
+
   private *main(): Gen {
     yield* this.setupPhase();
     for (let t = this.firstTurn; t <= this.lastTurn; t++) yield* this.turn(t);
-    this.finalScore();
+    if (!this.endless) return this.finalScore();
+    // 不死不休：不做终局计分，一直打到一方控制全球（不设回合上限）
+    for (let t = this.lastTurn + 1; ; t++) {
+      if (t === 11) this.log('—— 进入不死不休：目标是控制全球 ——', { kind: 'turn' });
+      yield* this.turn(t);
+    }
+  }
+
+  /** 不死不休的胜利条件：一方在六个洲都达到“控制” */
+  checkGlobal() {
+    if (!this.endless) return;
+    const f = this.s.flags;
+    for (const side of ['US', 'USSR'] as Side[]) {
+      const all = REGIONS.every((r) => scoreRegion(this.s, r, { formosan: f.formosan })[side].level === 'control');
+      if (all) throw new GameOver(side, '控制全球');
+    }
   }
 
   private buildDeck(era: 'early' | 'mid' | 'late') {
@@ -454,6 +479,7 @@ export class Game {
         s.ar = ar;
         s.phasing = side;
         yield* this.actionRound(side, ar > this.baseARs());
+        this.checkGlobal();
       }
     }
     yield* this.endTurn();
@@ -1026,8 +1052,10 @@ export class Game {
     const lv = { none: '无', presence: '存在', domination: '支配', control: '控制' };
     this.log(`${REGION_ZH[region]}计分：美国 ${lv[r.US.level]} ${r.points.US} 分，苏联 ${lv[r.USSR.level]} ${r.points.USSR} 分`, { kind: 'score' });
     this.markScore(region, r.autoWin ?? (r.net > 0 ? 'US' : r.net < 0 ? 'USSR' : null));
-    if (r.autoWin) throw new GameOver(r.autoWin, '控制欧洲');
-    this.vpNet(r.net, `${REGION_ZH[region]}计分`);
+    if (r.autoWin && !this.endless) throw new GameOver(r.autoWin, '控制欧洲');
+    // 不死不休里控制欧洲不再直接获胜，改为控制方额外 +10 VP
+    const bonus = r.autoWin ? (r.autoWin === 'US' ? 10 : -10) : 0;
+    this.vpNet(r.net + bonus, `${REGION_ZH[region]}计分`);
   }
 
   private markScore(region: string, side: Side | null) {
@@ -1091,9 +1119,20 @@ export class Game {
     // F. 持有计分卡
     const held = (side: Side) => s.hands[side].some((c) => CARDS[c].scoring);
     const hu = held('US'), hs = held('USSR');
-    if (hu && hs) throw new GameOver(null, '双方回合末都持有计分卡');
-    if (hu) throw new GameOver('USSR', '美国回合末持有计分卡');
-    if (hs) throw new GameOver('US', '苏联回合末持有计分卡');
+    if (this.endless && (hu || hs)) {
+      // 不死不休：回合末还拿着的计分卡强制结算，不判负
+      for (const side of ['USSR', 'US'] as Side[]) {
+        for (const c of s.hands[side].filter((x) => CARDS[x].scoring)) {
+          this.log(`${SIDE_ZH[side]}回合末仍持有 ${cardName(c)}：强制结算`, { side, kind: 'warn' });
+          this.removeFromHand(side, c);
+          yield* this.fireEvent(c, side, {});
+          this.relocate(c, true, side);
+        }
+      }
+    }
+    if (hu && hs && !this.endless) throw new GameOver(null, '双方回合末都持有计分卡');
+    if (hu && !this.endless) throw new GameOver('USSR', '美国回合末持有计分卡');
+    if (hs && !this.endless) throw new GameOver('US', '苏联回合末持有计分卡');
     // G. 中国牌翻面
     s.china.faceUp = true;
     // 清理本回合效果

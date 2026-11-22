@@ -10,6 +10,8 @@ export interface GameOptions {
   usBonus: number;
   /** 剧本（缺省为标准开局） */
   scenario?: Scenario;
+  /** 不死不休：胜利点、控制欧洲、计分卡、终局计分都不再结束对局；第 10 回合之后继续，直到一方控制全球 */
+  endless?: boolean;
 }
 
 export const DEFAULT_OPTIONS: GameOptions = { optionalCards: true, usBonus: 2 };

@@ -12,6 +12,8 @@ export interface GameSession {
   names: Signal<Record<Side, string>>;
   choose(v: Choice): void;
   undo?(): void;
+  /** 对局结束后进入不死不休（仅人机离线局） */
+  endless?(): void;
   canUndo: Signal<boolean>;
   close(): void;
 }
@@ -34,7 +36,8 @@ export interface OfflineSave {
 export type WorkerIn =
   | { type: 'start'; save: OfflineSave }
   | { type: 'choose'; v: Choice }
-  | { type: 'undo' };
+  | { type: 'undo' }
+  | { type: 'endless' };
 
 export type WorkerOut =
   | { type: 'view'; view: GameView; history: OfflineSave['history']; canUndo: boolean }

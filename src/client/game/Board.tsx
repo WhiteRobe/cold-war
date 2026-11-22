@@ -316,7 +316,19 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
               )}
               <button type="button" class="btn" onClick={() => setOverSeen(true)}>查看棋盘</button>
               <button type="button" class="btn primary" onClick={() => go('/')}>返回首页</button>
+              {/* 不死不休：只在人机离线局、非核战争结束时提供 */}
+              {session.endless && !view.options.endless && !/核战争/.test(view.winReason ?? '') && (
+                <button type="button" class="btn endless-btn" onClick={() => { setOverSeen(false); setNukeDone(false); session.endless!(); }}>
+                  继续：不死不休
+                </button>
+              )}
             </div>
+            {session.endless && !view.options.endless && !/核战争/.test(view.winReason ?? '') && (
+              <p class="endless-note">
+                不死不休：这局在原来结束的地方接着打。胜利点、控制欧洲、回合末持有计分卡都不再结束对局；第 10 回合之后新机制和新卡生效，
+                一直打到一方在六个洲都达到「控制」为止，没有回合上限。
+              </p>
+            )}
           </div>
         </VictoryScene>
       )}

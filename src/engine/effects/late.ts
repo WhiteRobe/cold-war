@@ -188,7 +188,8 @@ export const LATE: Record<number, Effect> = {
   },
   // Wargames
   100: {
-    can: (g) => g.s.defcon === 2,
+    // 不死不休里“结束对局”没有意义，战争游戏不能作为事件打出
+    can: (g) => g.s.defcon === 2 && !g.s.options.endless,
     *run(g, me) {
       const lead = (vp: number) => (vp > 0 ? `美国领先 ${vp}` : vp < 0 ? `苏联领先 ${-vp}` : '双方打平');
       const after = g.s.vp + (me === 'US' ? -6 : 6);

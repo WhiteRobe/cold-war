@@ -63,7 +63,8 @@ export function offlineSession(save: OfflineSave): GameSession {
     const v = m.view;
     cur = { ...cur, history: m.history, updatedAt: Date.now(), summary: { turn: v.turn, vp: v.vp, defcon: v.defcon, over: v.phase === 'over', winner: v.winner } };
     putSave(cur);
-    recordResult(`off:${cur.id}`, v);
+    // 不死不休另记一局，原来那局的胜负不被覆盖
+    recordResult(cur.options.endless ? `off:${cur.id}:endless` : `off:${cur.id}`, v);
   };
   const post = (m: WorkerIn) => worker.postMessage(m);
   post({ type: 'start', save });
@@ -75,6 +76,11 @@ export function offlineSession(save: OfflineSave): GameSession {
     canUndo,
     choose: (v: Choice) => post({ type: 'choose', v }),
     undo: () => post({ type: 'undo' }),
+    endless: () => {
+      cur = { ...cur, options: { ...cur.options, endless: true } };
+      putSave(cur);
+      post({ type: 'endless' });
+    },
     close: () => worker.terminate(),
   };
 }
