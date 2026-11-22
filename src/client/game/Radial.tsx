@@ -3,7 +3,11 @@
 import { useEffect, useState } from 'preact/hooks';
 import type { JSX } from 'preact';
 import { CARDS, CHINA_CARD, type Side } from '../../data';
-import { SPACE } from '../../engine/space';
+import { SPACE, type SpaceBox } from '../../engine/space';
+import { ORBIT } from '../../engine/endless';
+
+/** 不死不休：空间站之后的「轨道打击」格 */
+export const ORBIT_BOX: SpaceBox = { name: '轨道打击', ops: ORBIT.ops, roll: ORBIT.roll, vp: [0, 0], perk: '成功后在无人控制的洲免费政变一次' };
 import type { Choice, Decision } from '../../engine/types';
 import type { GameView } from '../../engine/view';
 import { effectiveOps } from './preview';
@@ -21,11 +25,13 @@ function canSpace(v: GameView, me: Side, card: number) {
   if (card === CHINA_CARD && v.flags.endlessWorld) return null;
   const them: Side = me === 'US' ? 'USSR' : 'US';
   const next = v.space[me] + 1;
-  if (next > 8) return null;
+  // 不死不休：空间站之后还能继续，成功就发动轨道打击
+  const box = next > 8 ? (v.flags.endlessWorld ? ORBIT_BOX : null) : SPACE[next];
+  if (!box) return null;
   const limit = v.space[me] >= 2 && v.space[them] < 2 ? 2 : 1;
   if (v.spaceAttempts[me] >= limit) return null;
-  if (effectiveOps(v, me, card).ops < SPACE[next].ops) return null;
-  return SPACE[next];
+  if (effectiveOps(v, me, card).ops < box.ops) return null;
+  return box;
 }
 
 export function Radial({ view, anchor, d, onCommit, onLive, onCancel, detail }: {

@@ -2,6 +2,7 @@ import { CARDS, CHINA_CARD, COUNTRIES, REGIONS, type Side } from '../data';
 import type { GameView } from '../engine/view';
 import type { Choice, Decision, Option } from '../engine/types';
 import { SPACE } from '../engine/space';
+import { ORBIT } from '../engine/endless';
 import { addDelta, arsLeft, cloneInf, ctrl, effOps, infOf, makeCtx, opp, warEV, type Ctx, type Inf } from './eval';
 import { eventMe, scoringNet, spaceValue, suicidal } from './events';
 import { bestCoup, bestRealign, defconCost, greedyAdd, milopsValue, opsValue, planInfluence, threat } from './plan';
@@ -93,11 +94,12 @@ function safeRandom(v: GameView, d: Decision, rand: () => number): Choice {
 
 function canSpaceCard(v: GameView, me: Side, c: number): boolean {
   if (!CARDS[c] || CARDS[c].scoring) return false;
+  if (c === CHINA_CARD && v.flags.endlessWorld) return false;
   const next = v.space[me] + 1;
-  if (next > 8) return false;
+  if (next > 8 && !v.flags.endlessWorld) return false;
   const perk2 = v.space[me] >= 2 && v.space[opp(me)] < 2;
   if (v.spaceAttempts[me] >= (perk2 ? 2 : 1)) return false;
-  return effOps(v, me, c) >= SPACE[next].ops;
+  return effOps(v, me, c) >= (next > 8 ? ORBIT.ops : SPACE[next].ops);
 }
 
 // =====================================================================
@@ -156,7 +158,8 @@ class Smart {
 
   spaceEV() {
     const next = this.v.space[this.me] + 1;
-    if (next > 8) return -Infinity;
+    // 不死不休：空间站之后每次成功是一次免费政变
+    if (next > 8) return this.v.flags.endlessWorld ? (ORBIT.roll / 6) * 2.0 : -Infinity;
     return (SPACE[next].roll / 6) * spaceValue(this.cx, this.me);
   }
 

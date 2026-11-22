@@ -242,6 +242,12 @@ export function* turnStart(g: Game): Gen {
       lines.push({ text: `区域压制：${SIDE_ZH[side]}控制${REGION_ZH[r]}，${names(hit)}的${SIDE_ZH[enemy]}影响力各 -1。`, country: hit[0] });
     }
   }
+  // 固定调整 3：载人环绕地球特权（不死不休没有头条）改为每回合开始看到对手手牌
+  for (const side of ['USSR', 'US'] as Side[]) {
+    if (!g.hasPerk(side, 4)) continue;
+    g.revealHand(opp(side), '载人环绕地球特权');
+    lines.push({ text: `载人环绕地球特权：没有头条了，改为${SIDE_ZH[opp(side)]}向${SIDE_ZH[side]}公开手牌。` });
+  }
   // 放置：石油经济
   const held = OIL_COUNTRIES.filter((c) => g.controls('USSR', c));
   if (held.length) lines.push({ text: `石油经济：苏联控制 ${held.length} 个石油国（${names(held)}），在全图放置 ${held.length} 点影响力。`, country: held[0] });
@@ -250,7 +256,7 @@ export function* turnStart(g: Game): Gen {
     kind: 'turn',
     scene: {
       title: `第 ${s.turn} 回合开始结算`, art: 'squeeze', flat: true,
-      sub: '先结算固定调整（导弹、区域压制），再放置影响力（石油经济）。',
+      sub: '先结算固定调整（导弹、区域压制、太空特权），再放置影响力（石油经济）。',
       steps: lines,
     },
   });

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { CARDS, REGION_ZH } from '../../data';
-import { keyProgress } from '../../engine/endless';
+import { CARDS, COUNTRIES, REGION_ZH } from '../../data';
+import { ORBIT, keyProgress } from '../../engine/endless';
 import { SPACE } from '../../engine/space';
 import type { Flags, Side } from '../../engine/types';
 import type { GameView } from '../../engine/view';
@@ -227,7 +227,37 @@ export function Defcon({ d }: { d: number }) {
 
 const LV_ZH = { none: '无', presence: '存在', domination: '支配', control: '控制' };
 
+/** 不死不休：胜利点面板换成关键国（全部战场国 + 敌方本土邻国）的控制进度 */
+function KeyTrack({ view }: { view: GameView }) {
+  const p = { US: keyProgress(view as never, 'US'), USSR: keyProgress(view as never, 'USSR') };
+  const row = (side: Side) => (
+    <div class={`key-row ${side.toLowerCase()}`}>
+      <span class="mil-side">{side === 'US' ? '美' : '苏'}</span>
+      <div class="key-bar"><div style={{ width: `${(p[side].have / Math.max(1, p[side].total)) * 100}%` }} /></div>
+      <b>{p[side].have}</b>/{p[side].total}
+    </div>
+  );
+  return (
+    <div class="trk trk-vp trk-key has-pop" data-tour="vp">
+      <div class="trk-label">关键国（战场国 + 敌方本土邻国）</div>
+      {row('US')}
+      {row('USSR')}
+      <div class="trk-pop">
+        <div class="pop-title">不死不休的胜利条件</div>
+        <div class="pop-note">控制全部战场国，外加对手本土的全部邻国，立即获胜。胜利点已冻结。</div>
+        {(['US', 'USSR'] as Side[]).map((side) => (
+          <p key={side}>
+            <b>{side === 'US' ? '美国' : '苏联'}还差 {p[side].missing.length} 国：</b>
+            {p[side].missing.map((c) => COUNTRIES[c].zh).join('、') || '—'}
+          </p>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function Vp({ vp, view }: { vp: number; view: GameView }) {
+  if (view.flags.endlessWorld && view.phase !== 'over') return <KeyTrack view={view} />;
   const pct = ((Math.max(-20, Math.min(20, vp)) + 20) / 40) * 100;
   const pj = projectFinal(view);
   // 对局结束：显示胜负和原因，不再给终局预估（提前结束时胜利点不一定代表结果）
@@ -372,6 +402,12 @@ function SpacePop({ view }: { view: GameView }) {
           })}
         </tbody>
       </table>
+      {view.flags.endlessWorld && (
+        <div class="pop-note">
+          <b>不死不休：</b>各格的 VP 改为同样多的影响力（下一次行动轮开始结算时放）；「载人环绕地球」特权改为每回合开始对手公开手牌；
+          到达空间站后仍可继续尝试（行动点 ≥{ORBIT.ops}，掷 ≤{ORBIT.roll}），每次成功发动一次<b>轨道打击</b>：在无人控制的洲免费政变，行动点 = 己方支配 / 控制的洲数 + 2。
+        </div>
+      )}
       <div class="pop-note">
         本回合已用：美 {view.spaceAttempts.US} 次，苏 {view.spaceAttempts.USSR} 次。
       </div>
