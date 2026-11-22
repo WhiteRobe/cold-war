@@ -1,8 +1,9 @@
-// 首页军力对比条：左苏右美，红蓝分界按双方胜场比例移动；分界处两只低多边形手臂肘撑在条上掰手腕，
+// 首页军力对比条：左美右苏（按苏左美右绘制后整体翻转），红蓝分界按双方胜场比例移动；分界处两只低多边形手臂肘撑在条上掰手腕，
 // 领先一方把对方压下去；手臂之间两个小兵拼刺刀；两端是按胜场多少排列的方阵（钢盔兵 + 坦克 + 军旗）。
-// 数据来自按对局 id 记的战绩，删存档不影响。
+// 数据来自云端全局战绩（所有浏览器的离线人机局 + 在线局）；取不到时退回本机战绩。
 import type { JSX } from 'preact';
-import { tally } from '../game/record';
+import { useEffect, useState } from 'preact/hooks';
+import { globalTally, syncRecords, tally } from '../game/record';
 
 const W = 760, H = 150, X0 = 24, X1 = W - 24, BAR_Y = 118, BAR_H = 14;
 type S = 'us' | 'ussr';
@@ -114,7 +115,18 @@ function Fists({ cx: x, cy: y }: { cx: number; cy: number }) {
 }
 
 export function StrengthBar() {
-  const t = tally();
+  // 先显示本机战绩，云端全局统计到了再换上
+  const [t, setT] = useState(tally);
+  const [global, setGlobal] = useState(false);
+  useEffect(() => {
+    syncRecords();
+    globalTally().then((g) => {
+      if (g) {
+        setT(g);
+        setGlobal(true);
+      }
+    });
+  }, []);
   const total = t.US + t.USSR;
   // 加 1 平滑：没打过时停在正中，也不会一局就推到底
   const share = (t.USSR + 1) / (total + 2);
@@ -127,13 +139,13 @@ export function StrengthBar() {
   return (
     <section class="panel strength-panel">
       <div class="sb-head">
-        <span class="sb-side ussr">苏联 <b>{t.USSR}</b> 胜</span>
+        <span class="sb-side us">美国 <b>{t.US}</b> 胜</span>
         <span class="sb-mid">
-          {t.pending > 0 && <span>争夺中 {t.pending} 局</span>}
+          <span>{global ? '全服战绩' : '本机战绩'}{t.pending > 0 ? ` · 争夺中 ${t.pending} 局` : ''}</span>
           {t.draw > 0 && <span>平局 {t.draw}</span>}
           {!total && !t.pending && <span>还没有分出胜负的对局</span>}
         </span>
-        <span class="sb-side us"><b>{t.US}</b> 胜 美国</span>
+        <span class="sb-side ussr"><b>{t.USSR}</b> 胜 苏联</span>
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} class="sb-svg" role="img" aria-label={`军力对比：苏联 ${t.USSR} 胜，美国 ${t.US} 胜，争夺中 ${t.pending} 局`}>
         <defs>
@@ -141,6 +153,8 @@ export function StrengthBar() {
           <linearGradient id="sbSkyB" x1="1" x2="0"><stop offset="0" stop-color="#24447a" stop-opacity="0.6" /><stop offset="1" stop-color="#24447a" stop-opacity="0" /></linearGradient>
           <radialGradient id="sbGlow"><stop offset="0" stop-color="#f5d76e" stop-opacity="0.55" /><stop offset="1" stop-color="#f5d76e" stop-opacity="0" /></radialGradient>
         </defs>
+        {/* 画面按“苏左美右”画好，整体水平翻转成美左苏右 */}
+        <g transform={`translate(${W},0) scale(-1,1)`}>
         <rect x={X0} y="6" width={sx - X0} height={BAR_Y - 6} fill="url(#sbSkyR)" />
         <rect x={sx} y="6" width={X1 - sx} height={BAR_Y - 6} fill="url(#sbSkyB)" />
         <Army wins={t.USSR} side="ussr" />
@@ -164,6 +178,7 @@ export function StrengthBar() {
           <g transform={`translate(${gx - sx},${gy - (BAR_Y - 74)}) rotate(${tilt} ${sx} ${BAR_Y - 74})`}>
             <Fists cx={sx} cy={BAR_Y - 74} />
           </g>
+        </g>
         </g>
       </svg>
     </section>

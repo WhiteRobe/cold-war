@@ -1,6 +1,5 @@
-import { useEffect, useState } from 'preact/hooks';
-import { BUILTIN_SCENARIOS, type Scenario } from '../../engine/scenario';
-import { PICK_KEY, loadScenarios } from './Scenarios';
+import { useState } from 'preact/hooks';
+import { ScenarioPicker, useScenarioPick } from './ScenarioPicker';
 import { AI_LEVEL_ZH, type AiLevel } from '../../ai';
 import { DEFAULT_OPTIONS, type Side } from '../../engine/types';
 import { deleteSave, listSaves, newSave } from '../game/offline';
@@ -18,18 +17,11 @@ export function Home() {
   const [optional, setOptional] = useState(true);
   const [bonus, setBonus] = useState(2);
   const [saves, setSaves] = useState(listSaves());
-  // 剧本：默认标准开局；从剧本页点“用这个剧本开局”回来时自动选中
-  const [scenarios, setScenarios] = useState<Scenario[]>(BUILTIN_SCENARIOS);
-  const [scId, setScId] = useState(() => sessionStorage.getItem(PICK_KEY) ?? 'standard');
-  useEffect(() => {
-    sessionStorage.removeItem(PICK_KEY);
-    loadScenarios().then(setScenarios);
-  }, []);
-  const scenario = scenarios.find((x) => x.id === scId);
+  const pick = useScenarioPick();
 
   const start = () => {
     const human: Side = side === 'random' ? (Math.random() < 0.5 ? 'US' : 'USSR') : side;
-    const sc = scenario && scenario.id !== 'standard' ? scenario : undefined;
+    const sc = pick.scenario;
     const s = newSave(human, level, { ...DEFAULT_OPTIONS, optionalCards: optional, usBonus: bonus, ...(sc ? { scenario: sc } : {}) });
     go(`/offline/${s.id}`);
   };
@@ -146,19 +138,15 @@ export function Home() {
             <input type="checkbox" checked={optional} onChange={(e) => setOptional((e.target as HTMLInputElement).checked)} />
             加入可选卡 #104–110（20 周年版默认）
           </label>
-          <div class="field">
-            <label>剧本 <a href="#/scenarios" class="sc-manage">管理 / 编写剧本</a></label>
-            <select class="input" value={scId} onChange={(e) => setScId((e.target as HTMLSelectElement).value)}>
-              {scenarios.map((x) => <option key={x.id} value={x.id}>{x.year ? `${x.year} · ` : ''}{x.name}{x.builtin ? '' : `（${x.author || '玩家'}）`}</option>)}
-            </select>
-            {scenario && scenario.id !== 'standard' && <p class="sc-pick-story">第 {scenario.startTurn}–{scenario.endTurn} 回合 · {scenario.story}</p>}
-          </div>
+          <ScenarioPicker pick={pick} />
           <button type="button" class="btn primary big" onClick={start}>开始新对局</button>
-          <p class="note">离线对局保存在本机浏览器，可随时退出、之后继续。断网也能玩。</p>
         </section>
 
         <section class="panel">
-          <h2>继续对局</h2>
+          <h2>
+            继续离线对局
+            <span class="help-q" tabIndex={0}>?<span class="help-pop">离线对局保存在本机浏览器，可随时退出、之后继续。断网也能玩。</span></span>
+          </h2>
           {!saves.length && <div class="empty-hint">还没有存档</div>}
           <div class="saves">
             {saves.map((s) => (

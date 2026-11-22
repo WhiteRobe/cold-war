@@ -37,7 +37,7 @@ export function regionPoints(inf: Inf, r: RegionId, formosan = false): Record<Si
   const list = REGION_LIST[r];
   const t = { US: { n: 0, bg: 0, adj: 0 }, USSR: { n: 0, bg: 0, adj: 0 } };
   let totalBg = BG_COUNT[r];
-  const taiwanBg = formosan && r === 'asia' && ctrl(inf, 'taiwan') === 'US';
+  const taiwanBg = formosan && r === 'asia' && !!inf.taiwan && ctrl(inf, 'taiwan') === 'US';
   if (taiwanBg) totalBg++;
   for (const c of list) {
     const w = ctrl(inf, c.id);

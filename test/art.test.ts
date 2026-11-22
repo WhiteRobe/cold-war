@@ -29,7 +29,7 @@ describe('卡牌插画', () => {
 
   it('每张插画各不相同', () => {
     const set = new Set(CARD_LIST.map((c) => cardArt(c.id)));
-    expect(set.size).toBe(110);
+    expect(set.size).toBe(CARD_LIST.length);
   });
 
   it('10 张样板', () => {

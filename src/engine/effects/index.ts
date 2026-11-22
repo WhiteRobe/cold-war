@@ -4,6 +4,7 @@ import { EARLY } from './early';
 import { MID } from './mid';
 import { LATE } from './late';
 import { SCORING } from './scoring';
+import { ENDLESS } from './endless';
 
 export interface EffectCtx {
   /** 打出这张牌的玩家（行动方） */
@@ -19,4 +20,4 @@ export interface Effect {
   run(g: Game, me: Side, ctx: EffectCtx): Gen;
 }
 
-export const EFFECTS: Record<number, Effect> = { ...SCORING, ...EARLY, ...MID, ...LATE };
+export const EFFECTS: Record<number, Effect> = { ...SCORING, ...EARLY, ...MID, ...LATE, ...ENDLESS };

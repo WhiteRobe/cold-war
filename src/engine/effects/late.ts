@@ -78,7 +78,7 @@ export const LATE: Record<number, Effect> = {
     *run(g) {
       g.degradeDefcon(1, '大韩航空 007');
       g.vp('US', 2, '大韩航空 007');
-      if (g.controls('US', 'southKorea')) yield* g.opsPlay('US', 4, { card: 89, modes: ['influence', 'realign'], optional: true });
+      if (g.s.inf.southKorea && g.controls('US', 'southKorea')) yield* g.opsPlay('US', 4, { card: 89, modes: ['influence', 'realign'], optional: true });
     },
   },
   // Glasnost

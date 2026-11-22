@@ -49,6 +49,7 @@ h1, h2, h3, h4 { font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif; let
 .icon-btn { background: transparent; border: 1px solid var(--line); border-radius: 6px; width: 34px; height: 34px; color: var(--text2); flex: none; }
 .icon-btn:hover { color: var(--text); background: var(--bg3); }
 .input { background: var(--bg2); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; color: var(--text); font: inherit; }
+select.input { appearance: none; -webkit-appearance: none; padding-right: 34px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' stroke='%23c9bb98' stroke-width='1.6' fill='none'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; cursor: pointer; }
 .row { display: flex; gap: 8px; justify-content: center; margin-top: 12px; flex-wrap: wrap; }
 .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
 .seg button { background: var(--bg2); border: none; padding: 7px 12px; color: var(--text2); border-right: 1px solid var(--line); }
@@ -1885,3 +1886,7 @@ g.links { pointer-events: none; }
 .scene-steps li.todo { color: #6b6458; }
 @keyframes scStep { from { opacity: 0; transform: translateX(-6px); } }
 .scene-box .btn { float: right; }
+.sc-select { width: 100%; }
+.help-q { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; margin-left: 8px; border-radius: 50%; border: 1px solid var(--line); color: var(--muted, #9a917e); font-size: 12px; font-weight: 700; cursor: help; vertical-align: middle; font-family: inherit; letter-spacing: 0; }
+.help-q .help-pop { display: none; position: absolute; left: 50%; top: calc(100% + 8px); transform: translateX(-50%); width: 240px; padding: 8px 10px; border-radius: 6px; background: #1a1712; border: 1px solid var(--line); color: var(--text); font-size: 13px; font-weight: 400; line-height: 1.6; z-index: 20; box-shadow: 0 6px 18px #0008; }
+.help-q:hover .help-pop, .help-q:focus .help-pop { display: block; }

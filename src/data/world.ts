@@ -24,13 +24,29 @@ const UN_CARD: Partial<CardDef> = {
   text: '固定 4 点行动点；持有方每控制英国、法国、中国中的一个，使用时行动点 +1。不能作为事件打出，也不能用于太空竞赛。打出后正面朝下交给对手，下个回合才能使用。',
   textEn: '4 Ops; +1 Op for each of UK, France, China you control. Cannot be played as an event or for the Space Race. After use, pass it face down to your opponent.',
 };
+export type WorldSide = 'US' | 'USSR';
+/** 世界状态：是否进入不死不休、中国统一 / 朝鲜半岛统一由哪一方完成 */
+export interface WorldState {
+  endless?: boolean;
+  china?: WorldSide;
+  korea?: WorldSide;
+}
+
+// 标准世界的原始数据（切换世界前先恢复）
+const BASE_LIST = COUNTRY_LIST.slice();
+const BASE = new Map(COUNTRY_LIST.map((c) => [c.id, { adj: c.adj.slice(), stability: c.stability, bg: c.bg }]));
+const EXTRA_BASE = new Map([CHINA, MONGOLIA].map((c) => [c.id, { adj: c.adj.slice(), stability: c.stability, bg: c.bg }]));
 let chinaCardBackup: Partial<CardDef> | null = null;
 
+let cur = '';
 let on = false;
+let gone = new Set<string>();
 /** 世界版本号：界面据此重算地图上的连线等缓存 */
 export let worldVersion = 0;
 export const endlessWorld = () => on;
 export const getWorldVersion = () => worldVersion;
+/** 因统一而从地图上消失的国家（名字仍可查，但不再参与任何结算） */
+export const goneCountry = (id: string) => gone.has(id);
 
 /** 依赖国家表的缓存：世界变化后自动重算 */
 export function byWorld<T>(fn: () => T): () => T {
@@ -45,32 +61,64 @@ export function byWorld<T>(fn: () => T): () => T {
   };
 }
 
-/** 切换世界。countries / cards 是 index.ts 里的索引表，一起更新 */
-export function applyEndlessWorld(enable: boolean, countries: Record<string, CountryDef>, cards: Record<number, CardDef>) {
-  if (enable === on) return;
-  on = enable;
+/** 朝鲜半岛统一后保留的国家 */
+export const koreaKeep = (side: WorldSide) => (side === 'USSR' ? 'northKorea' : 'southKorea');
+
+/**
+ * 切换世界。countries / cards 是 index.ts 里的索引表，一起更新。
+ * 消失的国家仍留在 countries 里（旧日志要查名字），但从 COUNTRY_LIST 和所有邻接里删掉。
+ */
+export function applyWorld(w: WorldState, countries: Record<string, CountryDef>, cards: Record<number, CardDef>) {
+  const key = w.endless ? `e${w.china ?? ''}/${w.korea ?? ''}` : '';
+  if (key === cur) return;
+  cur = key;
   worldVersion++;
-  if (enable) {
-    for (const c of [CHINA, MONGOLIA]) {
-      COUNTRY_LIST.push(c);
-      countries[c.id] = c;
+  // 先恢复标准世界
+  COUNTRY_LIST.length = 0;
+  COUNTRY_LIST.push(...BASE_LIST);
+  for (const c of BASE_LIST) Object.assign(c, { ...BASE.get(c.id)!, adj: BASE.get(c.id)!.adj.slice() });
+  for (const c of [CHINA, MONGOLIA]) {
+    Object.assign(c, { ...EXTRA_BASE.get(c.id)!, adj: EXTRA_BASE.get(c.id)!.adj.slice() });
+    delete countries[c.id];
+  }
+  if (chinaCardBackup) Object.assign(cards[6], chinaCardBackup);
+  chinaCardBackup = null;
+  gone = new Set();
+  on = !!w.endless;
+  if (!on) return;
+
+  for (const c of [CHINA, MONGOLIA]) {
+    COUNTRY_LIST.push(c);
+    countries[c.id] = c;
+  }
+  for (const [a, b] of LINKS) if (!countries[a].adj.includes(b)) countries[a].adj.push(b);
+  const china = cards[6];
+  chinaCardBackup = { name: china.name, zh: china.zh, text: china.text, textEn: china.textEn };
+  Object.assign(china, UN_CARD);
+
+  const drop = (id: string) => {
+    gone.add(id);
+    const i = COUNTRY_LIST.findIndex((c) => c.id === id);
+    if (i >= 0) COUNTRY_LIST.splice(i, 1);
+    for (const c of COUNTRY_LIST) {
+      const j = c.adj.indexOf(id);
+      if (j >= 0) c.adj.splice(j, 1);
     }
-    for (const [a, b] of LINKS) if (!countries[a].adj.includes(b)) countries[a].adj.push(b);
-    const china = cards[6];
-    chinaCardBackup = { name: china.name, zh: china.zh, text: china.text, textEn: china.textEn };
-    Object.assign(china, UN_CARD);
-  } else {
-    for (const id of ['china', 'mongolia']) {
-      const i = COUNTRY_LIST.findIndex((c) => c.id === id);
-      if (i >= 0) COUNTRY_LIST.splice(i, 1);
-      delete countries[id];
-    }
-    for (const [a, b] of LINKS) {
-      const adj = countries[a].adj;
-      const i = adj.indexOf(b);
-      if (i >= 0) adj.splice(i, 1);
-    }
-    if (chinaCardBackup) Object.assign(cards[6], chinaCardBackup);
-    chinaCardBackup = null;
+  };
+  // 中国统一：台湾并入中国，中国不再是战场国
+  if (w.china) {
+    drop('taiwan');
+    CHINA.stability = 5;
+    CHINA.bg = false;
+  }
+  // 朝鲜半岛统一：并成一个战场国，稳定度 3，与苏联、中国、日本、台湾（若还在）相邻
+  if (w.korea) {
+    const keep = koreaKeep(w.korea);
+    drop(keep === 'northKorea' ? 'southKorea' : 'northKorea');
+    const k = countries[keep];
+    k.stability = 3;
+    k.bg = true;
+    k.adj = ['ussr', 'china', 'japan', 'taiwan'].filter((x) => x === 'ussr' || !gone.has(x));
+    for (const x of k.adj) if (x !== 'ussr' && !countries[x].adj.includes(keep)) countries[x].adj.push(keep);
   }
 }

@@ -6,9 +6,10 @@ import { EARLY_ART } from './cards/early';
 import { MID_ART } from './cards/mid';
 import { LATE_ART } from './cards/late';
 import { SCORING_ART } from './cards/scoring';
+import { ENDLESS_ART } from './cards/endless';
 import { C, S, at, flag, globe, rays, rect } from './kit';
 
-const ART: Record<number, () => string> = { ...SCORING_ART, ...EARLY_ART, ...MID_ART, ...LATE_ART };
+const ART: Record<number, () => string> = { ...SCORING_ART, ...EARLY_ART, ...MID_ART, ...LATE_ART, ...ENDLESS_ART };
 
 /** 先给用户过目的 10 张样板 */
 export const SAMPLES = [2, 6, 8, 17, 21, 40, 48, 80, 96, 106];

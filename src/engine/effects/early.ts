@@ -80,6 +80,8 @@ export const EARLY: Record<number, Effect> = {
   },
   // Korean War
   11: {
+    // 朝鲜半岛被苏联统一后韩国已不存在
+    can: (g) => !!g.s.inf.southKorea,
     *run(g, me) {
       yield* g.war(me, 11, 'southKorea', { need: 4, vp: 2, milops: 2 });
     },
@@ -316,6 +318,7 @@ export const EARLY: Record<number, Effect> = {
   },
   // Formosan Resolution
   35: {
+    can: (g) => !!g.s.inf.taiwan,
     *run(g) {
       g.s.flags.formosan = true;
       g.log('台湾决议：美国控制台湾时，亚洲计分视其为战场国');

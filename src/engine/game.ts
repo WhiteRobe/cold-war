@@ -1,4 +1,4 @@
-import { CARDS, CARD_LIST, CHINA_CARD, COUNTRIES, COUNTRY_LIST, REGIONS, REGION_ZH, setEndlessWorld, countriesIn, inRegion, type CardDef, type RegionId, type SubRegionId } from '../data';
+import { CARDS, CARD_LIST, CHINA_CARD, COUNTRIES, COUNTRY_LIST, REGIONS, REGION_ZH, setWorld, worldOf, countriesIn, inRegion, type CardDef, type RegionId, type SubRegionId } from '../data';
 import { nextRandom, randInt, shuffle } from './rng';
 import { controller, controls, scoreRegion, scoreSEA } from './scoring';
 import { SPACE } from './space';
@@ -9,6 +9,7 @@ import {
 import { EFFECTS } from './effects';
 import { EVENT_FLAGS, erasUpTo } from './scenario';
 import { GameOver, cardName, countryName } from './util';
+import { ORBIT, bonusBeforeAR, firstOpsCard, ironDepth, missile, oil, orbitalStrike, squeeze, unifyBonus, unifyCheck } from './endless';
 
 export { GameOver, cardName, countryName };
 
@@ -84,7 +85,7 @@ export class Game {
 
   constructor(public setup: GameSetup) {
     // 国家表是全局的：新对局一律从标准世界开始（不死不休到第 11 回合才会改变）
-    setEndlessWorld(false);
+    setWorld({});
     this.s = initialState(setup);
     this.gen = this.main();
     this.resume(undefined);
@@ -292,6 +293,26 @@ export class Game {
     this.s.removed.push(card);
   }
 
+  /** 把一张牌从任何位置移出游戏（不死不休的国家合并），返回它原来所在位置的说明 */
+  purgeCard(card: number): string {
+    const s = this.s;
+    if (s.removed.includes(card)) return '';
+    let where = '';
+    const take = (arr: number[], w: string) => {
+      const i = arr.indexOf(card);
+      if (i >= 0) {
+        arr.splice(i, 1);
+        where = w;
+      }
+    };
+    take(s.deck, '牌库');
+    take(s.discard, '弃牌堆');
+    take(s.inPlay, '持续事件区');
+    for (const side of ['US', 'USSR'] as Side[]) if (this.removeFromHand(side, card)) where = '手牌';
+    s.removed.push(card);
+    return where;
+  }
+
   /** 从持续事件区取消一张牌 */
   cancelInPlay(card: number) {
     const i = this.s.inPlay.indexOf(card);
@@ -386,12 +407,12 @@ export class Game {
         steps: [
           { text: '胜利点、控制欧洲、回合末持有计分卡都不再结束对局，也没有回合上限。' },
           { text: '新机制从这一回合起生效：支配 / 控制一个洲有免费影响力，控制的洲会压制敌方；占着敌方本土邻国会削弱敌方每回合的第一张牌；太空竞赛到顶后可以发动轨道打击；苏联还有石油经济。' },
-          { text: '新卡会洗入牌库。地图也要变了——' },
+          { text: `${CARD_LIST.filter((c) => c.endless).length} 张不死不休专属卡洗入牌库：${CARD_LIST.filter((c) => c.endless).map((c) => `#${c.id} ${c.zh}`).join('、')}。地图也要变了——` },
         ],
       },
     });
-    setEndlessWorld(true);
     s.flags.endlessWorld = true;
+    setWorld(worldOf(s.flags));
     // 中国的起始影响力照搬台湾当前的影响力；台湾双方都是 0 时为美 1、苏 2
     const tw = s.inf.taiwan;
     s.inf.china = tw[0] || tw[1] ? [tw[0], tw[1]] : [1, 2];
@@ -412,6 +433,8 @@ export class Game {
     });
     s.china = { holder: 'USSR', faceUp: true };
     s.inf.australia[1] += 1;
+    const extra = CARD_LIST.filter((c) => c.endless).map((c) => c.id);
+    s.deck = shuffle(s, [...s.deck, ...extra]);
     this.log('太平洋战略：澳大利亚、菲律宾成为美国本土邻国，澳大利亚 +1 苏联影响力', {
       kind: 'turn',
       scene: {
@@ -438,7 +461,7 @@ export class Game {
   }
 
   private buildDeck(era: 'early' | 'mid' | 'late') {
-    return CARD_LIST.filter((c) => c.era === era && c.id !== CHINA_CARD && (this.s.options.optionalCards || !c.optional)).map((c) => c.id);
+    return CARD_LIST.filter((c) => c.era === era && !c.endless && c.id !== CHINA_CARD && (this.s.options.optionalCards || !c.optional)).map((c) => c.id);
   }
 
   private deal(n: number) {
@@ -526,6 +549,12 @@ export class Game {
     if (t > this.firstTurn) this.improveDefcon(1, '回合开始');
     if (t > this.firstTurn) this.deal(t <= 3 ? 8 : 9);
     s.spaceAttempts = { US: 0, USSR: 0 };
+    if (this.endlessOn) {
+      squeeze(this);
+      missile(this);
+      yield* oil(this);
+      this.checkGlobal();
+    }
     yield* this.headlinePhase();
     s.phase = 'action';
     for (let ar = 1; ar <= 8; ar++) {
@@ -533,6 +562,12 @@ export class Game {
         if (ar > this.maxARs(side)) continue;
         s.ar = ar;
         s.phasing = side;
+        if (this.endlessOn) {
+          unifyCheck(this);
+          yield* unifyBonus(this, side);
+          yield* bonusBeforeAR(this, side);
+          this.checkGlobal();
+        }
         yield* this.actionRound(side, ar > this.baseARs());
         this.checkGlobal();
       }
@@ -717,10 +752,10 @@ export class Game {
     if (card !== CHINA_CARD && CARDS[card].scoring) return false;
     if (card === CHINA_CARD && this.s.flags.endlessWorld) return false;
     const next = s.space[side] + 1;
-    if (next > 8) return false;
+    if (next > 8 && !this.endlessOn) return false;
     const limit = this.hasPerk(side, 2) ? 2 : 1;
     if (s.spaceAttempts[side] >= limit) return false;
-    return this.effOps(side, card) >= SPACE[next].ops;
+    return this.effOps(side, card) >= (next > 8 ? ORBIT.ops : SPACE[next].ops);
   }
 
   private recordPlay(side: Side, card: number, how: 'event' | 'ops' | 'space' | 'headline') {
@@ -748,7 +783,7 @@ export class Game {
         this.log('美国打出中国牌，台湾决议失效');
       }
       if (mode === 'space') yield* this.spaceAttempt(side, card);
-      else yield* this.opsPlay(side, un ? this.unOps(side) : this.card(card).ops, { card, snapshot });
+      else yield* this.opsWithEndless(side, card, un ? this.unOps(side) : this.card(card).ops, snapshot);
       s.playing = prevPlaying;
       return;
     }
@@ -787,11 +822,25 @@ export class Game {
       let first = 'opsFirst';
       if (oppEvent) first = yield* this.askOption(side, `${cardName(card)} 的对手事件将会发动：先执行哪一项？`, [['eventFirst', '先发动事件'], ['opsFirst', '先用行动点']], { tag: 'order', card });
       if (oppEvent && first === 'eventFirst') fired = yield* this.fireEvent(card, side, {});
-      yield* this.opsPlay(side, def.ops, { card, snapshot });
+      yield* this.opsWithEndless(side, card, def.ops, snapshot);
       if (oppEvent && first === 'opsFirst') fired = yield* this.fireEvent(card, side, {});
     }
     this.relocate(card, fired, side);
     s.playing = prevPlaying;
+  }
+
+  /** 用行动点打出：不死不休里每回合第一张要先结算乌云压境 / 落后补给 */
+  private *opsWithEndless(side: Side, card: number, base: number, snapshot: Set<string>): Gen {
+    if (this.endlessOn) {
+      const eff = this.effOps(side, card);
+      const d = yield* firstOpsCard(this, side, eff);
+      if (eff + d <= 0) {
+        this.log(`${cardName(card)} 的行动点被乌云压境全部抵消`, { side });
+        return;
+      }
+      base += d;
+    }
+    yield* this.opsPlay(side, base, { card, snapshot });
   }
 
   /** 打出后安置这张牌 */
@@ -1036,7 +1085,7 @@ export class Game {
   }
 
   /** 政变。ops 为最终行动点。返回移除的对手影响力数。 */
-  *coup(side: Side, c: string, ops: number, o: { free?: boolean; card?: number; noMilops?: boolean } = {}): Gen<number> {
+  *coup(side: Side, c: string, ops: number, o: { free?: boolean; card?: number; noMilops?: boolean; orbital?: boolean } = {}): Gen<number> {
     const s = this.s;
     if (s.flags.cmc === side) {
       const ok = this.canPayCmc(side) && (yield* this.offerCmcCancel(side, false));
@@ -1048,6 +1097,8 @@ export class Game {
     let mod = 0;
     if (s.flags.salt) mod -= 1;
     if (s.flags.lads && (d.region === 'centralAmerica' || d.region === 'southAmerica')) mod += s.flags.lads === side ? 1 : -1;
+    const depth = ironDepth(this, side, c);
+    mod += depth;
     const total = r + ops + mod;
     const diff = total - 2 * d.stability;
     let removed = 0;
@@ -1067,7 +1118,8 @@ export class Game {
       },
     );
     if (side === 'US' && s.flags.yuri) this.vp('USSR', 1, '尤里和萨曼莎');
-    if (d.bg && !(side === 'US' && s.flags.nuclearSubs && !o.free)) this.degradeDefcon(1, '战场国政变');
+    if (depth) this.log(`铁幕纵深：${countryName(c)}由苏联控制，美国在东欧政变 -1`, { side: 'USSR' });
+    if (d.bg && !o.orbital && !(side === 'US' && s.flags.nuclearSubs && !o.free)) this.degradeDefcon(1, '战场国政变');
     return removed;
   }
 
@@ -1077,6 +1129,16 @@ export class Game {
     const s = this.s;
     s.spaceAttempts[side]++;
     const next = s.space[side] + 1;
+    if (next > 8) {
+      // 不死不休：空间站之后每次成功都是一次轨道打击
+      const r = this.roll();
+      const ok = r <= ORBIT.roll;
+      this.log(`${SIDE_ZH[side]}用 ${cardName(card)} 发射轨道打击卫星（需 ≤${ORBIT.roll}）：掷出 ${r}，${ok ? '成功' : '失败'}`, {
+        side, kind: 'roll', roll: { type: 'space', side, dice: [r], ok, need: `轨道打击：需要 ≤${ORBIT.roll}`, result: ok ? '卫星就位，发动轨道打击' : '发射失败' },
+      });
+      if (ok) yield* orbitalStrike(this, side);
+      return;
+    }
     const box = SPACE[next];
     const r = this.roll();
     const ok = r <= box.roll;
@@ -1225,7 +1287,7 @@ export class Game {
     for (let i = 0; i < total; ) {
       const ids = COUNTRY_LIST.map((c) => c.id).filter((c) => ok(c) && (o.maxPer === undefined || (placed[c] ?? 0) < o.maxPer) && (per === undefined || !placed[c]));
       if (!ids.length) break;
-      const c = yield* this.askCountry(side, 'placeEvent', `${o.prompt ?? `${CARDS[card].zh}：放置影响力`}（剩余 ${total - i}）`, ids, { card, ops: { total, spent: i } });
+      const c = yield* this.askCountry(side, 'placeEvent', `${o.prompt ?? `${CARDS[card].zh}：放置影响力`}（剩余 ${total - i}）`, ids, { card: card || undefined, ops: { total, spent: i } });
       const n = per ?? 1;
       this.addInf(c, side, n);
       placed[c] = (placed[c] ?? 0) + n;

@@ -33,11 +33,12 @@ describe('地图数据', () => {
 });
 
 describe('卡牌数据', () => {
-  it('110 张、编号连续', () => {
-    expect(CARD_LIST.map((c) => c.id)).toEqual(Array.from({ length: 110 }, (_, i) => i + 1));
+  it('110 张原版 + 不死不休专属卡，编号连续', () => {
+    expect(CARD_LIST.filter((c) => !c.endless).map((c) => c.id)).toEqual(Array.from({ length: 110 }, (_, i) => i + 1));
+    expect(CARD_LIST.map((c) => c.id)).toEqual(Array.from({ length: CARD_LIST.length }, (_, i) => i + 1));
   });
   it('时期分布', () => {
-    const n = (e: string) => CARD_LIST.filter((c) => c.era === e).length;
+    const n = (e: string) => CARD_LIST.filter((c) => c.era === e && !c.endless).length;
     expect([n('early'), n('mid'), n('late')]).toEqual([39, 48, 23]);
   });
   it('计分卡与战争卡', () => {

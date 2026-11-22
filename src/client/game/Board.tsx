@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { CARDS, CARD_LIST, CHINA_CARD, COUNTRY_LIST, REGION_ZH, byWorld, setEndlessWorld, type RegionId, type Side } from '../../data';
+import { CARDS, CARD_LIST, CHINA_CARD, COUNTRY_LIST, REGION_ZH, byWorld, setWorld, worldOf, type RegionId, type Side } from '../../data';
 import { REGION_POINTS, scoreRegion } from '../../engine/scoring';
 import type { Choice, Decision, LogEntry } from '../../engine/types';
 import { Coach, coachOn, danger, instantOutcome, setCoach, suicide } from './Coach';
@@ -41,7 +41,7 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
   const paced = useEventPacing(incoming, aiOpponent);
   const view = paced.view;
   // 不死不休的世界变化（中国、蒙古、新邻接、联合国牌）跟着当前显示的局面切换
-  if (view) setEndlessWorld(!!view.flags.endlessWorld);
+  if (view) setWorld(worldOf(view.flags));
   const [zoomCard, setZoomCard] = useState<number | null>(null);
   const [pile, setPile] = useState<'discard' | 'removed' | 'deck' | null>(null);
   const [region, setRegion] = useState<RegionId | null>(null);

@@ -77,6 +77,31 @@ async function handleApi(req: Request, env: Env, path: string): Promise<Response
     return login(env, { id: randomId('g_'), name: `游客${String(n).padStart(4, '0')}`, guest: true });
   }
 
+  // ---- 全局战绩：离线局由浏览器上报，在线局取 match_results（不需要登录） ----
+  if (path === '/api/records' && method === 'GET') {
+    const t: Record<string, number> = { US: 0, USSR: 0, draw: 0, pending: 0 };
+    const off = await env.DB.prepare('SELECT outcome, COUNT(*) AS n FROM offline_results GROUP BY outcome').all<{ outcome: string; n: number }>();
+    for (const r of off.results) if (r.outcome in t) t[r.outcome] += r.n;
+    const on = await env.DB.prepare('SELECT winner, COUNT(*) AS n FROM match_results GROUP BY winner').all<{ winner: string | null; n: number }>();
+    for (const r of on.results) t[r.winner === 'US' || r.winner === 'USSR' ? r.winner : 'draw'] += r.n;
+    return json(t);
+  }
+  if (path === '/api/records' && method === 'POST') {
+    if (!(await lobbyStub(env).rateLimit('record:' + ip, 120))) return fail('操作太频繁，请稍后再试', 429);
+    const b = await readBody(req);
+    const items = Array.isArray(b.items) ? (b.items as { id?: unknown; outcome?: unknown }[]).slice(0, 200) : [];
+    const ok = items.filter(
+      (x) => typeof x.id === 'string' && /^c_[A-Za-z0-9]{8,32}:off:[A-Za-z0-9_:-]{1,64}$/.test(x.id) && ['US', 'USSR', 'draw', 'pending'].includes(x.outcome as string),
+    );
+    if (ok.length) {
+      const now = Date.now();
+      await env.DB.batch(ok.map((x) =>
+        env.DB.prepare('INSERT INTO offline_results (id, outcome, updated_at) VALUES (?, ?, ?) ON CONFLICT(id) DO UPDATE SET outcome = excluded.outcome, updated_at = excluded.updated_at')
+          .bind(x.id, x.outcome, now)));
+    }
+    return json({ ok: ok.length });
+  }
+
   // ---- 自定义剧本：列表 / 上传 / 删除（不需要登录） ----
   if (path === '/api/scenarios' && method === 'GET') {
     const rows = await env.DB.prepare('SELECT data FROM scenarios ORDER BY created_at DESC LIMIT 200').all<{ data: string }>();

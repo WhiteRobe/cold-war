@@ -12,7 +12,7 @@ export interface Preview {
 const ZH: Record<Side, string> = { US: '美国', USSR: '苏联' };
 const opp = (s: Side): Side => (s === 'US' ? 'USSR' : 'US');
 const pct = (x: number) => `${Math.round(x * 100)}%`;
-const ctl = (v: GameView, c: string) => controller(v as never, c);
+const ctl = (v: GameView, c: string) => (v.inf[c] ? controller(v as never, c) : null);
 const LV = { none: '无', presence: '存在', domination: '支配', control: '控制' };
 
 const SCORING_REGION: Record<number, RegionId | 'sea'> = { 1: 'asia', 2: 'europe', 3: 'middleEast', 37: 'centralAmerica', 38: 'sea', 79: 'africa', 81: 'southAmerica' };
@@ -140,7 +140,7 @@ export function cardPreview(v: GameView, card: number): Preview | null {
       lines.push(v.defcon === 2 ? '⚠ DEFCON 会降到 1：行动方直接输掉！' : `DEFCON ${v.defcon} → ${v.defcon - 1}，美国 +${vp} VP`);
       break;
     }
-    case 11: lines.push(`苏联进攻 ${war('southKorea', 4, 2)}`); break;
+    case 11: lines.push(v.inf.southKorea ? `苏联进攻 ${war('southKorea', 4, 2)}` : '朝鲜半岛已被苏联统一，韩国不存在，事件不能发动'); break;
     case 13: lines.push(`苏联进攻 ${war('israel', 4, 2, true)}`); break;
     case 24:
       lines.push(`${ZH[exec]}进攻 ${war('pakistan', 4, 2)}`);

@@ -1,10 +1,13 @@
 import { CARD_LIST } from './cards.gen';
+import { ENDLESS_CARDS } from './endlessCards';
 import { COUNTRY_LIST } from './countries.gen';
 import type { CardDef, CountryDef, RegionId, SubRegionId } from './types';
-import { applyEndlessWorld } from './world';
+import { applyWorld, type WorldState } from './world';
 
 export * from './types';
 export { CARD_LIST, COUNTRY_LIST };
+
+CARD_LIST.push(...ENDLESS_CARDS);
 
 export const COUNTRIES: Record<string, CountryDef> = Object.fromEntries(COUNTRY_LIST.map((c) => [c.id, c]));
 export const CARDS: Record<number, CardDef> = Object.fromEntries(CARD_LIST.map((c) => [c.id, c]));
@@ -27,10 +30,15 @@ export function countriesIn(r: RegionId | SubRegionId): CountryDef[] {
 
 export const CHINA_CARD = 6;
 
-/** 切换不死不休的世界（中国、蒙古、新邻接、联合国牌） */
-export function setEndlessWorld(enable: boolean) {
-  applyEndlessWorld(enable, COUNTRIES, CARDS);
+/** 切换世界：不死不休（中国、蒙古、新邻接、联合国牌）、中国统一、朝鲜半岛统一 */
+export function setWorld(w: WorldState) {
+  applyWorld(w, COUNTRIES, CARDS);
   COUNTRY_IDS.length = 0;
   COUNTRY_IDS.push(...COUNTRY_LIST.map((c) => c.id));
 }
-export { endlessWorld, getWorldVersion, byWorld, CHINA, MONGOLIA } from './world';
+export { endlessWorld, getWorldVersion, byWorld, goneCountry, koreaKeep, CHINA, MONGOLIA, type WorldState } from './world';
+
+/** 局面里的世界状态 */
+export const worldOf = (f: { endlessWorld?: boolean; unifyChina?: 'US' | 'USSR'; unifyKorea?: 'US' | 'USSR' }): WorldState => ({
+  endless: !!f.endlessWorld, china: f.unifyChina, korea: f.unifyKorea,
+});

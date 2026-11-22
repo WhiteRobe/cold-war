@@ -5,6 +5,7 @@ import type { LobbyMsg, RoomSummary, SeatChoice } from '../../shared/protocol';
 import { api, type MatchRow } from '../api';
 import { Conn } from '../net';
 import { go, me, toast } from '../store';
+import { ScenarioPicker, useScenarioPick } from './ScenarioPicker';
 
 export function Online() {
   useEffect(() => {
@@ -67,6 +68,7 @@ function LobbyBody() {
   const [priv, setPriv] = useState(false);
   const [bonus, setBonus] = useState(2);
   const [optional, setOptional] = useState(true);
+  const pick = useScenarioPick();
   const [matches, setMatches] = useState<MatchRow[]>([]);
 
   useEffect(() => {
@@ -81,7 +83,7 @@ function LobbyBody() {
 
   const create = async () => {
     try {
-      const r = await api.createRoom(name, { options: { ...DEFAULT_OPTIONS, usBonus: bonus, optionalCards: optional }, hostSide: side, ai: opp === 'human' ? null : opp }, priv);
+      const r = await api.createRoom(name, { options: { ...DEFAULT_OPTIONS, usBonus: bonus, optionalCards: optional, ...(pick.scenario ? { scenario: pick.scenario } : {}) }, hostSide: side, ai: opp === 'human' ? null : opp }, priv);
       go(`/room/${r.id}`);
     } catch (e) {
       toast((e as Error).message);
@@ -126,6 +128,7 @@ function LobbyBody() {
           </div>
         </div>
         <label class="check"><input type="checkbox" checked={optional} onChange={(e) => setOptional((e.target as HTMLInputElement).checked)} />加入可选卡 #104–110</label>
+        <ScenarioPicker pick={pick} />
         {opp === 'human' && <label class="check"><input type="checkbox" checked={priv} onChange={(e) => setPriv((e.target as HTMLInputElement).checked)} />私密房间（不在大厅显示，凭房间码加入）</label>}
         <button type="button" class="btn primary big" onClick={create}>创建房间</button>
       </section>

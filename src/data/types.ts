@@ -33,4 +33,6 @@ export interface CardDef {
   optional: boolean;
   text: string;
   textEn: string;
+  /** 不死不休专属卡 */
+  endless?: boolean;
 }

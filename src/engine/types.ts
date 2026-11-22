@@ -216,11 +216,19 @@ export interface Flags {
   // ---- 不死不休 ----
   /** 世界已经变化（中国、蒙古、新邻接、联合国牌） */
   endlessWorld?: boolean;
+  /** 本回合已经结算过「第一张行动点牌」（乌云压境 / 落后补给）的一方 */
+  firstOps?: Side[];
+  /** 中国统一（台湾并入中国）的一方 */
+  unifyChina?: Side;
+  /** 朝鲜半岛统一的一方 */
+  unifyKorea?: Side;
+  /** 已经弹过首次说明的机制 */
+  seen?: string[];
 }
 
 export const TURN_FLAGS: (keyof Flags)[] = [
   'containment', 'brezhnev', 'redScare', 'vietnamRevolts', 'cmc', 'nuclearSubs', 'salt', 'lads', 'iranContra',
-  'chernobyl', 'yuri', 'aldrichAmes', 'northSeaOil8', 'u2',
+  'chernobyl', 'yuri', 'aldrichAmes', 'northSeaOil8', 'u2', 'firstOps',
 ];
 
 export const opp = (s: Side): Side => (s === 'US' ? 'USSR' : 'US');

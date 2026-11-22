@@ -87,7 +87,7 @@ export function eventMe(cx: Ctx, inf: Inf, card: number, exec: Side): number {
     case 8: return apply(cx, inf, (x) => { x.cuba[0] = 0; forControl(x, 'cuba', 'USSR'); }, ['cuba']);
     case 9: return apply(cx, inf, (x) => { x.vietnam[1] += 2; }, ['vietnam']) + vp(0.6);
     case 10: return Math.min(apply(cx, inf, (x) => { x.westGermany[0] = 0; }, ['westGermany']) * sg, 2.0) * sg;
-    case 11: return warEV(cx, inf, exec, 'southKorea', 4, 2) + vp(0.3);
+    case 11: return !inf.southKorea ? 0 : warEV(cx, inf, exec, 'southKorea', 4, 2) + vp(0.3);
     case 12: return apply(cx, inf, (x) => { x.romania[0] = 0; forControl(x, 'romania', 'USSR'); }, ['romania']);
     case 13: return f.campDavid ? 0 : warEV(cx, inf, exec, 'israel', 4, 2, true) + vp(0.3);
     case 14: return greedyAdd(cx, inf, exec, 4, (c) => inR(c, 'easternEurope') && ctrl(inf, c) !== 'US', 1, true).value;
@@ -195,7 +195,7 @@ export function eventMe(cx: Ctx, inf: Inf, card: number, exec: Side): number {
       const a = apply(cx, inf, (x) => { x.lebanon[0] = 0; }, ['lebanon']);
       return a + greedyRemove(cx, inf, exec, 'US', 2, (c) => inR(c, 'middleEast')).value;
     }
-    case 89: return vp(2) + (ctrl(inf, 'southKorea') === 'US' ? ops(4, ['influence', 'realign']) : 0);
+    case 89: return vp(2) + (inf.southKorea && ctrl(inf, 'southKorea') === 'US' ? ops(4, ['influence', 'realign']) : 0);
     case 90: return vp(2) + (f.reformer ? ops(4, ['influence', 'realign']) : 0) + vp(0.2);
     case 91: return apply(cx, inf, (x) => { x.nicaragua[0] = 0; }, ['nicaragua']) + vp(0.6);
     case 92: return vp(them === 'US' && f.iranianHostage ? 1.8 : 1.0);
@@ -226,6 +226,10 @@ export function eventMe(cx: Ctx, inf: Inf, card: number, exec: Side): number {
     case 108: return Object.keys(inf).some((c) => inR(c, 'middleEast') && ctrl(inf, c) === 'US') ? vp(0.7) : 0;
     case 109: return vp(0.5);
     case 110: return apply(cx, inf, (x) => { x.saudiArabia[0] += 2; }, ['saudiArabia']) + vp(0.5);
+    case 111: return (inf.japan ? apply(cx, inf, (x) => { x.japan[0] = Math.max(0, x.japan[0] - 1); }, ['japan']) : 0) + vp(f.usJapan ? 1.5 : 0.3);
+    case 112: return inf.china ? apply(cx, inf, (x) => { x.china[1] += 2 + (ctrl(inf, 'mongolia') === 'USSR' ? 1 : 0); }, ['china']) : 0;
+    case 113: return apply(cx, inf, (x) => { for (const c of ['japan', 'australia', 'philippines']) if (x[c]) x[c][0] += 1; }, ['japan', 'australia', 'philippines']);
+    case 114: return greedyRemove(cx, inf, exec, them, 3, () => true, 1).value;
     default: return 0;
   }
 }
