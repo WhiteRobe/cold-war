@@ -418,6 +418,7 @@ export class Game {
         sub: '冷战没有在 1989 年结束。从这一回合起，胜负只看一件事：谁能控制全部战场国，外加对手本土的全部邻国。',
         art: 'endless',
         steps: [
+          { text: '没有头条阶段：每回合补牌后直接进入行动轮。' },
           { text: '不再有计分：计分卡全部移出游戏，胜利点冻结。事件里的「+N VP」改为得分方立刻获得 N 点行动点；其他来源（军事行动、太空竞赛）的 VP 作废。没有回合上限。' },
           { text: '新机制从这一回合起生效：支配 / 控制一个洲有免费影响力，控制的洲会压制敌方；占着敌方本土邻国会削弱敌方每回合的第一张牌；太空竞赛到顶后可以发动轨道打击；苏联还有石油经济。' },
           { text: `${CARD_LIST.filter((c) => c.endless).length} 张不死不休专属卡洗入牌库：${CARD_LIST.filter((c) => c.endless).map((c) => `#${c.id} ${c.zh}`).join('、')}。地图也要变了——` },
@@ -568,7 +569,9 @@ export class Game {
       yield* oil(this);
       this.checkGlobal();
     }
-    yield* this.headlinePhase();
+    // 不死不休没有头条阶段
+    if (this.endlessOn) this.s.headline = {};
+    else yield* this.headlinePhase();
     s.phase = 'action';
     for (let ar = 1; ar <= 8; ar++) {
       for (const side of ['USSR', 'US'] as Side[]) {
