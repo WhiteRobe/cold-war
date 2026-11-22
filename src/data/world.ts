@@ -12,6 +12,12 @@ export const MONGOLIA: CountryDef = {
   adj: ['ussr', 'china'], pos: [800, 205], start: [0, 2],
 };
 
+/** 两德合并后的德国：横跨西欧、东欧的战场国 */
+export const GERMANY: CountryDef = {
+  id: 'germany', name: 'Germany', zh: '德国', region: 'europe', sub: ['westernEurope', 'easternEurope'], stability: 4, bg: true,
+  adj: ['denmark', 'poland', 'czechoslovakia', 'austria', 'france', 'benelux'], pos: [435, 131], start: [0, 0],
+};
+
 /** 新增邻接：[国家, 新邻居] */
 const LINKS: [string, string][] = [
   ['northKorea', 'china'], ['india', 'china'], ['taiwan', 'china'],
@@ -30,12 +36,13 @@ export interface WorldState {
   endless?: boolean;
   china?: WorldSide;
   korea?: WorldSide;
+  germany?: WorldSide;
 }
 
 // 标准世界的原始数据（切换世界前先恢复）
 const BASE_LIST = COUNTRY_LIST.slice();
 const BASE = new Map(COUNTRY_LIST.map((c) => [c.id, { adj: c.adj.slice(), stability: c.stability, bg: c.bg }]));
-const EXTRA_BASE = new Map([CHINA, MONGOLIA].map((c) => [c.id, { adj: c.adj.slice(), stability: c.stability, bg: c.bg }]));
+const EXTRA_BASE = new Map([CHINA, MONGOLIA, GERMANY].map((c) => [c.id, { adj: c.adj.slice(), stability: c.stability, bg: c.bg }]));
 let chinaCardBackup: Partial<CardDef> | null = null;
 
 let cur = '';
@@ -69,7 +76,7 @@ export const koreaKeep = (side: WorldSide) => (side === 'USSR' ? 'northKorea' : 
  * 消失的国家仍留在 countries 里（旧日志要查名字），但从 COUNTRY_LIST 和所有邻接里删掉。
  */
 export function applyWorld(w: WorldState, countries: Record<string, CountryDef>, cards: Record<number, CardDef>) {
-  const key = w.endless ? `e${w.china ?? ''}/${w.korea ?? ''}` : '';
+  const key = w.endless ? `e${w.china ?? ''}/${w.korea ?? ''}/${w.germany ?? ''}` : '';
   if (key === cur) return;
   cur = key;
   worldVersion++;
@@ -77,7 +84,7 @@ export function applyWorld(w: WorldState, countries: Record<string, CountryDef>,
   COUNTRY_LIST.length = 0;
   COUNTRY_LIST.push(...BASE_LIST);
   for (const c of BASE_LIST) Object.assign(c, { ...BASE.get(c.id)!, adj: BASE.get(c.id)!.adj.slice() });
-  for (const c of [CHINA, MONGOLIA]) {
+  for (const c of [CHINA, MONGOLIA, GERMANY]) {
     Object.assign(c, { ...EXTRA_BASE.get(c.id)!, adj: EXTRA_BASE.get(c.id)!.adj.slice() });
     delete countries[c.id];
   }
@@ -120,5 +127,13 @@ export function applyWorld(w: WorldState, countries: Record<string, CountryDef>,
     k.bg = true;
     k.adj = ['ussr', 'china', 'japan', 'taiwan'].filter((x) => x === 'ussr' || !gone.has(x));
     for (const x of k.adj) if (x !== 'ussr' && !countries[x].adj.includes(keep)) countries[x].adj.push(keep);
+  }
+  // 两德合并：东德、西德消失，换成德国
+  if (w.germany) {
+    drop('westGermany');
+    drop('eastGermany');
+    COUNTRY_LIST.push(GERMANY);
+    countries.germany = GERMANY;
+    for (const x of GERMANY.adj) if (!countries[x].adj.includes('germany')) countries[x].adj.push('germany');
   }
 }

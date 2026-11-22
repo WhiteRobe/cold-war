@@ -113,7 +113,7 @@ export function useEventPacing(incoming: GameView | null, aiOpponent: boolean): 
       if (e.roll) items.push({ at: i, beat: { key: ++seq.current, kind: 'roll', roll: e.roll } });
       // 例行结算（minor）只给行动方自己看；flat 的结算汇总一次显示全部条目
       if (e.scene && !(e.scene.minor && e.scene.side !== incoming.me)) {
-        const world = ['eastRise', 'pacific', 'unifyChina', 'unifyKorea'].includes(e.scene.art ?? '');
+        const world = !!e.scene.world || ['eastRise', 'pacific'].includes(e.scene.art ?? '');
         const n = e.scene.flat ? 1 : Math.max(1, e.scene.steps.length);
         for (let k = 0; k < n; k++) items.push({ at: i - 0.45 + k * 0.001, beat: { key: ++seq.current, kind: 'scene', scene: e.scene, step: k, world } });
       }

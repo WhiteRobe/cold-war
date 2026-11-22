@@ -40,6 +40,10 @@ export interface OpsOpts {
   snapshot?: Set<string>;
   /** 可以放弃使用 */
   optional?: boolean;
+  /** 放影响力不受邻接限制（不死不休的回合红利） */
+  anywhere?: boolean;
+  /** 行动点来源（提示里显示） */
+  why?: string;
 }
 
 function initialState(setup: GameSetup): GameState {
@@ -428,7 +432,7 @@ export class Game {
         steps: [
           { text: '没有头条阶段：每回合补牌后直接进入行动轮。' },
           { text: '不再有计分：胜利点冻结。事件里的「+N VP」改为得分方立刻获得 N 点行动点；持续事件（如花之力、尤里和萨曼莎）和太空竞赛给的 VP 改为得分方在全图放置 N 点影响力；军事行动不足的 VP 作废。没有回合上限。' },
-          { text: '新机制从这一回合起生效：支配 / 控制一个洲有免费影响力，控制的洲会压制敌方；占着敌方本土邻国会削弱敌方每回合的第一张牌；太空竞赛到顶后可以发动轨道打击；苏联还有石油经济。' },
+          { text: '新机制从这一回合起生效：每回合开始有合并检查（中国、朝鲜半岛、德国）、区域压制和回合红利（石油经济、中国统一、欧洲经济心脏）；每个行动轮开始有区域红利；占着敌方本土邻国会削弱敌方每回合的第一张牌；太空竞赛到顶后可以发动轨道打击。' },
           { text: `原来三个时期的牌全部退场（双方手牌、牌库、弃牌堆），牌库换成 ${CARD_LIST.filter((c) => c.endless).length} 张不死不休专属牌，双方重新补牌。已经生效的持续事件留在桌上，其中会给胜利点的改为给影响力。` },
           { text: '地图也要变了——' },
         ],
@@ -990,9 +994,10 @@ export class Game {
   }
 
   /** 用行动点放影响力是否合法（不含费用） */
-  canPlaceOps(side: Side, c: string, snap: Set<string>): boolean {
+  canPlaceOps(side: Side, c: string, snap: Set<string>, anywhere = false): boolean {
     const d = COUNTRIES[c];
     if (side === 'USSR' && this.s.flags.chernobyl && d.region === this.s.flags.chernobyl) return false;
+    if (anywhere) return true;
     const has = (x: string) => snap.has(x) && this.inf(x, side) > 0;
     if (has(c)) return true;
     const home = side === 'US' ? 'usa' : 'ussr';
@@ -1037,7 +1042,7 @@ export class Game {
     const ids = COUNTRY_LIST.map((c) => c.id).filter(filter);
     const opts: [string, string][] = [];
     const budget0 = this.opsBudget(side, base, o.card, 'none', o.raw);
-    if (allowed.includes('influence') && ids.some((c) => this.canPlaceOps(side, c, snap))) opts.push(['influence', '放置影响力']);
+    if (allowed.includes('influence') && ids.some((c) => this.canPlaceOps(side, c, snap, o.anywhere))) opts.push(['influence', o.anywhere ? '放置影响力（全图任意）' : '放置影响力']);
     if (allowed.includes('coup') && ids.some((c) => this.canTarget(side, c, 'coup', o))) opts.push(['coup', '政变']);
     if (allowed.includes('realign') && ids.some((c) => this.canTarget(side, c, 'realign', o))) opts.push(['realign', '调整阵营']);
     if (!opts.length) {
@@ -1045,7 +1050,7 @@ export class Game {
       return;
     }
     if (o.optional) opts.push(['skip', '放弃']);
-    const mode = yield* this.askOption(side, `使用 ${budget0} 点行动点`, opts, { tag: 'opsMode', card: o.card, auto: !o.optional });
+    const mode = yield* this.askOption(side, `${o.why ? `${o.why}：` : ''}使用 ${budget0} 点行动点`, opts, { tag: 'opsMode', card: o.card, auto: !o.optional });
     if (mode === 'skip') return;
     if (mode === 'influence') yield* this.placeOps(side, base, o, ids, snap);
     else if (mode === 'coup') {
@@ -1064,7 +1069,7 @@ export class Game {
     for (;;) {
       const total = this.opsBudget(side, base, o.card, rs, o.raw);
       const targets = ids.filter((c) => {
-        if (!this.canPlaceOps(side, c, snap)) return false;
+        if (!this.canPlaceOps(side, c, snap, o.anywhere)) return false;
         const cost = this.placeCost(side, c);
         return spent + cost <= this.opsBudget(side, base, o.card, Game.mergeRegion(rs, Game.regionOf(c)), o.raw);
       });

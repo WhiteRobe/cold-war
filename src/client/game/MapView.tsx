@@ -762,7 +762,7 @@ function EndlessEmblems({ x, y, region, sc }: { x: number; y: number; region: Re
         return (
           <g key={side} class={`ew-emblem ${side.toLowerCase()}${ctl ? ' ctl' : ''}`} transform={`translate(${x + 6 + i * 30},${y})`}>
             <title>
-              {who}{ctl ? '控制' : '支配'}{REGION_ZH[region]}：每个行动轮前 +{ctl ? 2 : 1} 点免费影响力（全图任意）
+              {who}{ctl ? '控制' : '支配'}{REGION_ZH[region]}：区域红利，每个行动轮前 +{ctl ? 2 : 1} 点（在己方支配 / 控制的洲里削弱敌方，在其他洲按邻接增加己方）
               {ctl ? `；每回合开始，${REGION_ZH[region]}里每个有${side === 'US' ? '苏联' : '美国'}影响力的国家各 -1` : ''}
             </title>
             <circle r="13" />

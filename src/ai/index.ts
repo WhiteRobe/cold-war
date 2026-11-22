@@ -2,7 +2,7 @@ import { CARDS, CHINA_CARD, COUNTRIES, REGIONS, type Side } from '../data';
 import type { GameView } from '../engine/view';
 import type { Choice, Decision, Option } from '../engine/types';
 import { SPACE } from '../engine/space';
-import { ORBIT } from '../engine/endless';
+import { ORBIT, regionLevels } from '../engine/endless';
 import { addDelta, arsLeft, cloneInf, ctrl, effOps, infOf, makeCtx, opp, warEV, type Ctx, type Inf } from './eval';
 import { eventMe, scoringNet, spaceValue, suicidal } from './events';
 import { bestCoup, bestRealign, defconCost, greedyAdd, milopsValue, opsValue, planInfluence, threat } from './plan';
@@ -402,13 +402,16 @@ class Smart {
     let best: string | undefined;
     let bv = -Infinity;
     const f = this.v.flags;
+    const bonusLv = d.prompt.startsWith('区域红利') ? regionLevels(this.v as never, this.me) : null;
     for (const c of cands) {
       let n = 1;
       if (card === 47 || card === 53) n = 2;
       if (card === 105) n = f.nato ? 2 : 1;
       if (card === 22) n = Math.max(0, infOf(this.inf, c, 'USSR') - infOf(this.inf, c, 'US'));
       if (card === 95) n = infOf(this.inf, c, 'USSR');
-      const val = addDelta(this.cx, this.inf, c, this.me, n) + this.rand() * 1e-3;
+      // 不死不休的区域红利：己方支配 / 控制的洲里点国家 = 移除敌方 1 点
+      const strong = bonusLv && (bonusLv[COUNTRIES[c].region] === 'domination' || bonusLv[COUNTRIES[c].region] === 'control');
+      const val = (strong ? addDelta(this.cx, this.inf, c, opp(this.me), -1) : addDelta(this.cx, this.inf, c, this.me, n)) + this.rand() * 1e-3;
       if (val > bv) {
         bv = val;
         best = c;

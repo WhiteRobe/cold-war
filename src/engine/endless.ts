@@ -122,37 +122,24 @@ export function ironDepth(g: Game, side: Side, c: string): number {
   return g.endlessOn && side === 'US' && COUNTRIES[c].sub.includes('easternEurope') && g.controls('USSR', c) ? -1 : 0;
 }
 
-/** 任一行动轮开始：台湾和中国同属一方 → 中国统一；朝鲜和韩国同属一方 → 朝鲜半岛统一 */
-export function unifyCheck(g: Game) {
+/** 欧洲经济心脏：德国的邻国 */
+export const GERMANY_NEIGHBORS = ['denmark', 'poland', 'czechoslovakia', 'austria', 'france', 'benelux'];
+
+/**
+ * 回合开始的合并检查：中国统一、朝鲜半岛统一、两德合并。返回说明文字（地图变化玩家自己看）。
+ */
+export function unifyCheck(g: Game): string[] {
   const s = g.s, f = s.flags;
+  const out: string[] = [];
   if (!f.unifyChina && s.inf.taiwan && s.inf.china) {
     const x = controller(s, 'taiwan');
     if (x && controller(s, 'china') === x) {
-      const loser = opp(x);
       f.unifyChina = x;
       delete s.inf.taiwan;
       s.inf.china = x === 'US' ? [6, 0] : [0, 6];
-      // 台湾的国家牌（#35 台湾决议）移出游戏
-      const where = g.purgeCard(35);
+      g.purgeCard(35);
       f.formosan = false;
-      setWorld(worldOf(f));
-      g.log(`中国统一：${SIDE_ZH[x]}同时控制中国和台湾，台湾并入中国`, {
-        side: x,
-        scene: {
-          title: '中国统一', side: x, art: 'unifyChina',
-          sub: `${SIDE_ZH[x]}在同一时间控制了中国和台湾，海峡两岸合而为一。`,
-          steps: [
-            { text: '台湾从地图上消失，它的邻接关系一并取消；原来与台湾相邻的国家不再与它相邻。', country: 'china' },
-            { text: `中国：稳定度 5，不再是战场国。${SIDE_ZH[loser]}的影响力全部清除，${SIDE_ZH[x]}影响力设为 6（多出的影响力直接丢弃）。`, country: 'china' },
-            { text: `台湾的国家牌「#35 台湾决议」移出游戏${where ? `（原在${where}）` : ''}。` },
-            {
-              text: x === 'USSR'
-                ? '从此苏联每个行动轮开始时，可以在中东或非洲任一国家放置 1 点影响力。'
-                : `从此美国每个行动轮开始时，可以在${COUNTRIES[f.unifyKorea ? koreaKeep(f.unifyKorea) : 'northKorea'].zh}放置 1 点影响力。`,
-            },
-          ],
-        },
-      });
+      out.push(`中国统一：${SIDE_ZH[x]}同时控制中国和台湾，台湾并入中国（非战场国，${SIDE_ZH[x]} 6 点、${SIDE_ZH[opp(x)]}清零）；之后${SIDE_ZH[x]}每回合开始 +2 点。`);
     }
   }
   if (!f.unifyKorea && s.inf.northKorea && s.inf.southKorea) {
@@ -162,23 +149,23 @@ export function unifyCheck(g: Game) {
       f.unifyKorea = x;
       delete s.inf[drop];
       s.inf[keep] = x === 'US' ? [3, 0] : [0, 3];
-      setWorld(worldOf(f));
-      const name = COUNTRIES[keep].zh;
-      g.log(`朝鲜半岛统一：${SIDE_ZH[x]}同时控制朝鲜和韩国，合并为${name}`, {
-        side: x,
-        scene: {
-          title: '朝鲜半岛统一', side: x, art: 'unifyKorea',
-          sub: `${SIDE_ZH[x]}在同一时间控制了朝鲜和韩国，三八线不复存在。`,
-          steps: [
-            { text: `朝鲜与韩国合并为「${name}」：仍是战场国（计分时算一个），稳定度 3。`, country: keep },
-            { text: `${SIDE_ZH[opp(x)]}的影响力全部清除，${SIDE_ZH[x]}影响力设为 3。`, country: keep },
-            { text: `${name}与苏联、中国、日本${f.unifyChina ? '' : '、台湾'}相邻。`, country: keep },
-            { text: `从此每个回合开始，${name}向日本发射导弹：日本的${SIDE_ZH[opp(x)]}影响力 -1（没有就跳过）。`, country: 'japan' },
-          ],
-        },
-      });
+      out.push(`朝鲜半岛统一：${SIDE_ZH[x]}同时控制朝鲜和韩国，合并为${COUNTRIES[keep].zh}（${SIDE_ZH[x]} 3 点、${SIDE_ZH[opp(x)]}清零）；之后每回合开始向日本发射导弹。`);
     }
   }
+  if (!f.unifyGermany && s.inf.westGermany && s.inf.eastGermany) {
+    const x = controller(s, 'westGermany');
+    if (x && controller(s, 'eastGermany') === x) {
+      const i = x === 'US' ? 0 : 1;
+      const n = s.inf.westGermany[i] + s.inf.eastGermany[i];
+      f.unifyGermany = x;
+      delete s.inf.westGermany;
+      delete s.inf.eastGermany;
+      s.inf.germany = x === 'US' ? [n, 0] : [0, n];
+      out.push(`两德合并：${SIDE_ZH[x]}同时控制东德和西德，合并为德国（战场国，${SIDE_ZH[x]} ${n} 点、${SIDE_ZH[opp(x)]}清零）；控制德国的一方拥有「欧洲经济心脏」。`);
+    }
+  }
+  if (out.length) setWorld(worldOf(f));
+  return out;
 }
 
 /** 一次合并放置里的一项来源：n 点，可放的国家（不填为全图任意） */
@@ -189,20 +176,19 @@ interface Grant {
   where?: string;
 }
 
-/** 把几项来源的影响力合成一次放置：每点优先记到限制最严的来源上 */
+/** 把几项来源的影响力合成一次放置（全图任意）：每点优先记到限制最严的来源上 */
 function* placeGrants(g: Game, side: Side, grants: Grant[], title: string): Gen {
   const left = grants.map((x) => x.n);
   const total = left.reduce((a, b) => a + b, 0);
   if (!total) return;
   const steps: [string, number][] = [];
   const placed: Record<string, number> = {};
-  const src = grants.map((x, i) => `${x.label} ${x.n}${x.where ? `（${x.where}）` : ''}`).join('，');
+  const src = grants.map((x) => `${x.label} ${x.n}${x.where ? `（${x.where}）` : ''}`).join('，');
   for (let i = 0; i < total; i++) {
     const usable = (c: string) => grants.some((x, k) => left[k] > 0 && (!x.ok || x.ok(c)));
     const ids = COUNTRY_LIST.map((c) => c.id).filter(usable);
     if (!ids.length) break;
     const c = yield* g.askCountry(side, 'placeEvent', `${title}：${src}（剩余 ${total - i}）`, ids, { ops: { total, spent: i } });
-    // 先用有限制的来源，再用全图任意的
     let k = grants.findIndex((x, j) => left[j] > 0 && x.ok && x.ok(c));
     if (k < 0) k = grants.findIndex((x, j) => left[j] > 0 && !x.ok);
     left[k]--;
@@ -215,14 +201,17 @@ function* placeGrants(g: Game, side: Side, grants: Grant[], title: string): Gen 
 }
 
 /**
- * 回合开始结算（补牌之后、第一个行动轮之前）：先固定调整（半岛导弹、区域压制），再放置影响力（石油经济）。
- * 所有变化合成一段说明。
+ * 回合开始结算（补牌之后、第一个行动轮之前），一次结算、一段说明：
+ * 1. 固定调整：合并检查（中国 / 朝鲜半岛 / 德国）、半岛导弹、区域压制、太空特权；
+ * 2. 回合红利（行动点，可放影响力或调整阵营，不能政变）：石油经济、中国统一、欧洲经济心脏。
  */
 export function* turnStart(g: Game): Gen {
-  const s = g.s;
+  const s = g.s, f = s.flags;
   const lines: { text: string; country?: string }[] = [];
-  // 固定调整 1：统一后的朝鲜半岛向日本发射导弹
-  const k = s.flags.unifyKorea;
+  const merged = unifyCheck(g);
+  for (const t of merged) lines.push({ text: t });
+  // 半岛导弹
+  const k = f.unifyKorea;
   if (k) {
     const enemy = opp(k), name = COUNTRIES[koreaKeep(k)].zh;
     if (g.inf('japan', enemy)) {
@@ -230,7 +219,7 @@ export function* turnStart(g: Game): Gen {
       lines.push({ text: `${name}向日本发射导弹：日本${SIDE_ZH[enemy]}影响力 -1。`, country: 'japan' });
     } else lines.push({ text: `${name}向日本发射导弹：日本没有${SIDE_ZH[enemy]}影响力，没有效果。`, country: 'japan' });
   }
-  // 固定调整 2：区域压制
+  // 区域压制
   for (const side of ['USSR', 'US'] as Side[]) {
     const enemy = opp(side);
     const lv = regionLevels(s, side);
@@ -242,63 +231,117 @@ export function* turnStart(g: Game): Gen {
       lines.push({ text: `区域压制：${SIDE_ZH[side]}控制${REGION_ZH[r]}，${names(hit)}的${SIDE_ZH[enemy]}影响力各 -1。`, country: hit[0] });
     }
   }
-  // 固定调整 3：载人环绕地球特权（不死不休没有头条）改为每回合开始看到对手手牌
+  // 太空特权：没有头条，载人环绕地球改为看对手手牌
   for (const side of ['USSR', 'US'] as Side[]) {
     if (!g.hasPerk(side, 4)) continue;
     g.revealHand(opp(side), '载人环绕地球特权');
-    lines.push({ text: `载人环绕地球特权：没有头条了，改为${SIDE_ZH[opp(side)]}向${SIDE_ZH[side]}公开手牌。` });
+    lines.push({ text: `载人环绕地球特权：${SIDE_ZH[opp(side)]}向${SIDE_ZH[side]}公开手牌。` });
   }
-  // 放置：石油经济
-  const held = OIL_COUNTRIES.filter((c) => g.controls('USSR', c));
-  if (held.length) lines.push({ text: `石油经济：苏联控制 ${held.length} 个石油国（${names(held)}），在全图放置 ${held.length} 点影响力。`, country: held[0] });
+  // 回合红利
+  const bonus: Record<Side, string[]> = { US: [], USSR: [] };
+  const pts: Record<Side, number> = { US: 0, USSR: 0 };
+  for (const side of ['USSR', 'US'] as Side[]) {
+    const held = OIL_COUNTRIES.filter((c) => s.inf[c] && g.controls(side, c));
+    if (held.length) {
+      pts[side] += held.length;
+      bonus[side].push(`石油经济 +${held.length}（${names(held)}）`);
+    }
+    if (f.unifyChina === side) {
+      pts[side] += 2;
+      bonus[side].push('中国统一 +2');
+    }
+    if (s.inf.germany && g.controls(side, 'germany')) {
+      const open = GERMANY_NEIGHBORS.filter((c) => s.inf[c] && !g.controls(side, c));
+      if (open.length) {
+        pts[side] += open.length;
+        bonus[side].push(`欧洲经济心脏 +${open.length}（${names(open)}尚未控制）`);
+      }
+    }
+    if (pts[side]) lines.push({ text: `${SIDE_ZH[side]}回合红利 ${pts[side]} 点行动点：${bonus[side].join('，')}。` });
+  }
   if (!lines.length) return;
   g.log(`第 ${s.turn} 回合开始结算：${lines.map((x) => x.text).join(' ')}`, {
     kind: 'turn',
     scene: {
-      title: `第 ${s.turn} 回合开始结算`, art: 'squeeze', flat: true,
-      sub: '先结算固定调整（导弹、区域压制、太空特权），再放置影响力（石油经济）。',
+      title: `第 ${s.turn} 回合开始结算`, art: 'squeeze', flat: true, world: merged.length > 0,
+      sub: '先结算固定调整，再发回合红利。回合红利是行动点：可以放影响力（全图任意国家）或调整阵营，不能政变。',
       steps: lines,
     },
   });
-  if (held.length) yield* placeGrants(g, 'USSR', [{ label: '石油经济', n: held.length }], '回合开始结算 · 苏联放置影响力');
+  for (const side of ['USSR', 'US'] as Side[]) {
+    if (!pts[side]) continue;
+    g.log(`${SIDE_ZH[side]}使用回合红利 ${pts[side]} 点行动点（${bonus[side].join('，')}）`, { side });
+    yield* g.opsPlay(side, pts[side], { modes: ['influence', 'realign'], raw: true, anywhere: true, why: '回合红利' });
+  }
 }
 
 /**
- * 行动轮开始结算（行动方行动之前）：先固定调整（中国统一、朝鲜半岛统一），
- * 再把行动方的区域红利、中国统一红利，以及双方持续事件换来的影响力一次放完。
+ * 区域红利在某个国家的用法：己方支配 / 控制的洲 → 削弱敌方（不限邻接，须有敌方影响力）；
+ * 其他洲 → 增加己方影响力（须本身有己方影响力或与之相邻）。
+ */
+export function bonusUse(s: GameState, side: Side, c: string, lv: Record<RegionId, RegionLevel>, snap: Set<string>): 'remove' | 'add' | null {
+  const d = COUNTRIES[c];
+  if (!s.inf[c]) return null;
+  const strong = lv[d.region] === 'domination' || lv[d.region] === 'control';
+  if (strong) return s.inf[c][side === 'US' ? 1 : 0] > 0 ? 'remove' : null;
+  const home = side === 'US' ? 'usa' : 'ussr';
+  return snap.has(c) || d.adj.some((a) => a === home || snap.has(a)) ? 'add' : null;
+}
+
+/**
+ * 行动轮开始结算（行动方行动之前）：区域红利（只能摆放，不能政变、调整），
+ * 以及双方持续事件换来的影响力（全图任意）。一次结算、一段说明。
  */
 export function* arStart(g: Game, side: Side): Gen {
-  unifyCheck(g);
-  const s = g.s, f = s.flags;
-  const bySide: Record<Side, Grant[]> = { US: [], USSR: [] };
-  const { parts } = regionBonus(s, side);
-  if (parts.length) {
-    bySide[side].push({ label: `区域红利（${parts.map(([r, l, n]) => `${l === 'control' ? '控制' : '支配'}${REGION_ZH[r]} +${n}`).join('、')}）`, n: parts.reduce((a, p) => a + p[2], 0) });
-  }
-  if (f.unifyChina === side) {
-    if (side === 'USSR') bySide.USSR.push({ label: '中国统一红利', n: 1, ok: (c) => COUNTRIES[c].region === 'middleEast' || COUNTRIES[c].region === 'africa', where: '中东或非洲' });
-    else {
-      const kr = f.unifyKorea ? koreaKeep(f.unifyKorea) : 'northKorea';
-      if (s.inf[kr]) bySide.US.push({ label: '中国统一红利', n: 1, ok: (c) => c === kr, where: COUNTRIES[kr].zh });
-    }
-  }
-  for (const x of ['US', 'USSR'] as Side[]) {
-    const p = g.takePendingInf(x);
-    if (p) bySide[x].push({ label: `持续事件（${p.why}）`, n: p.n });
-  }
+  const s = g.s;
+  const { parts, total } = regionBonus(s, side);
+  const pend: Record<Side, { n: number; why: string } | null> = { US: g.takePendingInf('US'), USSR: g.takePendingInf('USSR') };
   const lines: { text: string }[] = [];
+  if (total) {
+    lines.push({ text: `${SIDE_ZH[side]}区域红利 ${total} 点（${parts.map(([r, l, n]) => `${l === 'control' ? '控制' : '支配'}${REGION_ZH[r]} +${n}`).join('、')}）：在己方支配 / 控制的洲里每点移除 1 点敌方影响力（不限邻接）；在其他洲每点增加 1 点己方影响力（须与己方影响力相邻）。` });
+  }
   for (const x of [side, opp(side)] as Side[]) {
-    const gs = bySide[x];
-    if (!gs.length) continue;
-    const n = gs.reduce((a, b) => a + b.n, 0);
-    lines.push({ text: `${SIDE_ZH[x]}放置 ${n} 点影响力：${gs.map((y) => `${y.label} ${y.n}${y.where ? `（限${y.where}）` : ''}`).join('，')}。` });
+    const p = pend[x];
+    if (p) lines.push({ text: `${SIDE_ZH[x]}持续事件换来的影响力 ${p.n} 点（${p.why}）：全图任意放置。` });
   }
   if (!lines.length) return;
   g.log(`行动轮开始结算：${lines.map((x) => x.text).join(' ')}`, {
     side,
-    scene: { title: `${SIDE_ZH[side]}行动轮开始结算`, side, art: 'bonus', flat: true, minor: true, sub: '不受限制的点数可以放在全图任意国家。', steps: lines },
+    scene: { title: `${SIDE_ZH[side]}行动轮开始结算`, side, art: 'bonus', flat: true, minor: true, steps: lines },
   });
-  for (const x of [side, opp(side)] as Side[]) yield* placeGrants(g, x, bySide[x], `${SIDE_ZH[x]}行动轮开始结算`);
+  if (total) yield* regionBonusPlace(g, side, total, parts);
+  for (const x of [side, opp(side)] as Side[]) {
+    const p = pend[x];
+    if (p) yield* placeGrants(g, x, [{ label: `持续事件（${p.why}）`, n: p.n }], `${SIDE_ZH[x]}持续事件换来的影响力`);
+  }
+}
+
+/** 区域红利的逐点使用 */
+function* regionBonusPlace(g: Game, side: Side, total: number, parts: [RegionId, RegionLevel, number][]): Gen {
+  const s = g.s;
+  const enemy = opp(side);
+  const lv = regionLevels(s, side);
+  const snap = new Set(COUNTRY_LIST.filter((c) => s.inf[c.id] && g.inf(c.id, side) > 0).map((c) => c.id));
+  const src = parts.map(([r, l, n]) => `${l === 'control' ? '控制' : '支配'}${REGION_ZH[r]} +${n}`).join('、');
+  const added: Record<string, number> = {};
+  const removed: Record<string, number> = {};
+  const steps: [string, number][] = [];
+  for (let i = 0; i < total; i++) {
+    const ids = COUNTRY_LIST.map((c) => c.id).filter((c) => bonusUse(s, side, c, lv, snap));
+    if (!ids.length) break;
+    const c = yield* g.askCountry(side, 'placeEvent', `区域红利（${src}）：己方支配 / 控制的洲里点国家 = 移除敌方 1 点，其他洲 = 增加己方 1 点（剩余 ${total - i}）`, ids, { ops: { total, spent: i } });
+    if (bonusUse(s, side, c, lv, snap) === 'remove') {
+      g.removeInf(c, enemy, 1);
+      removed[c] = (removed[c] ?? 0) + 1;
+    } else {
+      g.addInf(c, side, 1);
+      added[c] = (added[c] ?? 0) + 1;
+      steps.push([c, 1]);
+    }
+  }
+  const a = Object.entries(added).map(([c, n]) => `${countryName(c)} +${n}`).join('，');
+  const r = Object.entries(removed).map(([c, n]) => `${countryName(c)}${SIDE_ZH[enemy]} -${n}`).join('，');
+  g.log(`区域红利：${[a && `${SIDE_ZH[side]} ${a}`, r].filter(Boolean).join('；') || '没有可用的国家'}`, { side, place: steps.length ? { side, steps } : undefined });
 }
 
 export { LV_ZH };

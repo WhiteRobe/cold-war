@@ -96,6 +96,8 @@ export interface Scene {
   flat?: boolean;
   /** 例行结算：只给行动方自己看（对手的例行结算只写进记录） */
   minor?: boolean;
+  /** 这段说明伴随地图变化（国家合并）：界面先切到最新局面再播 */
+  world?: boolean;
 }
 
 export type PileName = 'deck' | 'discard' | 'removed' | 'played';
@@ -226,6 +228,8 @@ export interface Flags {
   unifyChina?: Side;
   /** 朝鲜半岛统一的一方 */
   unifyKorea?: Side;
+  /** 两德合并的一方 */
+  unifyGermany?: Side;
   /** 已经弹过首次说明的机制 */
   seen?: string[];
 }

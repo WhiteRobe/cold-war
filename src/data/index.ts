@@ -37,9 +37,9 @@ export function setWorld(w: WorldState) {
   COUNTRY_IDS.length = 0;
   COUNTRY_IDS.push(...COUNTRY_LIST.map((c) => c.id));
 }
-export { endlessWorld, getWorldVersion, byWorld, goneCountry, koreaKeep, CHINA, MONGOLIA, type WorldState } from './world';
+export { endlessWorld, getWorldVersion, byWorld, goneCountry, koreaKeep, CHINA, MONGOLIA, GERMANY, type WorldState } from './world';
 
 /** 局面里的世界状态 */
-export const worldOf = (f: { endlessWorld?: boolean; unifyChina?: 'US' | 'USSR'; unifyKorea?: 'US' | 'USSR' }): WorldState => ({
-  endless: !!f.endlessWorld, china: f.unifyChina, korea: f.unifyKorea,
+export const worldOf = (f: { endlessWorld?: boolean; unifyChina?: 'US' | 'USSR'; unifyKorea?: 'US' | 'USSR'; unifyGermany?: 'US' | 'USSR' }): WorldState => ({
+  endless: !!f.endlessWorld, china: f.unifyChina, korea: f.unifyKorea, germany: f.unifyGermany,
 });
