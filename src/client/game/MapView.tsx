@@ -780,9 +780,9 @@ function starPts(cx: number, cy: number, r: number) {
   }).join(' ');
 }
 
-/** 士兵 / 坦克相对洲名的位置（避开国家方框） */
+/** 士兵 / 坦克放在洲名下方（避开计分说明和图例） */
 const TROOP_AT: Record<RegionId, [number, number]> = {
-  europe: [-120, 14], africa: [-120, 14], asia: [200, 28], middleEast: [200, 28], centralAmerica: [40, 78], southAmerica: [40, 78],
+  europe: [30, 86], africa: [40, 74], asia: [40, 100], middleEast: [40, 76], centralAmerica: [40, 78], southAmerica: [40, 78],
 };
 
 /** 不死不休：支配的洲站着士兵，控制的洲开进坦克（画在洲名旁的空白处，纯装饰，不响应鼠标） */
