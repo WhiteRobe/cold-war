@@ -1553,9 +1553,10 @@ g.links { pointer-events: none; }
 .radiation .rd-bg { fill: #f5d33a; stroke: #1b1712; stroke-width: 1; }
 .radiation .rd-blade { fill: #1b1712; }
 .cb-ukr, .cb-label, .cb-box { cursor: help; }
-.cb-ukr { filter: drop-shadow(0 0 6px #f5d33a); animation: cbPulse 2s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: center; }
-@keyframes cbPulse { from { rotate: -8deg; } to { rotate: 8deg; } }
-@media (prefers-reduced-motion: reduce) { .cb-ukr { animation: none; } }
+.cb-ukr { filter: drop-shadow(0 0 6px #f5d33a); }
+.cb-ukr .radiation { animation: cbGlow 1.6s ease-in-out infinite alternate; }
+@keyframes cbGlow { from { opacity: 0.75; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .cb-ukr .radiation { animation: none; } }
 .modal.modal-top { z-index: 70; }
 /* 核潜艇：大西洋 */
 .ns-sub { cursor: help; animation: nsIn 1.2s ease-out, subBob 3s ease-in-out 1.2s infinite alternate; filter: drop-shadow(0 2px 2px #0006); }
