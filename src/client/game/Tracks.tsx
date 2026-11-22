@@ -22,7 +22,7 @@ export function Tracks({ view, names, onPile }: { view: GameView; names: Record<
           <small>/{view.options.endless ? '∞' : view.options.scenario?.endTurn ?? 10}</small>
         </div>
         <div class="trk-sub">
-          {view.phase === 'over' ? (view.turn < (view.options.scenario?.endTurn ?? 10) ? `第 ${view.turn} 回合提前结束` : `打满 ${view.options.scenario?.endTurn ?? 10} 回合 · 终局`) : `冷战${era} · ${PHASE_ZH[view.phase]}`}
+          {view.phase === 'over' ? (view.options.endless ? `第 ${view.turn} 回合 · 对局结束` : view.turn < (view.options.scenario?.endTurn ?? 10) ? `第 ${view.turn} 回合提前结束` : `打满 ${view.options.scenario?.endTurn ?? 10} 回合 · 终局`) : `冷战${era} · ${PHASE_ZH[view.phase]}`}
           {view.phase === 'action' && ` ${view.ar}`}
         </div>
         <div class="trk-pop">
@@ -262,7 +262,7 @@ function KeyTrack({ view }: { view: GameView }) {
 }
 
 function Vp({ vp, view }: { vp: number; view: GameView }) {
-  if (view.flags.endlessWorld && view.phase !== 'over') return <KeyTrack view={view} />;
+  if (view.flags.endlessWorld) return <KeyTrack view={view} />;
   const pct = ((Math.max(-20, Math.min(20, vp)) + 20) / 40) * 100;
   const pj = projectFinal(view);
   // 对局结束：显示胜负和原因，不再给终局预估（提前结束时胜利点不一定代表结果）

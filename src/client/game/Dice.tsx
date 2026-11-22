@@ -1,8 +1,9 @@
 // 掷骰动画：新的掷骰先播动画，播完才把局面更新出来，避免结果先于骰子出现。
 import { useEffect, useRef, useState } from 'preact/hooks';
+import { signal } from '@preact/signals';
 import { st } from '../streamer';
 import { CARDS, COUNTRIES } from '../../data';
-import type { CardMove, LogEntry, RollInfo, Scene, Side } from '../../engine/types';
+import type { CardMove, LogEntry, RollInfo, Scene, Side, WarRound } from '../../engine/types';
 import type { GameView } from '../../engine/view';
 import { sfx } from '../audio';
 import { CardFace, MiniCard } from './CardFace';
@@ -32,6 +33,8 @@ export type Beat =
   | { key: number; kind: 'place'; side: Side; country: string; n: number }
   /** 过场说明的一步（点击继续）；world：这一段改变了世界（新国家），开始播放前先切到最新局面 */
   | { key: number; kind: 'scene'; scene: Scene; step: number; world?: boolean }
+  /** 世界大战的一轮：落到地图上后等玩家点击（或自动播放） */
+  | { key: number; kind: 'war'; war: WarRound }
   | { key: number; kind: 'card'; card: number; side: Side; how: keyof typeof HOW_ZH; needConfirm: boolean; own?: boolean };
 
 /**
@@ -64,7 +67,8 @@ export function useEventPacing(incoming: GameView | null, aiOpponent: boolean): 
     setBeat(b);
     if (b.kind === 'scene') {
       // 结算汇总：先把之前的操作全部落到地图上（直接切到最新局面），后面的逐点放置动画就不必再播
-      if (b.scene.flat && b.step === 0 && latest.current) {
+      // 世界大战的开场说明除外：后面还要逐轮播放
+      if (b.scene.flat && b.step === 0 && latest.current && !queue.current.some((x) => x.kind === 'war')) {
         shownRef.current = latest.current;
         setShown(latest.current);
         queue.current = queue.current.filter((x) => x.kind !== 'place');
@@ -74,6 +78,21 @@ export function useEventPacing(incoming: GameView | null, aiOpponent: boolean): 
         shownRef.current = latest.current;
         setShown(latest.current);
       }
+      return; // 等玩家点击
+    }
+    if (b.kind === 'war') {
+      // 这一轮所有国家同时加影响力
+      setShown((v) => {
+        if (!v) return v;
+        const inf = { ...v.inf };
+        for (const x of b.war.changes) {
+          const cur = inf[x.c];
+          inf[x.c] = (x.side === 'US' ? [cur[0] + x.n, cur[1]] : [cur[0], cur[1] + x.n]) as [number, number];
+        }
+        const nv = { ...v, inf };
+        shownRef.current = nv;
+        return nv;
+      });
       return; // 等玩家点击
     }
     if (b.kind === 'place') {
@@ -125,6 +144,7 @@ export function useEventPacing(incoming: GameView | null, aiOpponent: boolean): 
         const n = e.scene.flat ? 1 : Math.max(1, e.scene.steps.length);
         for (let k = 0; k < n; k++) items.push({ at: i - 0.45 + k * 0.001, beat: { key: ++seq.current, kind: 'scene', scene: e.scene, step: k, world } });
       }
+      if (e.war) items.push({ at: i, beat: { key: ++seq.current, kind: 'war', war: e.war } });
       // 对手放影响力逐点播放（自己点的不必重播）
       if (e.place && e.place.side !== incoming.me) {
         e.place.steps.forEach(([country, n], k) => items.push({ at: i - 0.4 + k * 0.001, beat: { key: ++seq.current, kind: 'place', side: e.place!.side, country, n } }));
@@ -156,9 +176,10 @@ export function useEventPacing(incoming: GameView | null, aiOpponent: boolean): 
     busy.current = true;
     // 一次太多（读档、跳转）就只展示最后几项
     // 逐点放影响力不算在内，只看出牌 / 掷骰 / 移牌的数量
-    const heavy = beats.filter((b) => b.kind !== 'place' && b.kind !== 'scene').length;
-    // 过场说明一律保留（机制触发要讲清楚）
-    queue.current = heavy > 12 || beats.length > 40 ? [...beats.filter((b) => b.kind === 'scene'), ...beats.filter((b) => b.kind !== 'place' && b.kind !== 'scene').slice(-6)] : beats;
+    const keep = (b: Beat) => b.kind === 'scene' || b.kind === 'war';
+    const heavy = beats.filter((b) => b.kind !== 'place' && !keep(b)).length;
+    // 过场说明、世界大战的每一轮一律保留（机制触发要讲清楚）
+    queue.current = heavy > 12 || beats.length > 40 ? [...beats.filter(keep), ...beats.filter((b) => b.kind !== 'place' && !keep(b)).slice(-6)] : beats;
     next();
   }, [incoming]);
 
@@ -220,6 +241,7 @@ export function BeatOverlay({ beat, names, onNext, onSkipAll }: { beat: Beat | n
   }, [beat?.key]);
   if (!beat || beat.kind === 'place') return null;
   if (beat.kind === 'scene') return <SceneOverlay beat={beat} onNext={onNext} key={beat.key} />;
+  if (beat.kind === 'war') return <WarOverlay war={beat.war} onNext={onNext} onSkipAll={onSkipAll} key={beat.key} />;
   if (beat.kind === 'move') return <MoveOverlay move={beat.move} key={beat.key} onNext={onNext} />;
   if (beat.kind === 'card') {
     const c = CARDS[beat.card];
@@ -419,6 +441,15 @@ function SceneArt({ art }: { art?: string }) {
           <rect x="0" y="48" width="120" height="12" fill="#3a3626" />
         </svg>
       );
+    case 'worldWar':
+      return (
+        <svg viewBox="0 0 120 60" class="sc-art">
+          <rect width="120" height="60" fill="#2a1a16" />
+          <path d="M0,60 L0,44 Q30,36 60,44 T120,42 L120,60z" fill="#3a2a20" />
+          {[[24, 30, 9], [62, 22, 12], [96, 32, 8]].map(([x, y, r]) => <g key={x}><circle cx={x} cy={y} r={r} fill="#e07a3a" opacity="0.85" /><circle cx={x} cy={y} r={r * 0.5} fill="#f5d76e" /></g>)}
+          <path d="M8,14 l14,-2 l-14,-2 l3,2z M86,10 l14,-2 l-14,-2 l3,2z" fill="#c9c0aa" />
+        </svg>
+      );
     case 'orbit':
       return (
         <svg viewBox="0 0 120 60" class="sc-art">
@@ -476,6 +507,62 @@ function SceneArt({ art }: { art?: string }) {
         </svg>
       );
   }
+}
+
+/** 世界大战自动播放（跨轮保持） */
+const warAuto = signal(false);
+const WAR_AUTO_MS = 1600;
+
+/** 世界大战的一轮：双方国家数、这一轮每个未定国家的施压与结果 */
+function WarOverlay({ war, onNext, onSkipAll }: { war: WarRound; onNext: () => void; onSkipAll: () => void }) {
+  const auto = warAuto.value;
+  useEffect(() => {
+    if (!auto) return;
+    const t = setTimeout(onNext, WAR_AUTO_MS);
+    return () => clearTimeout(t);
+  }, [auto]);
+  useEffect(() => {
+    const k = (e: KeyboardEvent) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        onNext();
+      }
+    };
+    window.addEventListener('keydown', k);
+    return () => window.removeEventListener('keydown', k);
+  }, []);
+  const { count: n } = war;
+  const total = n.US + n.USSR + n.open;
+  // 按结算顺序列出（前面的结果会影响后面的国家）
+  const list = war.changes;
+  const zh = (sd: Side) => (sd === 'US' ? '美' : '苏');
+  return (
+    <div class="scene-box war-box">
+      <div class="scene-title">世界大战 · 第 {war.round} 轮</div>
+      <div class="war-bar">
+        <span class="us" style={{ flexGrow: n.US }}>美控 {n.US}</span>
+        {n.open > 0 && <span class="open" style={{ flexGrow: n.open }}>未定 {n.open}</span>}
+        <span class="ussr" style={{ flexGrow: n.USSR }}>苏控 {n.USSR}</span>
+      </div>
+      <div class="war-sum">本轮 {war.changes.length} 国交战，{war.changes.filter((x) => x.won).length} 国易手；共 {total} 国</div>
+      <ul class="war-list">
+        {list.map((x) => (
+          <li key={x.c} class={x.won ? 'won' : ''}>
+            <b>{st(COUNTRIES[x.c].zh)}</b>
+            {!x.nuke && <span class="war-push">施压 美 {x.push[0]} : 苏 {x.push[1]}</span>}
+            {x.nuke && <span class="war-nuke">☢ 引发核战争</span>}
+            {x.dice && <span class="war-dice">掷骰 {x.dice.map((d) => `${d[0]}${d[1] ? `+${d[1]}` : ''} : ${d[2]}${d[3] ? `+${d[3]}` : ''}`).join('，平，重掷 ')}</span>}
+            <span class={`war-gain ${x.side.toLowerCase()}`}>{zh(x.side)} +{x.n}{x.won ? `，归${zh(x.side)}` : ''}</span>
+          </li>
+        ))}
+      </ul>
+      <div class="war-btns">
+        <button type="button" class="btn small ghost" onClick={onSkipAll}>跳到结果</button>
+        <button type="button" class="btn small" onClick={() => (warAuto.value = !auto)}>{auto ? '暂停' : '自动播放'}</button>
+        <button type="button" class="btn primary" onClick={onNext}>下一轮</button>
+      </div>
+    </div>
+  );
 }
 
 /** 过场说明：标题、为什么发生、逐条展开的变化；每条都要点击继续，不会一闪而过 */

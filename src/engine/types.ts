@@ -83,6 +83,29 @@ export interface LogEntry {
   scene?: Scene;
   /** 逐点放置影响力的顺序（界面逐个播放）：[国家, 点数] */
   place?: { side: Side; steps: [string, number][] };
+  /** 世界大战的一轮推演（界面逐轮播放） */
+  war?: WarRound;
+}
+
+/** 世界大战的一轮：每个未定国家这一轮的结算 */
+export interface WarRound {
+  round: number;
+  changes: {
+    c: string;
+    /** 这一轮影响力加给谁、加几点 */
+    side: Side;
+    n: number;
+    /** 周边施压：[美, 苏] */
+    push: [number, number];
+    /** 平局掷骰：每次 [美骰, 美修正, 苏骰, 苏修正]（掷平重掷） */
+    dice?: [number, number, number, number][];
+    /** 这一轮结算后被控制 */
+    won?: boolean;
+    /** 争夺多次仍卡死，引发核战争、掷骰决定归属 */
+    nuke?: boolean;
+  }[];
+  /** 本轮结束时双方控制的国家数、仍未定的国家数 */
+  count: { US: number; USSR: number; open: number };
 }
 
 export interface Scene {

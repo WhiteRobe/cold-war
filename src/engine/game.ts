@@ -9,7 +9,7 @@ import {
 import { EFFECTS } from './effects';
 import { EVENT_FLAGS, erasUpTo } from './scenario';
 import { GameOver, cardName, countryName } from './util';
-import { ORBIT, defconOff, regionSealed, arStart, firstOpsCard, ironDepth, keyProgress, orbitalStrike, turnStart } from './endless';
+import { ORBIT, WORLD_WAR_TURN, worldWar, defconOff, regionSealed, arStart, firstOpsCard, ironDepth, keyProgress, orbitalStrike, turnStart } from './endless';
 
 export { GameOver, cardName, countryName };
 
@@ -610,6 +610,8 @@ export class Game {
     s.ar = 0;
     this.log(`—— 第 ${t} 回合 ——`, { kind: 'turn' });
     if (this.endless && t === 11) this.enterEndless();
+    // 不死不休打到第 20 回合仍然僵持：世界大战，自动推演决出胜负
+    if (this.endlessOn && t === WORLD_WAR_TURN) worldWar(this);
     // 剧本的第一个回合：DEFCON 和手牌已经按剧本设好
     if (t > this.firstTurn) this.improveDefcon(1, '回合开始');
     if (t > this.firstTurn) this.deal(t <= 3 ? 8 : 9);

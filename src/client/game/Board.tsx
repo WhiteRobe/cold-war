@@ -311,7 +311,7 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
           <div class="modal-box over-box">
             <h2>{view.winner ? `${names[view.winner]}（${SIDE_ZH[view.winner]}）获胜` : '平局'}</h2>
             <p>{view.winReason}</p>
-            <p>最终 VP：{view.vp > 0 ? `美国 +${view.vp}` : view.vp < 0 ? `苏联 +${-view.vp}` : '0'} · 第 {view.turn} 回合</p>
+            {view.flags.endlessWorld ? <p>第 {view.turn} 回合</p> : <p>最终 VP：{view.vp > 0 ? `美国 +${view.vp}` : view.vp < 0 ? `苏联 +${-view.vp}` : '0'} · 第 {view.turn} 回合</p>}
             {view.finalScore && <div class="over-scroll"><FinalScoreTable view={view} /></div>}
             <div class="row">
               {/* 和 AI 打的离线局：终局后也能撤销回上一步接着玩 */}

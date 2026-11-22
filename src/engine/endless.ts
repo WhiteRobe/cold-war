@@ -3,8 +3,9 @@
 import { COUNTRIES, COUNTRY_LIST, REGIONS, REGION_ZH, koreaKeep, setWorld, worldOf, type RegionId } from '../data';
 import type { Game, Gen } from './game';
 import { controller, scoreRegion } from './scoring';
-import { SIDE_ZH, opp, type GameState, type Scene, type Side } from './types';
-import { countryName } from './util';
+import { SIDE_ZH, opp, type GameState, type Scene, type Side, type WarRound } from './types';
+import { GameOver, countryName } from './util';
+import { shuffle } from './rng';
 
 /** 石油国（同「石油输出国组织」） */
 export const OIL_COUNTRIES = ['egypt', 'iran', 'libya', 'saudiArabia', 'iraq', 'gulfStates', 'venezuela'];
@@ -364,3 +365,131 @@ function* regionBonusPlace(g: Game, side: Side, total: number, parts: [RegionId,
 }
 
 export { LV_ZH };
+
+/** 第 20 回合开始仍然僵持：世界大战，全自动推演到每个国家都有归属 */
+export const WORLD_WAR_TURN = 20;
+/** 超级大国本土对每个邻国的施压 */
+export const HOME_PUSH = 3;
+/** 一个国家争夺这么多次仍未被控制：视为卡死，引发核战争，掷骰决定归属 */
+export const WAR_NUKE_AFTER = 20;
+
+/**
+ * 世界大战：每轮所有未被控制的国家按洲（欧 > 亚 > 中东 > 非 > 中美 > 南美）、稳定度从高到低依次争夺——
+ * 周边施压 = 各邻国的影响力（被一方控制的邻国只算控制方），本土邻国另有本土施压 3；
+ * 差值加给施压大的一方；持平则掷骰，在该洲支配 +1、控制 +2，掷平重掷，大者 +1。
+ * 被控制的国家不再变动。全部有归属后，控制国家多的一方获胜。
+ */
+export function worldWar(g: Game): never {
+  const s = g.s;
+  const sides: Side[] = ['US', 'USSR'];
+  const open = () => COUNTRY_LIST.filter((c) => s.inf[c.id] && !controller(s, c.id)).map((c) => c.id);
+  const count = () => {
+    const n = { US: 0, USSR: 0, open: 0 };
+    for (const c of COUNTRY_LIST) {
+      if (!s.inf[c.id]) continue;
+      const k = controller(s, c.id);
+      if (k) n[k]++;
+      else n.open++;
+    }
+    return n;
+  };
+  const start = count();
+  g.log(`世界大战爆发：第 ${s.turn} 回合仍然僵持，全面战争开始自动推演（美控 ${start.US}、苏控 ${start.USSR}、未定 ${start.open}）`, {
+    kind: 'turn',
+    scene: {
+      title: '世界大战', art: 'worldWar', flat: true,
+      sub: `第 ${s.turn} 回合开始时仍然僵持，冷战变成热战。不再出牌，逐轮自动推演，直到每个国家都有归属。`,
+      steps: [
+        { text: '每轮按固定顺序争夺所有未被控制的国家：欧洲 > 亚洲 > 中东 > 非洲 > 中美洲 > 南美洲，同洲稳定度高的先，同稳定度随机（开战时定一次）。' },
+        { text: `施压 = 各邻国影响力之和（被一方控制的邻国只算控制方），超级大国本土对邻国施压 ${HOME_PUSH}；差值加给施压大的一方。` },
+        { text: '施压相同则掷骰：该洲支配 +1、控制 +2，掷平重掷，大者 +1。' },
+        { text: `争夺 ${WAR_NUKE_AFTER} 次仍未被控制：该国引发核战争，掷骰定归属。` },
+        { text: `全部有归属后，控制国家多的一方获胜。现在：美控 ${start.US}，苏控 ${start.USSR}，未定 ${start.open}。` },
+      ],
+    },
+  });
+  // 争夺顺序开战时定一次：欧洲 > 亚洲 > 中东 > 非洲 > 中美洲 > 南美洲，同洲稳定度高的先，同稳定度随机
+  const ORDER: RegionId[] = ['europe', 'asia', 'middleEast', 'africa', 'centralAmerica', 'southAmerica'];
+  const queue = shuffle(s, open()).sort((a, b) => {
+    const ca = COUNTRIES[a], cb = COUNTRIES[b];
+    return ORDER.indexOf(ca.region) - ORDER.indexOf(cb.region) || cb.stability - ca.stability;
+  });
+  const tries = new Map<string, number>();
+  for (let round = 1; open().length; round++) {
+    const changes: WarRound['changes'] = [];
+    // 逐国结算：前面结算的结果立刻影响后面的国家
+    for (const c of queue) {
+      if (controller(s, c)) continue;
+      const t = (tries.get(c) ?? 0) + 1;
+      tries.set(c, t);
+      if (t > WAR_NUKE_AFTER) {
+        // 卡死：核战争，掷骰（掷平重掷）决定归属，直接按控制所需补足影响力
+        const dice: [number, number, number, number][] = [];
+        for (;;) {
+          const d: [number, number, number, number] = [g.roll(), 0, g.roll(), 0];
+          dice.push(d);
+          if (d[0] !== d[2]) break;
+        }
+        const last = dice[dice.length - 1];
+        const side: Side = last[0] > last[2] ? 'US' : 'USSR';
+        const need = g.inf(c, opp(side)) + COUNTRIES[c].stability - g.inf(c, side);
+        g.addInf(c, side, need);
+        changes.push({ c, side, n: Math.max(0, need), push: [0, 0], dice, won: true, nuke: true });
+        g.log(`${countryName(c)}引发核战争：争夺 ${WAR_NUKE_AFTER} 次仍未分出归属，掷骰 美 ${last[0]} : 苏 ${last[2]}，归${SIDE_ZH[side]}`, { kind: 'warn', side });
+        continue;
+      }
+      const push: [number, number] = [0, 0];
+      for (const n of COUNTRIES[c].adj) {
+        if (n === 'usa' || n === 'ussr') {
+          push[n === 'usa' ? 0 : 1] += HOME_PUSH;
+          continue;
+        }
+        if (!s.inf[n]) continue;
+        const k = controller(s, n);
+        sides.forEach((side, i) => {
+          if (!k || k === side) push[i] += g.inf(n, side);
+        });
+      }
+      const diff = push[0] - push[1];
+      let x: WarRound['changes'][number];
+      if (diff) x = { c, side: diff > 0 ? 'US' : 'USSR', n: Math.abs(diff), push };
+      else {
+        const region = COUNTRIES[c].region;
+        const mod = (side: Side) => {
+          const l = regionLevels(s, side)[region];
+          return l === 'control' ? 2 : l === 'domination' ? 1 : 0;
+        };
+        const dice: [number, number, number, number][] = [];
+        for (;;) {
+          const d: [number, number, number, number] = [g.roll(), mod('US'), g.roll(), mod('USSR')];
+          dice.push(d);
+          if (d[0] + d[1] !== d[2] + d[3]) break;
+        }
+        const last = dice[dice.length - 1];
+        x = { c, side: last[0] + last[1] > last[2] + last[3] ? 'US' : 'USSR', n: 1, push, dice };
+      }
+      g.addInf(x.c, x.side, x.n);
+      if (controller(s, x.c)) x.won = true;
+      changes.push(x);
+    }
+    const n = count();
+    const won = changes.filter((x) => x.won);
+    g.log(
+      `世界大战第 ${round} 轮：${won.length ? `${won.map((x) => `${countryName(x.c)}归${SIDE_ZH[x.side]}`).join('、')}` : '没有国家易手'}（美控 ${n.US}、苏控 ${n.USSR}、未定 ${n.open}）`,
+      { kind: 'turn', war: { round, changes, count: n } },
+    );
+  }
+  const end = count();
+  const winner: Side | null = end.US > end.USSR ? 'US' : end.USSR > end.US ? 'USSR' : null;
+  g.log(`世界大战结束：美国控制 ${end.US} 国，苏联控制 ${end.USSR} 国${end.open ? `，仍有 ${end.open} 国未定` : ''}`, {
+    kind: 'turn',
+    scene: {
+      title: '战争结束', side: winner ?? undefined, art: 'worldWar', flat: true,
+      steps: [
+        { text: `美国控制 ${end.US} 个国家，苏联控制 ${end.USSR} 个国家。` },
+        { text: winner ? `${SIDE_ZH[winner]}控制的国家更多，赢得了世界大战。` : '双方控制的国家一样多，世界在废墟中陷入僵局。' },
+      ],
+    },
+  });
+  throw new GameOver(winner, `世界大战：美国控制 ${end.US} 国，苏联控制 ${end.USSR} 国`);
+}
