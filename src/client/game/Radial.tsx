@@ -116,7 +116,7 @@ export function Radial({ view, anchor, d, onCommit, onLive, onCancel, detail }: 
           <button type="button" key={p.key} class={`petal ${p.cls ?? ''}`} style={{ animationDelay: `${i * 0.035}s` }} onClick={(e) => { e.stopPropagation(); p.run(); }}>
             <PetalIcon k={p.icon} />
             <span class="pt-text">
-              <span class="pt-label">{p.label}</span>
+              <span class="pt-label">{boldLabel(p.label)}</span>
               {p.sub && <span class="pt-sub">{p.sub}</span>}
             </span>
             <kbd>{i + 1}</kbd>
@@ -144,4 +144,10 @@ function PetalIcon({ k }: { k: Icon }) {
     skip: <path d="M5,5l14,14M19,5L5,19" fill="none" stroke="currentColor" stroke-width="2.4" />,
   };
   return <svg class="pt-icon" viewBox="0 0 24 24" fill="currentColor">{p[k]}</svg>;
+}
+
+/** 选项文字里用 **…** 标出的部分加粗（如“入侵**巴基斯坦**”） */
+export function boldLabel(s: string) {
+  if (!s.includes('**')) return s;
+  return s.split('**').map((part, i) => (i % 2 ? <b key={i}>{part}</b> : part));
 }

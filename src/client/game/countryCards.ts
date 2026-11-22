@@ -4,7 +4,7 @@ import type { GameView } from '../../engine/view';
 
 /** 国家 → 点名它的卡（只收录卡面效果针对该国的，整片区域的卡不算） */
 export const COUNTRY_CARDS: Record<string, number[]> = {
-  cuba: [8, 40],
+  cuba: [8, 40, 91],
   vietnam: [9],
   westGermany: [10, 40, 55],
   eastGermany: [96],
@@ -26,9 +26,10 @@ export const COUNTRY_CARDS: Record<string, number[]> = {
   japan: [27],
   taiwan: [35],
   thailand: [38],
-  angola: [52],
+  angola: [52, 53],
   seAfricanStates: [52],
   southAfrica: [53],
+  botswana: [53],
   chile: [54],
   argentina: [83],
   syria: [56],
@@ -40,7 +41,8 @@ export const COUNTRY_CARDS: Record<string, number[]> = {
   libya: [56, 61, 84],
   gulfStates: [61],
   venezuela: [61, 64],
-  costaRica: [64],
+  costaRica: [64, 91],
+  honduras: [91],
   panama: [64],
   lebanon: [88],
   nicaragua: [91],

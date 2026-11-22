@@ -63,7 +63,7 @@ export function CardFace({ id, faceDown }: { id: number; faceDown?: boolean }) {
       </div>
       <div class="cf-text">{richCardText(c.text, cardView.value, id)}</div>
       <div class="cf-foot">
-        <span>{ERA_ZH[c.era]}</span>
+        <span>{c.endless ? '不死不休专属' : ERA_ZH[c.era]}</span>
         {c.optional && <span>可选卡</span>}
       </div>
     </div>

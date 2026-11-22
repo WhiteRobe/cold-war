@@ -220,7 +220,7 @@ export const LATE: Record<number, Effect> = {
   // Iran-Iraq War
   102: {
     *run(g, me) {
-      const t = yield* g.askOption(me, '两伊战争：选择被入侵的国家', [['iraq', '伊朗入侵伊拉克'], ['iran', '伊拉克入侵伊朗']], { card: 102 });
+      const t = yield* g.askOption(me, '两伊战争：选择被入侵的国家', [['iraq', '入侵**伊拉克**（伊朗进攻）'], ['iran', '入侵**伊朗**（伊拉克进攻）']], { card: 102 });
       yield* g.war(me, 102, t, { need: 4, vp: 2, milops: 2 });
     },
   },

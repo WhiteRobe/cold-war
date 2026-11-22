@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { CARDS, REGION_ZH } from '../../data';
+import { CARDS, REGIONS, REGION_ZH } from '../../data';
+import { scoreRegion } from '../../engine/scoring';
 import { SPACE } from '../../engine/space';
 import type { Flags, Side } from '../../engine/types';
 import type { GameView } from '../../engine/view';
@@ -275,7 +276,11 @@ function Vp({ vp, view }: { vp: number; view: GameView }) {
       </div>
       <div class="trk-sub">
         {vp === 0 ? '平' : vp > 0 ? `美国领先 ${vp}` : `苏联领先 ${-vp}`}
-        <span class={`vp-proj ${pj.autoWin ? pj.autoWin.toLowerCase() : pj.total > 0 ? 'us' : pj.total < 0 ? 'ussr' : ''}`}> · 若现在终局：{proj}</span>
+        {view.options.endless ? (
+          <span class="vp-proj"> · 控制洲：美 {ctlCount(view, 'US')} / 苏 {ctlCount(view, 'USSR')}（6 洲全控即胜）</span>
+        ) : (
+          <span class={`vp-proj ${pj.autoWin ? pj.autoWin.toLowerCase() : pj.total > 0 ? 'us' : pj.total < 0 ? 'ussr' : ''}`}> · 若现在终局：{proj}</span>
+        )}
       </div>
       <div class="trk-pop">
         <div class="pop-title">若现在进行终局计分</div>
@@ -313,6 +318,9 @@ function ScoreTable({ view, vp, pj, milops }: { view: GameView; vp: number; pj: 
     </table>
   );
 }
+
+/** 不死不休：一方控制的洲数 */
+const ctlCount = (v: GameView, side: Side) => REGIONS.filter((r) => scoreRegion(v as never, r, { formosan: v.flags.formosan })[side].level === 'control').length;
 
 const leadShort = (n: number) => (n > 0 ? `美 +${n}` : n < 0 ? `苏 +${-n}` : '0');
 

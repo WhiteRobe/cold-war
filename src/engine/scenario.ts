@@ -73,7 +73,7 @@ export function validateScenario(x: unknown): string | null {
     if (!COUNTRIES[c]) return `没有这个国家：${c}`;
     if (!Array.isArray(v) || v.length !== 2 || !int(v[0], 0, 20) || !int(v[1], 0, 20)) return `${COUNTRIES[c].zh}的影响力要是 0–20 的整数`;
   }
-  for (const id of s.events ?? []) if (!CARDS[id] || CARDS[id].scoring || id === 6) return `事件卡号不对：${id}`;
+  for (const id of s.events ?? []) if (!CARDS[id] || CARDS[id].scoring || CARDS[id].endless || id === 6) return `事件卡号不对：${id}`;
   return null;
 }
 

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
+import { cloudCountries } from '../../engine/endless';
 import type { JSX } from 'preact';
 import { CARDS, COUNTRIES, COUNTRY_LIST, REGIONS, REGION_ZH, countriesIn, endlessWorld, getWorldVersion, type RegionId, type Side } from '../../data';
 import type { SubRegionId } from '../../data/types';
@@ -441,6 +442,7 @@ export function MapView({ view, selectable, onPick, flash, onRegion, focus, onBo
           />
         ))}
         <WarLinks view={view} />
+        {ew && <EndlessClouds view={view} />}
         <g class="links">
           {clipped.filter((e) => e.gap < 14).map((e) => (
             <g key={e.a + e.b} class={`link${hover && (e.a === hover || e.b === hover) ? ' hl' : ''}`} transform={`translate(${e.mx},${e.my})`}>
@@ -605,15 +607,25 @@ function arsLeftOf(v: GameView, side: Side): number {
 function WinAlerts({ view }: { view: GameView }) {
   if (view.phase === 'over' || view.phase === 'setup') return null;
   const items: { key: string; cls: string; text: string; tip: string }[] = [];
-  const eu = scoreRegion(view as never, 'europe').autoWin;
+  const endless = !!view.options.endless;
+  if (endless) {
+    // 不死不休：只看控制全球
+    for (const side of ['US', 'USSR'] as Side[]) {
+      const miss = REGIONS.filter((r) => scoreRegion(view as never, r, { formosan: view.flags.formosan })[side].level !== 'control');
+      if (miss.length > 2) continue;
+      const name = side === 'US' ? '美国' : '苏联';
+      items.push({ key: `g-${side}`, cls: side.toLowerCase(), text: `${name}已控制 ${6 - miss.length}/6 个洲：再控制${miss.map((r) => REGION_ZH[r]).join('、')}即控制全球`, tip: '不死不休：一方在六个洲都达到「控制」时立即获胜，在每个行动轮结束时检查。' });
+    }
+  }
+  const eu = endless ? undefined : scoreRegion(view as never, 'europe').autoWin;
   if (eu) items.push({ key: 'eu', cls: eu.toLowerCase(), text: `${eu === 'US' ? '美国' : '苏联'}控制欧洲：打出欧洲计分即获胜`, tip: EUROPE_WIN });
   const a = Math.abs(view.vp);
-  if (a >= 15) {
+  if (a >= 15 && !endless) {
     const sd = view.vp > 0 ? '美国' : '苏联';
     items.push({ key: 'vp', cls: view.vp > 0 ? 'us' : 'ussr', text: `${sd} ${a} VP：再得 ${20 - a} 分直接获胜`, tip: '任何时候胜利点达到 20，这一方立即获胜。' });
   }
   // 计分卡打不完：剩余行动轮比手里（已知）的计分卡少，回合末持牌判负
-  if (view.phase === 'action' || view.phase === 'headline') {
+  if (!endless && (view.phase === 'action' || view.phase === 'headline')) {
     for (const side of ['US', 'USSR'] as const) {
       const sc = view.hands[side].filter((c) => CARDS[c]?.scoring).length;
       if (!sc) continue;
@@ -667,7 +679,7 @@ function RegionLabel({ region, view, onClick }: { region: RegionId; view: GameVi
   const shuttle = !!view.flags.shuttle && (region === 'asia' || region === 'middleEast');
   const sc = scoreRegion(view as never, region, { formosan: view.flags.formosan, shuttle });
   const vpText = (net: number, win?: Side) =>
-    win ? `${win === 'US' ? '美' : '苏'}直接获胜` : net > 0 ? `美 +${net} VP` : net < 0 ? `苏 +${-net} VP` : '打平 0 VP';
+    win && view.options.endless ? `${win === 'US' ? '美' : '苏'} +10 VP` : win ? `${win === 'US' ? '美' : '苏'}直接获胜` : net > 0 ? `美 +${net} VP` : net < 0 ? `苏 +${-net} VP` : '打平 0 VP';
   const sea = region === 'asia' ? scoreSEA(view as never) : null;
   return (
     <g class="region-label" onClick={onClick}>
@@ -687,6 +699,8 @@ function RegionLabel({ region, view, onClick }: { region: RegionId; view: GameVi
           <Radiation r={8} />
         </g>
       )}
+      {view.flags.endlessWorld && <EndlessTroops x={x + TROOP_AT[region][0]} y={y + TROOP_AT[region][1]} sc={sc} />}
+      {view.flags.endlessWorld && <EndlessEmblems x={x + REGION_ZH[region].length * 27.6 + (scoredNote(view, region) ? 28 : 10) + (view.flags.chernobyl === region ? 22 : 0)} y={y - 8} region={region} sc={sc} />}
       <text x={x} y={y + 18} class="rl-score">
         <tspan class="us">美 {LV_ZH[sc.US.level]} {sc.points.US}</tspan>
         <tspan dx="10" class="ussr">苏 {LV_ZH[sc.USSR.level]} {sc.points.USSR}</tspan>
@@ -721,6 +735,97 @@ function RegionLabel({ region, view, onClick }: { region: RegionId; view: GameVi
       )}
     </g>
   );
+}
+
+/** 不死不休：洲名后的阵营徽章（悬停说明区域红利 / 区域压制） */
+function EndlessEmblems({ x, y, region, sc }: { x: number; y: number; region: RegionId; sc: ReturnType<typeof scoreRegion> }) {
+  const out = (['US', 'USSR'] as Side[]).filter((s) => sc[s].level === 'domination' || sc[s].level === 'control');
+  return (
+    <>
+      {out.map((side, i) => {
+        const ctl = sc[side].level === 'control';
+        const who = side === 'US' ? '美国' : '苏联';
+        return (
+          <g key={side} class={`ew-emblem ${side.toLowerCase()}${ctl ? ' ctl' : ''}`} transform={`translate(${x + 6 + i * 30},${y})`}>
+            <title>
+              {who}{ctl ? '控制' : '支配'}{REGION_ZH[region]}：每个行动轮前 +{ctl ? 2 : 1} 点免费影响力（全图任意）
+              {ctl ? `；每回合开始，${REGION_ZH[region]}里每个有${side === 'US' ? '苏联' : '美国'}影响力的国家各 -1` : ''}
+            </title>
+            <circle r="13" />
+            <polygon points={starPts(0, 0, 8.5)} />
+          </g>
+        );
+      })}
+    </>
+  );
+}
+
+function starPts(cx: number, cy: number, r: number) {
+  return Array.from({ length: 10 }, (_, i) => {
+    const a = -Math.PI / 2 + (i * Math.PI) / 5;
+    const rr = i % 2 ? r * 0.45 : r;
+    return `${(cx + rr * Math.cos(a)).toFixed(1)},${(cy + rr * Math.sin(a)).toFixed(1)}`;
+  }).join(' ');
+}
+
+/** 士兵 / 坦克相对洲名的位置（避开国家方框） */
+const TROOP_AT: Record<RegionId, [number, number]> = {
+  europe: [-120, 14], africa: [-120, 14], asia: [200, 28], middleEast: [200, 28], centralAmerica: [40, 78], southAmerica: [40, 78],
+};
+
+/** 不死不休：支配的洲站着士兵，控制的洲开进坦克（画在洲名旁的空白处，纯装饰，不响应鼠标） */
+function EndlessTroops({ x, y, sc }: { x: number; y: number; sc: ReturnType<typeof scoreRegion> }) {
+  const sides = (['US', 'USSR'] as Side[]).filter((s) => sc[s].level === 'domination' || sc[s].level === 'control');
+  return (
+    <g class="ew-troops">
+      {sides.map((side, k) => (
+        <g key={side} class={`ew-troop ${side.toLowerCase()}`} transform={`translate(${x + k * 52},${y}) scale(1.5)`}>
+          {sc[side].level === 'control' ? (
+            <g>
+              <rect x="-14" y="-2" width="28" height="7" rx="3" class="tr-track" />
+              <rect x="-11" y="-9" width="22" height="8" rx="1.5" class="tr-body" />
+              <rect x="-5" y="-14" width="11" height="6" rx="1.5" class="tr-body" />
+              <rect x="5" y="-12.5" width="14" height="2.4" class="tr-gun" />
+            </g>
+          ) : (
+            [-8, 0, 8].map((dx) => (
+              <g key={dx} transform={`translate(${dx},0)`}>
+                <rect x="-2.6" y="-10" width="5.2" height="10" rx="1" class="tr-body" />
+                <circle cx="0" cy="-12.5" r="2.6" class="tr-head" />
+                <path d="M-3.6,-13.6 h7.2 l-1,-2.4 h-5.2z" class="tr-helm" />
+                <line x1="3" y1="-4" x2="6" y2="-17" class="tr-gun-l" />
+              </g>
+            ))
+          )}
+        </g>
+      ))}
+    </g>
+  );
+}
+
+/** 不死不休：乌云——一方控制的、与对手本土相邻的国家，在对手本回合第一张行动点牌打出前笼罩着乌云 */
+function EndlessClouds({ view }: { view: GameView }) {
+  const spent = view.flags.firstOps ?? [];
+  const out: JSX.Element[] = [];
+  for (const owner of ['US', 'USSR'] as Side[]) {
+    const victim: Side = owner === 'US' ? 'USSR' : 'US';
+    if (spent.includes(victim)) continue;
+    const list = cloudCountries(view as never, owner);
+    for (const c of list) {
+      const [x, y] = pos(c);
+      out.push(
+        <g key={c} class={`ew-cloud ${owner.toLowerCase()}`} transform={`translate(${x + BW * 0.5 - 6},${y - BH * 0.5 - 8})`}>
+          <title>
+            乌云压境：{owner === 'US' ? '美国' : '苏联'}控制着{victim === 'US' ? '美国' : '苏联'}的本土邻国{COUNTRIES[c].zh}。
+            {victim === 'US' ? '美国' : '苏联'}本回合第一张用行动点打出的牌，每个这样的国家 -1 行动点（共 {list.length} 个）；扣不下的差额由{owner === 'US' ? '美国' : '苏联'}放置影响力。打出后乌云散去。
+          </title>
+          <path d="M-9,4 a6,6 0 0 1 3,-10 a8,8 0 0 1 14,-1 a6,6 0 0 1 4,11 z" />
+          <path d="M-1,5 l-3,6 l4,-2 l-2,6" class="bolt" />
+        </g>,
+      );
+    }
+  }
+  return <g class="ew-clouds">{out}</g>;
 }
 
 function CountryBox({ id, view, selectable, dimmed, flash, adjHl, onPick, onHover, marks, onBolt, onBoltLeave }: { id: string; view: GameView; selectable: boolean; dimmed: boolean; flash: boolean; adjHl: boolean; onPick: () => void; onHover: (id: string | null) => void; marks: ReturnType<typeof countryMarks>; onBolt: (x: number, y: number, now?: boolean, kind?: CardKind) => void; onBoltLeave: () => void }) {

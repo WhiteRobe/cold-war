@@ -217,7 +217,7 @@ export const EARLY: Record<number, Effect> = {
   // Indo-Pakistani War
   24: {
     *run(g, me) {
-      const t = yield* g.askOption(me, '印巴战争：选择被入侵的国家', [['pakistan', '印度入侵巴基斯坦'], ['india', '巴基斯坦入侵印度']], { card: 24 });
+      const t = yield* g.askOption(me, '印巴战争：选择被入侵的国家', [['pakistan', '入侵**巴基斯坦**（印度进攻）'], ['india', '入侵**印度**（巴基斯坦进攻）']], { card: 24 });
       yield* g.war(me, 24, t, { need: 4, vp: 2, milops: 2 });
     },
   },

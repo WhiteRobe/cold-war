@@ -1,6 +1,6 @@
 // 剧本页：浏览内置 / 玩家上传的剧本，编写新剧本（表单或导入 JSON），上传、导出、删除（需密码）。
 import { useEffect, useState } from 'preact/hooks';
-import { CARDS, CARD_LIST, COUNTRY_LIST, REGIONS, REGION_ZH, type Side } from '../../data';
+import { CARDS, CARD_LIST, COUNTRY_LIST, REGIONS, REGION_ZH, setWorld, type Side } from '../../data';
 import { BUILTIN_SCENARIOS, EVENT_FLAGS, validateScenario, type Scenario } from '../../engine/scenario';
 import { api } from '../api';
 import { go, toast } from '../store';
@@ -15,11 +15,12 @@ export async function loadScenarios(): Promise<Scenario[]> {
 }
 
 /** 选好的剧本带回首页开局 */
-export const PICK_KEY = 'cw.scenarioPick';
 
 const EMPTY: Scenario = { id: '', name: '', author: '', year: '', story: '', startTurn: 1, endTurn: 10, defcon: 5, vp: 0, space: { US: 0, USSR: 0 }, china: 'USSR', inf: {}, events: [], placement: true };
 
 export function Scenarios() {
+  // 剧本只针对标准世界（看过不死不休的对局后，国家表可能还是不死不休的样子）
+  setWorld({});
   const [list, setList] = useState<Scenario[]>(BUILTIN_SCENARIOS);
   const [editing, setEditing] = useState<Scenario | null>(null);
   const [open, setOpen] = useState<string | null>(null);
@@ -45,10 +46,6 @@ export function Scenarios() {
     a.download = `${s.name}.json`;
     a.click();
   };
-  const use = (s: Scenario) => {
-    sessionStorage.setItem(PICK_KEY, s.id);
-    go('/');
-  };
 
   if (editing) return <Editor init={editing} onDone={(saved) => { setEditing(null); if (saved) reload(); }} />;
 
@@ -72,7 +69,6 @@ export function Scenarios() {
             <p class="sc-story">{s.story}</p>
             {open === s.id && <Summary s={s} />}
             <div class="sc-btns">
-              <button type="button" class="btn primary small" onClick={() => use(s)}>用这个剧本开局</button>
               <button type="button" class="btn small" onClick={() => setEditing({ ...s, id: '', builtin: undefined, name: `${s.name}（改）` })}>以此为底稿改写</button>
               <button type="button" class="btn small ghost" onClick={() => exportJson(s)}>导出 JSON</button>
               {!s.builtin && <button type="button" class="btn small ghost danger" onClick={() => del(s)}>删除</button>}
@@ -135,7 +131,7 @@ function Editor({ init, onDone }: { init: Scenario; onDone: (saved: boolean) => 
       }
     });
   // 能“已发生”的事件：所有非计分卡（持续事件会置上对应标记）
-  const eventCards = CARD_LIST.filter((c) => !c.scoring && c.id !== 6);
+  const eventCards = CARD_LIST.filter((c) => !c.scoring && !c.endless && c.id !== 6);
   const side = (v: Side) => (v === 'US' ? '美国' : '苏联');
   return (
     <div class="page sc-editor">

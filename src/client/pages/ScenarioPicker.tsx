@@ -1,15 +1,13 @@
 // 剧本下拉框：离线开局和在线建房共用
 import { useEffect, useState } from 'preact/hooks';
 import { BUILTIN_SCENARIOS, type Scenario } from '../../engine/scenario';
-import { PICK_KEY, loadScenarios } from './Scenarios';
+import { loadScenarios } from './Scenarios';
 
 /** 当前选中的剧本；标准开局返回 undefined */
 export function useScenarioPick() {
   const [scenarios, setScenarios] = useState<Scenario[]>(BUILTIN_SCENARIOS);
-  // 从剧本页点“用这个剧本开局”回来时自动选中
-  const [id, setId] = useState(() => sessionStorage.getItem(PICK_KEY) ?? 'standard');
+  const [id, setId] = useState('standard');
   useEffect(() => {
-    sessionStorage.removeItem(PICK_KEY);
     loadScenarios().then(setScenarios);
   }, []);
   const sc = scenarios.find((x) => x.id === id);

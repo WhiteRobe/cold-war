@@ -13,7 +13,7 @@ import { VictoryScene } from './Victory';
 import { RegionCard, RegionPanel } from './RegionPanel';
 import { SPACE } from '../../engine/space';
 import { MapView } from './MapView';
-import { RADIAL_LIVE_TAGS, Radial, type RadialAnchor } from './Radial';
+import { RADIAL_LIVE_TAGS, Radial, boldLabel, type RadialAnchor } from './Radial';
 import { BoltPopover } from './BoltPopover';
 import { TurnClock } from './TurnClock';
 import { NukeScene } from './NukeScene';
@@ -376,7 +376,7 @@ function DecisionPanel({ view, d, names, choose, onZoom }: { view: GameView; d?:
         <div class="options">
           {d.options.map((o) => (
             <button type="button" key={o.v} class={`btn opt opt-${o.v}`} onClick={() => choose(o.v)}>
-              {o.label ?? o.v}
+              {boldLabel(o.label ?? String(o.v))}
             </button>
           ))}
         </div>
@@ -951,3 +951,4 @@ function useGameSounds(view: GameView | null, log: LogEntry[]) {
     if (view.decision && !p.decision) sfx('turn');
   }, [view]);
 }
+

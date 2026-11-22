@@ -112,7 +112,7 @@ export function useEventPacing(incoming: GameView | null, aiOpponent: boolean): 
       if (e.move) items.push({ at: i - 0.5, beat: { key: ++seq.current, kind: 'move', move: e.move } });
       if (e.roll) items.push({ at: i, beat: { key: ++seq.current, kind: 'roll', roll: e.roll } });
       if (e.scene) {
-        const world = e.scene.art === 'eastRise' || e.scene.art === 'pacific';
+        const world = ['eastRise', 'pacific', 'unifyChina', 'unifyKorea'].includes(e.scene.art ?? '');
         const n = Math.max(1, e.scene.steps.length);
         for (let k = 0; k < n; k++) items.push({ at: i - 0.45 + k * 0.001, beat: { key: ++seq.current, kind: 'scene', scene: e.scene, step: k, world } });
       }
@@ -400,6 +400,53 @@ function SceneArt({ art }: { art?: string }) {
         <svg viewBox="0 0 120 60" class="sc-art">
           <rect width="120" height="60" fill="#2a2420" />
           {[20, 44, 68, 92].map((x) => <g key={x}><rect x={x} y="34" width="16" height="8" rx="3" fill="#5f6b4a" /><rect x={x + 4} y="28" width="8" height="6" fill="#5f6b4a" /><path d={`M${x + 12},31 L${x + 24},30`} stroke="#5f6b4a" stroke-width="2" /></g>)}
+        </svg>
+      );
+    case 'bonus':
+      return (
+        <svg viewBox="0 0 120 60" class="sc-art">
+          <rect width="120" height="60" fill="#2a2a1e" />
+          {[30, 60, 90].map((x, i) => <g key={x}><rect x={x - 1} y={14 + i * 4} width="2" height={34 - i * 4} fill="#a89878" /><path d={`M${x + 1},${14 + i * 4} l16,4 l-16,4z`} fill={i === 1 ? '#f5d76e' : '#c9503f'} /></g>)}
+          <rect x="0" y="48" width="120" height="12" fill="#3a3626" />
+        </svg>
+      );
+    case 'orbit':
+      return (
+        <svg viewBox="0 0 120 60" class="sc-art">
+          <rect width="120" height="60" fill="#0f1420" />
+          <circle cx="60" cy="72" r="34" fill="#2a5f8a" />
+          <ellipse cx="60" cy="40" rx="50" ry="12" fill="none" stroke="#9cc6f0" stroke-dasharray="3 3" opacity="0.6" />
+          <rect x="88" y="22" width="10" height="6" fill="#d9d2c0" /><rect x="80" y="23.5" width="7" height="3" fill="#5a8ac8" /><rect x="99" y="23.5" width="7" height="3" fill="#5a8ac8" />
+          <path d="M92,28 L62,50" stroke="#f5d76e" stroke-width="1.6" /><circle cx="62" cy="50" r="3" fill="#d8463a" />
+        </svg>
+      );
+    case 'unifyChina':
+      return (
+        <svg viewBox="0 0 120 60" class="sc-art">
+          <rect width="120" height="60" fill="#8f2c23" />
+          <path d="M18,40 L40,22 L66,26 L84,18 L100,30 L92,44 L60,48 L30,50Z" fill="#c9503f" />
+          <path d="M98,40 l4,-6 l3,4 l-3,8z" fill="#c9503f" />
+          <path d="M86,40 q6,-2 10,0" stroke="#f5d76e" stroke-width="1.4" fill="none" />
+          <polygon points="40,12 42,18 48,18 43,22 45,28 40,24 35,28 37,22 32,18 38,18" fill="#f5d76e" />
+        </svg>
+      );
+    case 'unifyKorea':
+      return (
+        <svg viewBox="0 0 120 60" class="sc-art">
+          <rect width="120" height="60" fill="#22303c" />
+          <path d="M50,8 L66,10 L70,24 L64,34 L68,46 L58,54 L50,48 L54,36 L48,22Z" fill="#c9bb98" />
+          <path d="M40,30 L80,30" stroke="#f5d76e" stroke-width="1.6" stroke-dasharray="4 3" />
+          <path d="M36,26 l8,8 M44,26 l-8,8" stroke="#d8463a" stroke-width="2" />
+        </svg>
+      );
+    case 'missile':
+      return (
+        <svg viewBox="0 0 120 60" class="sc-art">
+          <rect width="120" height="60" fill="#1f2a36" />
+          <path d="M20,50 Q60,-6 100,40" stroke="#f5d76e" stroke-width="1.4" stroke-dasharray="3 3" fill="none" />
+          <path d="M96,32 l8,10 l-10,-2z" fill="#d8463a" />
+          <path d="M92,48 L108,44 L112,52 L96,56Z" fill="#c9bb98" />
+          <path d="M10,52 L30,46 L34,56 L14,58Z" fill="#c9bb98" />
         </svg>
       );
     case 'cloud':

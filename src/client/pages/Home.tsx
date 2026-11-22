@@ -139,7 +139,7 @@ export function Home() {
             加入可选卡 #104–110（20 周年版默认）
           </label>
           <ScenarioPicker pick={pick} />
-          <button type="button" class="btn primary big" onClick={start}>开始新对局</button>
+          <button type="button" class="btn primary big go" onClick={start}>开始新对局</button>
         </section>
 
         <section class="panel">
