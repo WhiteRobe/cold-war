@@ -18,6 +18,7 @@ export const RADIAL_LIVE_TAGS = new Set(['mode', 'opsMode', 'order']);
 
 function canSpace(v: GameView, me: Side, card: number) {
   if (card !== CHINA_CARD && CARDS[card].scoring) return null;
+  if (card === CHINA_CARD && v.flags.endlessWorld) return null;
   const them: Side = me === 'US' ? 'USSR' : 'US';
   const next = v.space[me] + 1;
   if (next > 8) return null;
@@ -65,7 +66,7 @@ export function Radial({ view, anchor, d, onCommit, onLive, onCancel, detail }: 
     petals.push({
       key: 'ops',
       label: `行动点 ${ops}`,
-      sub: fp || (def.side !== 'NEUTRAL' && !own ? '对手事件也会发动' : card === CHINA_CARD ? '全用在亚洲 +1' : '放置 / 政变 / 调整'),
+      sub: fp || (def.side !== 'NEUTRAL' && !own ? '对手事件也会发动' : card === CHINA_CARD ? (view.flags.endlessWorld ? `联合国牌 ${effectiveOps(view, view.me ?? 'USSR', card).ops} 点` : '全用在亚洲 +1') : '放置 / 政变 / 调整'),
       icon: 'ops',
       cls: fp || (def.side !== 'NEUTRAL' && !own) ? 'warn' : '',
       run: () => setStage('ops'),

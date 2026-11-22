@@ -3,12 +3,22 @@ import { cardArt, unCardArt } from '../../art';
 import { endlessWorld } from '../../data';
 import { richCardText } from './SubBadge';
 import { cardView } from './cardCtx';
+import { unOpsView } from './preview';
 import { cardKind } from './countryCards';
 import { MarkGlyph } from './MarkGlyph';
 
 const SIDE_CLASS = { US: 'us', USSR: 'ussr', NEUTRAL: 'neutral' } as const;
 const ERA_ZH = { early: '冷战早期', mid: '冷战中期', late: '冷战后期' } as const;
 const SIDE_ZH = { US: '美国事件', USSR: '苏联事件', NEUTRAL: '双方事件' } as const;
+
+/** 联合国牌显示持有方此刻的点数（不在对局里时显示 4） */
+function opsLabel(id: number): number {
+  const c = CARDS[id];
+  const v = cardView.value;
+  if (id === CHINA_CARD && v?.flags.endlessWorld) return unOpsView(v, v.china.holder).ops;
+  return c.ops;
+}
+const isUN = (id: number) => id === CHINA_CARD && !!cardView.value?.flags.endlessWorld;
 
 const artCache = new Map<number, string>();
 function art(id: number) {
@@ -35,7 +45,7 @@ export function CardFace({ id, faceDown }: { id: number; faceDown?: boolean }) {
   return (
     <div class={`card-face side-${SIDE_CLASS[c.side]}${c.scoring ? ' scoring' : ''}`}>
       <div class="cf-head">
-        {c.scoring ? <div class="cf-ops scoring-badge">计分</div> : <div class="cf-ops">{c.ops}</div>}
+        {c.scoring ? <div class="cf-ops scoring-badge">计分</div> : <div class="cf-ops">{opsLabel(id)}</div>}
         <div class="cf-title">
           <div class="cf-zh">
             {c.zh}
@@ -55,7 +65,7 @@ export function CardFace({ id, faceDown }: { id: number; faceDown?: boolean }) {
         {faceDown && <div class="cf-facedown">背面朝上 · 本回合不可用</div>}
       </div>
       <div class="cf-tags">
-        <span>{SIDE_ZH[c.side]}</span>
+        <span>{isUN(id) ? '只能用作行动点' : SIDE_ZH[c.side]}</span>
         {c.starred && <span class="tag-star">★ 事件后移出</span>}
         {c.ongoing && <span class="tag-ongoing">持续</span>}
         {c.war && <span class="tag-war">战争</span>}
@@ -63,7 +73,7 @@ export function CardFace({ id, faceDown }: { id: number; faceDown?: boolean }) {
       </div>
       <div class="cf-text">{richCardText(c.text, cardView.value, id)}</div>
       <div class="cf-foot">
-        <span>{c.endless ? '不死不休专属' : ERA_ZH[c.era]}</span>
+        <span>{c.endless ? '不死不休专属' : isUN(id) ? '不死不休（取代中国牌）' : ERA_ZH[c.era]}</span>
         {c.optional && <span>可选卡</span>}
       </div>
     </div>
@@ -81,7 +91,7 @@ export function MiniCard({ id, onClick, active, dim, faceDown, title }: { id: nu
       title={title ?? `${c.zh}：${c.text}`}
     >
       <div class="mc-head">
-        <span class="mc-ops">{c.scoring ? '计' : c.ops}</span>
+        <span class="mc-ops">{c.scoring ? '计' : opsLabel(id)}</span>
         <span class="mc-name">{c.zh}</span>
       </div>
       <div class="mc-art">

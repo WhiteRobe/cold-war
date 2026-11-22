@@ -18,9 +18,31 @@ const LV = { none: '无', presence: '存在', domination: '支配', control: '�
 const SCORING_REGION: Record<number, RegionId | 'sea'> = { 1: 'asia', 2: 'europe', 3: 'middleEast', 37: 'centralAmerica', 38: 'sea', 79: 'africa', 81: 'southAmerica' };
 
 /** 行动点修正（不含地区加成） */
+/** 联合国牌（不死不休）：4 + 持有方控制的英国、法国、中国数 */
+export function unOpsView(v: GameView, side: Side): { ops: number; held: string[] } {
+  const held = ['uk', 'france', 'china'].filter((c) => ctl(v, c) === side);
+  return { ops: 4 + held.length, held };
+}
+
 export function effectiveOps(v: GameView, side: Side, card: number): { ops: number; notes: string[] } {
-  const base = CARDS[card].ops;
+  const un = card === 6 && !!v.flags.endlessWorld;
   const notes: string[] = [];
+  if (un) {
+    const u = unOpsView(v, side);
+    let ops = u.ops;
+    notes.push(u.held.length ? `控制${u.held.map((c) => COUNTRIES[c].zh).join('、')} +${u.held.length}` : '英、法、中都没控制，不加点');
+    if (side === 'US' ? v.flags.containment : v.flags.brezhnev) {
+      ops += 1;
+      notes.push(`${side === 'US' ? '遏制政策' : '勃列日涅夫主义'} +1`);
+    }
+    if (v.flags.redScare?.includes(side)) {
+      ops = Math.max(1, ops - 1);
+      notes.push(`${side === 'US' ? '红色恐慌' : '大清洗'} −1`);
+    }
+    notes.push('没有亚洲加成，不能用于太空竞赛');
+    return { ops, notes };
+  }
+  const base = CARDS[card].ops;
   const plus = side === 'US' ? v.flags.containment : v.flags.brezhnev;
   const minus = v.flags.redScare?.includes(side);
   let ops = base;
