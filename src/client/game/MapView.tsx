@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { st, streamer } from '../streamer';
-import { cloudCountries, defconOff, keyProgress } from '../../engine/endless';
+import { cloudCountries, defconOff, keyProgress, regionSealed } from '../../engine/endless';
 import type { JSX } from 'preact';
 import { CARDS, COUNTRIES, COUNTRY_LIST, REGIONS, REGION_ZH, countriesIn, endlessWorld, getWorldVersion, type RegionId, type Side } from '../../data';
 import type { SubRegionId } from '../../data/types';
@@ -753,7 +753,7 @@ function RegionLabel({ region, view, onClick }: { region: RegionId; view: GameVi
         </g>
       )}
       {view.flags.endlessWorld && <EndlessTroops x={x + TROOP_AT[region][0]} y={y + TROOP_AT[region][1]} sc={sc} />}
-      {view.flags.endlessWorld && <EndlessEmblems x={x + REGION_ZH[region].length * 27.6 + (scoredNote(view, region) ? 28 : 10) + (view.flags.chernobyl === region ? 22 : 0)} y={y - 8} region={region} sc={sc} />}
+      {view.flags.endlessWorld && <EndlessEmblems view={view} x={x + REGION_ZH[region].length * 27.6 + (scoredNote(view, region) ? 28 : 10) + (view.flags.chernobyl === region ? 22 : 0)} y={y - 8} region={region} sc={sc} />}
       <text x={x} y={y + 18} class="rl-score">
         <tspan class="us">美 {LV_ZH[sc.US.level]}{ewOn ? '' : ` ${sc.points.US}`}</tspan>
         <tspan dx="10" class="ussr">苏 {LV_ZH[sc.USSR.level]}{ewOn ? '' : ` ${sc.points.USSR}`}</tspan>
@@ -792,7 +792,7 @@ function RegionLabel({ region, view, onClick }: { region: RegionId; view: GameVi
 }
 
 /** 不死不休：洲名后的阵营徽章（悬停说明区域红利 / 区域压制） */
-function EndlessEmblems({ x, y, region, sc }: { x: number; y: number; region: RegionId; sc: ReturnType<typeof scoreRegion> }) {
+function EndlessEmblems({ view, x, y, region, sc }: { view: GameView; x: number; y: number; region: RegionId; sc: ReturnType<typeof scoreRegion> }) {
   const out = (['US', 'USSR'] as Side[]).filter((s) => sc[s].level === 'domination' || sc[s].level === 'control');
   return (
     <>
@@ -807,6 +807,13 @@ function EndlessEmblems({ x, y, region, sc }: { x: number; y: number; region: Re
             </title>
             <circle r="13" />
             <polygon points={starPts(0, 0, 8.5)} />
+            {regionSealed(view as never, side, region) && (
+              <g class="ew-lock" transform="translate(16,-4)">
+                <title>{who}控制了{REGION_ZH[region]}的全部国家：这个洲对{side === 'US' ? '苏联' : '美国'}锁死，不能用行动点（打出的牌、行动轮 / 回合结算）在这里放影响力、政变或调整；卡片事件和太空竞赛除外。</title>
+                <path d="M-4,0 v-4 a4,4 0 0 1 8,0 v4" />
+                <rect x="-6" y="0" width="12" height="9" rx="1.5" />
+              </g>
+            )}
           </g>
         );
       })}

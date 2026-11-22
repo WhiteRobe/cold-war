@@ -9,7 +9,7 @@ import {
 import { EFFECTS } from './effects';
 import { EVENT_FLAGS, erasUpTo } from './scenario';
 import { GameOver, cardName, countryName } from './util';
-import { ORBIT, defconOff, arStart, firstOpsCard, ironDepth, keyProgress, orbitalStrike, turnStart } from './endless';
+import { ORBIT, defconOff, regionSealed, arStart, firstOpsCard, ironDepth, keyProgress, orbitalStrike, turnStart } from './endless';
 
 export { GameOver, cardName, countryName };
 
@@ -901,7 +901,13 @@ export class Game {
       this.pendingOps[side] = 0;
       this.pendingWhy[side] = [];
       this.log(`${SIDE_ZH[side]}使用「${why}」的 VP 换来的 ${n} 点行动点`, { side });
-      yield* this.opsPlay(side, n, { raw: true });
+      // 来自卡片事件：不受洲锁死限制
+      this.eventDepth++;
+      try {
+        yield* this.opsPlay(side, n, { raw: true });
+      } finally {
+        this.eventDepth--;
+      }
     }
   }
 
@@ -1031,9 +1037,16 @@ export class Game {
   }
 
   /** 用行动点放影响力是否合法（不含费用） */
+  /** 不死不休：对手控制了这个洲的全部国家，洲对 side 锁死（卡片事件、太空竞赛除外） */
+  regionLocked(side: Side, c: string): boolean {
+    if (!this.endlessOn || this.eventDepth > 0) return false;
+    return regionSealed(this.s, opp(side), COUNTRIES[c].region);
+  }
+
   canPlaceOps(side: Side, c: string, snap: Set<string>, anywhere = false): boolean {
     const d = COUNTRIES[c];
     if (side === 'USSR' && this.s.flags.chernobyl && d.region === this.s.flags.chernobyl) return false;
+    if (this.regionLocked(side, c)) return false;
     if (anywhere) return true;
     const has = (x: string) => snap.has(x) && this.inf(x, side) > 0;
     if (has(c)) return true;
@@ -1052,6 +1065,7 @@ export class Game {
     if (this.inf(c, opp(side)) <= 0) return false;
     // 欧盟成立：行动轮里打出的牌不能在欧洲政变、调整阵营（回合 / 行动轮结算不受影响）
     if (s.flags.euFounded && d.region === 'europe' && !o.settlement) return false;
+    if (this.regionLocked(side, c)) return false;
     if (!o.free && !defconOff(s)) {
       if (s.defcon <= 4 && d.region === 'europe') return false;
       if (s.defcon <= 3 && d.region === 'asia') return false;

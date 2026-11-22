@@ -83,7 +83,7 @@ export function* firstOpsCard(g: Game, side: Side, eff: number): Gen<number> {
       ],
     },
   });
-  if (over) yield* g.placeInfluence(enemy, 0, over, () => true, { prompt: `乌云压境：差额 ${over} 点，在全图任意国家放置影响力` });
+  if (over) yield* g.placeInfluence(enemy, 0, over, (c) => !g.regionLocked(enemy, c), { prompt: `乌云压境：差额 ${over} 点，在全图任意国家放置影响力` });
   return -cut;
 }
 
@@ -127,6 +127,12 @@ export function ironDepth(g: Game, side: Side, c: string): number {
   if (!g.endlessOn) return 0;
   const sub = side === 'US' ? 'easternEurope' : 'westernEurope';
   return COUNTRIES[c].sub.includes(sub) && g.controls(opp(side), c) ? -1 : 0;
+}
+
+/** 一方控制了这个洲的全部国家（洲对对手锁死） */
+export function regionSealed(s: GameState, side: Side, r: RegionId): boolean {
+  const list = COUNTRY_LIST.filter((c) => c.region === r);
+  return list.length > 0 && list.every((c) => s.inf[c.id] && controller(s, c.id) === side);
 }
 
 /** 欧洲经济引擎：德国的邻国 */
@@ -192,7 +198,7 @@ function* placeGrants(g: Game, side: Side, grants: Grant[], title: string): Gen 
   const src = grants.map((x) => `${x.label} ${x.n}${x.where ? `（${x.where}）` : ''}`).join('，');
   for (let i = 0; i < total; i++) {
     const usable = (c: string) => grants.some((x, k) => left[k] > 0 && (!x.ok || x.ok(c)));
-    const ids = COUNTRY_LIST.map((c) => c.id).filter(usable);
+    const ids = COUNTRY_LIST.map((c) => c.id).filter((c) => usable(c) && !g.regionLocked(side, c));
     if (!ids.length) break;
     const c = yield* g.askCountry(side, 'placeEvent', `${title} ${total}`, ids, { ops: { total, spent: i }, note: `来源：${src}。全图任意。` });
     let k = grants.findIndex((x, j) => left[j] > 0 && x.ok && x.ok(c));
@@ -292,6 +298,7 @@ export function* turnStart(g: Game): Gen {
 export function bonusUse(s: GameState, side: Side, c: string, lv: Record<RegionId, RegionLevel>, snap: Set<string>): 'remove' | 'add' | null {
   const d = COUNTRIES[c];
   if (!s.inf[c]) return null;
+  if (regionSealed(s, opp(side), d.region)) return null;
   const strong = lv[d.region] === 'domination' || lv[d.region] === 'control';
   if (strong) return s.inf[c][side === 'US' ? 1 : 0] > 0 ? 'remove' : null;
   const home = side === 'US' ? 'usa' : 'ussr';

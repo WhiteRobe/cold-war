@@ -1965,3 +1965,5 @@ g.links { pointer-events: none; }
 .scene-anims .sa-train .sa-wheel { fill: #1b1b1b; stroke: #888; stroke-width: 0.6; }
 .scene-anims .sa-train .sa-rail { stroke: #55524a; stroke-width: 1; }
 .scene-anims .sa-train .sa-smoke { fill: #e2dccb; opacity: 0.85; }
+.ew-lock path { fill: none; stroke: #f5d76e; stroke-width: 2; }
+.ew-lock rect { fill: #f5d76e; stroke: #2b2b2b; stroke-width: 0.8; }
