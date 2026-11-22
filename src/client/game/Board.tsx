@@ -421,7 +421,7 @@ function LogText({ text, onPeek }: { text: string; onPeek: (c: number | null, el
     if (!card) continue;
     const name = ` ${card.zh}`;
     const end = text.startsWith(name, m.index + m[0].length) ? m.index + m[0].length + name.length : m.index + m[0].length;
-    if (m.index > last) out.push(text.slice(last, m.index));
+    if (m.index > last) out.push(...richSeg(text.slice(last, m.index), `p${m.index}`));
     out.push(
       <button
         type="button"
@@ -437,8 +437,54 @@ function LogText({ text, onPeek }: { text: string; onPeek: (c: number | null, el
     last = end;
     re.lastIndex = end;
   }
-  if (last < text.length) out.push(text.slice(last));
+  if (last < text.length) out.push(...richSeg(text.slice(last), 'end'));
   return <>{out}</>;
+}
+
+/** 日志行首的类型图标 */
+function logKind(e: LogEntry): { icon: string; cls: string } | null {
+  const t = e.t;
+  if (e.kind === 'turn' || e.kind === 'end') return null;
+  if (t.startsWith('DEFCON')) return { icon: '⚠', cls: 'defcon' };
+  if (e.kind === 'roll') {
+    if (t.includes('政变')) return { icon: '⚔', cls: 'coup' };
+    if (t.includes('调整')) return { icon: '⇄', cls: 'realign' };
+    if (t.includes('太空竞赛')) return { icon: '▲', cls: 'space' };
+    return { icon: '⚄', cls: 'dice' };
+  }
+  if (e.place || t.includes('放置影响力') || /影响力[：:]/.test(t)) return { icon: '⚑', cls: 'inf' };
+  if (/[+-]\d+ VP/.test(t)) return { icon: '★', cls: 'vp' };
+  if (t.startsWith('事件：')) return { icon: '✦', cls: 'event' };
+  if (e.kind === 'card') return { icon: '▣', cls: 'card' };
+  return null;
+}
+
+const REGION_TINT: Record<string, string> = {
+  europe: '#5b6177', asia: '#9a6f16', middleEast: '#4a7429', africa: '#8b3a72', centralAmerica: '#22796f', southAmerica: '#55569f',
+};
+const LOG_COUNTRY = [...COUNTRY_LIST].sort((a, b) => b.zh.length - a.zh.length);
+const LOG_ZH = new Map(COUNTRY_LIST.map((c) => [c.zh, c]));
+/** 普通文字片段：国家名做成按区域着色的小标签，±数值做成胶囊，掷骰对比、成功 / 失败、DEFCON 变化做成徽章 */
+const LOG_TOKEN = new RegExp(
+  `(${LOG_COUNTRY.map((c) => c.zh.replace(/[/]/g, '\\/')).join('|')}|DEFCON \\d → \\d|\\d+(?:[+\\-−]\\d+)*\\s*对\\s*\\d+(?:[+\\-−]\\d+)*|[+\\-−]\\d+(?: VP)?|→ 成功|→ 失败|成功|失败)`,
+);
+function richSeg(text: string, key: string): (string | preact.JSX.Element)[] {
+  return text.split(LOG_TOKEN).map((part, i) => {
+    if (!part) return part;
+    const k = `${key}-${i}`;
+    const c = LOG_ZH.get(part);
+    if (c) return <span key={k} class="lg-country" style={{ background: REGION_TINT[c.region] }}>{part}</span>;
+    if (part.startsWith('DEFCON')) {
+      const to = Number(part.slice(-1));
+      return <span key={k} class={`lg-defcon d${to}`}>{part}</span>;
+    }
+    if (/对/.test(part) && /\d/.test(part)) return <span key={k} class="lg-dice">🎲 {part.replace(/\s*对\s*/, ' vs ')}</span>;
+    if (/^[+\-−]\d+ VP$/.test(part)) return <span key={k} class="lg-vp">{part}</span>;
+    if (/^[+\-−]\d+$/.test(part)) return <span key={k} class={`lg-num ${part.startsWith('+') ? 'up' : 'down'}`}>{part}</span>;
+    if (part.includes('成功')) return <span key={k} class="lg-ok">成功</span>;
+    if (part.includes('失败')) return <span key={k} class="lg-fail">失败</span>;
+    return part;
+  });
 }
 
 function LogView({ log, me, onPeek }: { log: LogEntry[]; me: Side | null; onPeek: (c: number | null, el?: HTMLElement, now?: boolean) => void }) {
@@ -453,6 +499,10 @@ function LogView({ log, me, onPeek }: { log: LogEntry[]; me: Side | null; onPeek
       {shown.map((e, i) => (
         <div key={log.length - shown.length + i} class={`log-e k-${e.kind ?? 'n'}${e.side ? ` s-${e.side.toLowerCase()}` : ''}${e.to ? ' private' : ''}`}>
           {e.kind === 'turn' ? null : <span class="log-t">{e.turn}.{e.ar}</span>}
+          {(() => {
+            const k = logKind(e);
+            return k ? <span class={`lg-icon ${k.cls}`}>{k.icon}</span> : null;
+          })()}
           <LogText text={e.t} onPeek={onPeek} />
           {e.to && e.to === me && <span class="log-private">（仅你可见）</span>}
         </div>

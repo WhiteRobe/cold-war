@@ -1795,3 +1795,30 @@ g.links { pointer-events: none; }
 .pd-eye { fill: #1b1b1b; }
 .pd-branch { stroke: #4f7a2e; stroke-width: 0.8; stroke-linecap: round; }
 @media (prefers-reduced-motion: reduce) { .pd-dove, .pd-wing { animation: none; } }
+
+/* 记录区：行首类型图标 + 行内的国家标签、数值胶囊、掷骰与结果徽章 */
+.log-e { display: block; padding: 2px 0; }
+.lg-icon { display: inline-grid; place-items: center; width: 16px; height: 16px; border-radius: 50%; font-size: 10px; font-weight: 900; margin-right: 5px; vertical-align: -2px; color: #fff; font-style: normal; }
+.lg-icon.coup { background: #b8352b; }
+.lg-icon.realign { background: #7a5ab0; }
+.lg-icon.space { background: #2a6f9e; }
+.lg-icon.dice { background: #5a5448; }
+.lg-icon.inf { background: #4f7d52; }
+.lg-icon.vp { background: #c09a2e; color: #1f1a10; }
+.lg-icon.defcon { background: #d0741e; }
+.lg-icon.event { background: #8a6aa8; }
+.lg-icon.card { background: #3a352e; color: #e9dfc7; border: 1px solid #6b6458; }
+.lg-country { display: inline-block; padding: 0 5px; margin: 0 1px; border-radius: 4px; color: #fff; font-weight: 700; font-size: 0.92em; line-height: 1.45; text-shadow: 0 1px 0 #0006; }
+.lg-num { display: inline-block; padding: 0 4px; margin-left: 2px; border-radius: 8px; font-weight: 800; font-size: 0.88em; line-height: 1.4; }
+.lg-num.up { background: #3e7a3a; color: #e8f6e2; }
+.lg-num.down { background: #8f2c23; color: #fbe2dc; }
+.lg-vp { display: inline-block; padding: 0 5px; border-radius: 8px; background: #f5d76e; color: #1f1a10; font-weight: 900; font-size: 0.88em; line-height: 1.4; }
+.lg-dice { display: inline-block; padding: 0 5px; margin: 0 2px; border-radius: 4px; background: #2a2620; border: 1px solid #6b6458; color: #f3efe6; font-family: ui-monospace, monospace; font-size: 0.9em; }
+.lg-ok { display: inline-block; padding: 0 5px; margin: 0 2px; border-radius: 4px; background: #3e7a3a; color: #fff; font-weight: 800; font-size: 0.88em; }
+.lg-fail { display: inline-block; padding: 0 5px; margin: 0 2px; border-radius: 4px; background: #5a5448; color: #ddd; font-weight: 800; font-size: 0.88em; }
+.lg-defcon { display: inline-block; padding: 0 5px; border-radius: 4px; font-weight: 900; color: #fff; }
+.lg-defcon.d5 { background: #4f7d52; }
+.lg-defcon.d4 { background: #8a8a3a; }
+.lg-defcon.d3 { background: #c08a2a; }
+.lg-defcon.d2 { background: #c9503f; }
+.lg-defcon.d1 { background: #000; color: #f44; }
