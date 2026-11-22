@@ -191,14 +191,16 @@ export function MapView({ view, selectable, onPick, flash, onRegion, focus, focu
             if (w.id === 'Russia') {
               return (
                 <g key={i}>
-                  <path d={w.d} fill={LAND.ussr[0]} stroke={LAND.ussr[0]} class="land flat k-ussr" clip-path="url(#ruWest)" />
-                  <path d={w.d} fill={LAND.asia[0]} stroke={LAND.asia[0]} class="land flat k-asia" clip-path="url(#ruEast)" />
+                  <path d={w.d} fill={LAND.ussr[0]} style={{ stroke: LAND.ussr[0] }} class="land flat k-ussr" clip-path="url(#ruWest)" />
+                  <path d={w.d} fill={LAND.asia[0]} style={{ stroke: LAND.asia[0] }} class="land flat k-asia" clip-path="url(#ruEast)" />
                 </g>
               );
             }
-            const kind = w.kind === 'china' || (w.kind === 'ussr' && CENTRAL_ASIA.has(w.id)) ? 'asia' : w.kind;
+            // 非游戏国家（xx-x）也并进所在洲的色块
+            const base = w.kind.replace(/-x$/, '');
+            const kind = base === 'china' || (base === 'ussr' && CENTRAL_ASIA.has(w.id)) ? 'asia' : base;
             const fill = (LAND[kind] ?? LAND.other)[0];
-            return <path key={i} d={w.d} fill={fill} stroke={fill} class={`land flat k-${kind}`} />;
+            return <path key={i} d={w.d} fill={fill} style={{ stroke: fill }} class={`land flat k-${kind}`} />;
           })}
         </g>
       ) : (
@@ -741,7 +743,7 @@ function RegionLabel({ region, view, onClick }: { region: RegionId; view: GameVi
         </g>
       )}
       <text x={x} y={y} class="rl-name">{REGION_ZH[region]}</text>
-      {scoredNote(view, region) && <ScoredMark x={x + REGION_ZH[region].length * 27.6 + 8} y={y - 8} note={scoredNote(view, region)!} />}
+      {!ewOn && scoredNote(view, region) && <ScoredMark x={x + REGION_ZH[region].length * 27.6 + 8} y={y - 8} note={scoredNote(view, region)!} />}
       {view.flags.chernobyl === region && (
         <g transform={`translate(${x + REGION_ZH[region].length * 27.6 + (scoredNote(view, region) ? 28 : 10)},${y - 8})`} class="cb-label">
           <title>切尔诺贝利：美国指定了{REGION_ZH[region]}，本回合苏联不能用行动点在这里放置影响力（政变、调整阵营不受影响）</title>
@@ -767,14 +769,15 @@ function RegionLabel({ region, view, onClick }: { region: RegionId; view: GameVi
         </g>
       )}
       {sea && (
-        <g class="sub-legend">
+        // 不死不休没有计分：图例上移到计分行的位置，不再提东南亚计分
+        <g class="sub-legend" transform={ewOn ? 'translate(0,-36)' : undefined}>
           <rect x={x} y={y + 62} width="12" height="9" rx="2" fill={BAND_COLOR.asia} />
           <text x={x + 16} y={y + 71}>亚洲</text>
           <rect x={x + 52} y={y + 62} width="12" height="9" rx="2" fill="url(#bandSEA)" />
-          <text x={x + 68} y={y + 71}>东南亚（单独计分，泰国 2 分）</text>
+          <text x={x + 68} y={y + 71}>{ewOn ? '东南亚' : '东南亚（单独计分，泰国 2 分）'}</text>
         </g>
       )}
-      {sea && (
+      {sea && !ewOn && (
         <>{scoredNote(view, 'southeastAsia') && <ScoredMark x={x - 12} y={y + 47} note={scoredNote(view, 'southeastAsia')!} />}</>
       )}
       {sea && !ewOn && (
@@ -832,12 +835,33 @@ function SceneAnims({ list }: { list: NonNullable<Scene['anims']> }) {
           <g key={i} class={`sa-${a.kind}`}>
             <path d={d} class="sa-route" />
             <g>
-              <g transform="scale(1.7)">
+              {/* 列车、油轮保持水平（朝行进方向翻转），导弹沿弧线转向 */}
+              <g transform={`scale(${a.kind !== 'missile' && x2 < x1 ? -1.6 : 1.6},1.6)`}>
               {a.kind === 'missile' && <g><path d="M-10,-3 L6,-3 L12,0 L6,3 L-10,3Z" class="sa-body" /><path d="M-10,-3 L-15,-7 L-13,0 L-15,7 L-10,3Z" class="sa-fin" /><circle cx="-16" r="3" class="sa-fire" /></g>}
-              {a.kind === 'train' && <g><rect x="-26" y="-6" width="14" height="10" rx="2" class="sa-car" /><rect x="-10" y="-6" width="14" height="10" rx="2" class="sa-car" /><rect x="6" y="-9" width="16" height="13" rx="2" class="sa-body" /><rect x="16" y="-14" width="4" height="6" class="sa-body" /><circle cx="18" cy="-17" r="3" class="sa-smoke" /></g>}
+              {a.kind === 'train' && (
+                <g transform="translate(-8,-2)">
+                  {/* 两节车厢：车身、车窗、车轮 */}
+                  {[-36, -19].map((x) => (
+                    <g key={x}>
+                      <rect x={x} y="-9" width="15" height="9" rx="1.5" class="sa-car" />
+                      <rect x={x + 2} y="-7" width="4" height="3" class="sa-win" /><rect x={x + 8} y="-7" width="4" height="3" class="sa-win" />
+                      <circle cx={x + 3.5} cy="1.5" r="2" class="sa-wheel" /><circle cx={x + 11.5} cy="1.5" r="2" class="sa-wheel" />
+                    </g>
+                  ))}
+                  {/* 蒸汽机车：锅炉、驾驶室、烟囱、排障器、动轮 */}
+                  <rect x="-2" y="-8" width="16" height="8" rx="3" class="sa-body" />
+                  <rect x="-3" y="-14" width="8" height="14" rx="1" class="sa-cab" />
+                  <rect x="-2" y="-12" width="6" height="4" class="sa-win" />
+                  <rect x="9" y="-13" width="3" height="5" class="sa-body" />
+                  <path d="M14,-2 L19,1 L14,1Z" class="sa-body" />
+                  <circle cx="2" cy="1.5" r="2.6" class="sa-wheel" /><circle cx="9" cy="1.5" r="2.6" class="sa-wheel" />
+                  <circle cx="11" cy="-17" r="2.4" class="sa-smoke" /><circle cx="15" cy="-20" r="3.2" class="sa-smoke" /><circle cx="20" cy="-23" r="2.6" class="sa-smoke" />
+                  <line x1="-40" y1="4.5" x2="22" y2="4.5" class="sa-rail" />
+                </g>
+              )}
               {a.kind === 'tanker' && <g><path d="M-18,0 L18,0 L13,7 L-14,7Z" class="sa-body" /><rect x="-12" y="-5" width="20" height="5" class="sa-car" /><rect x="9" y="-9" width="6" height="9" class="sa-fin" /></g>}
               </g>
-              <animateMotion dur={dur} repeatCount="indefinite" rotate="auto" {...({ path: d } as Record<string, string>)} />
+              <animateMotion dur={dur} repeatCount="indefinite" rotate={a.kind === 'missile' ? 'auto' : '0'} {...({ path: d } as Record<string, string>)} />
             </g>
           </g>
         );

@@ -185,6 +185,7 @@ export const ENDLESS: Record<number, Effect> = {
       if (c === undefined) return g.log('情报交换：牌库没有牌了');
       g.addToHand(me, c);
       g.log(`情报交换：${SIDE_ZH[me]}抽 1 张牌`);
+      g.log(`情报交换：${SIDE_ZH[me]}抽到 ${cardName(c)}（只有你看得到）`, { side: me, to: me });
     },
   },
 };

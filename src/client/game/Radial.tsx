@@ -57,7 +57,7 @@ export function Radial({ view, anchor, d, onCommit, onLive, onCancel, detail }: 
   let petals: Petal[] = [];
   let title = def.zh;
   if (live) {
-    title = d!.tag === 'order' ? '先执行哪一项？' : d!.tag === 'opsMode' ? `行动点 ${d!.ops?.total ?? ops}：做什么？` : '选择打法';
+    title = d!.tag === 'order' ? '先执行哪一项？' : d!.tag === 'opsMode' ? (d!.card ? `行动点 ${d!.ops?.total ?? ops}：做什么？` : `${d!.prompt}：做什么？`) : '选择打法';
     const ICON: Record<string, Icon> = { event: 'event', ops: 'ops', space: 'space', influence: 'influence', coup: 'coup', realign: 'realign', eventFirst: 'event', opsFirst: 'first', skip: 'skip' };
     petals = d!.options.map((o) => ({ key: String(o.v), label: o.label ?? String(o.v), icon: ICON[String(o.v)] ?? 'ops', run: () => onLive(o.v) }));
   } else if (d?.tag === 'headline') {

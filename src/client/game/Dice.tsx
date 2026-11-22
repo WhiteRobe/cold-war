@@ -63,6 +63,13 @@ export function useEventPacing(incoming: GameView | null, aiOpponent: boolean): 
     if (!b) return finish();
     setBeat(b);
     if (b.kind === 'scene') {
+      // 结算汇总：先把之前的操作全部落到地图上（直接切到最新局面），后面的逐点放置动画就不必再播
+      if (b.scene.flat && b.step === 0 && latest.current) {
+        shownRef.current = latest.current;
+        setShown(latest.current);
+        queue.current = queue.current.filter((x) => x.kind !== 'place');
+        return;
+      }
       if (b.world && b.step === 0 && latest.current) {
         shownRef.current = latest.current;
         setShown(latest.current);

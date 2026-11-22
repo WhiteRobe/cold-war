@@ -46,6 +46,8 @@ export interface Decision {
   ops?: { total: number; spent: number };
   /** 本次选择的用途，界面和 AI 据此理解选择的含义 */
   tag: DecisionTag;
+  /** 补充说明（来源、用法），界面以引用样式显示在标题下 */
+  note?: string;
 }
 
 export type DecisionTag =

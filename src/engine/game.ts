@@ -46,6 +46,8 @@ export interface OpsOpts {
   why?: string;
   /** 来自回合 / 行动轮结算（不受欧盟限制） */
   settlement?: boolean;
+  /** 选用途时显示的补充说明 */
+  note?: string;
 }
 
 function initialState(setup: GameSetup): GameState {
@@ -395,7 +397,7 @@ export class Game {
     kind: DecisionKind,
     prompt: string,
     options: Option[],
-    extra: { card?: number; ops?: Decision['ops']; auto?: boolean } = {},
+    extra: { card?: number; ops?: Decision['ops']; auto?: boolean; note?: string } = {},
   ): Gen<Choice> {
     if (options.length === 0) throw new Error(`没有可选项：${prompt}`);
     if (options.length === 1 && extra.auto !== false) return options[0].v;
@@ -404,13 +406,13 @@ export class Game {
     return v;
   }
 
-  *askCountry(side: Side, tag: DecisionTag, prompt: string, ids: string[], extra: { card?: number; done?: boolean; ops?: Decision['ops'] } = {}): Gen<string> {
+  *askCountry(side: Side, tag: DecisionTag, prompt: string, ids: string[], extra: { card?: number; done?: boolean; ops?: Decision['ops']; note?: string } = {}): Gen<string> {
     const opts: Option[] = ids.map((c) => ({ v: c, label: countryName(c) }));
     if (extra.done) opts.push({ v: 'done', label: '结束' });
-    return (yield* this.ask(side, tag, 'country', prompt, opts, { card: extra.card, ops: extra.ops })) as string;
+    return (yield* this.ask(side, tag, 'country', prompt, opts, { card: extra.card, ops: extra.ops, note: extra.note })) as string;
   }
 
-  *askOption(side: Side, prompt: string, opts: [string, string][], extra: { card?: number; tag?: DecisionTag; auto?: boolean } = {}): Gen<string> {
+  *askOption(side: Side, prompt: string, opts: [string, string][], extra: { card?: number; tag?: DecisionTag; auto?: boolean; note?: string } = {}): Gen<string> {
     return (yield* this.ask(side, extra.tag ?? 'choice', 'option', prompt, opts.map(([v, label]) => ({ v, label })), extra)) as string;
   }
 
@@ -462,13 +464,12 @@ export class Game {
       kind: 'turn',
       scene: {
         title: '不死不休',
-        sub: '冷战没有在 1989 年结束。从这一回合起，胜负只看一件事：谁能控制全部战场国，外加对手本土的全部邻国。',
+        sub: '冷战没有结束。控制全部战场国和对手本土全部邻国的一方获胜，没有回合上限。',
         art: 'endless',
         steps: [
-          { text: '没有头条阶段：每回合补牌后直接进入行动轮。' },
-          { text: '不再有计分：胜利点冻结。事件里的「+N VP」改为得分方立刻获得 N 点行动点；持续事件（如花之力、尤里和萨曼莎）给的 VP 改为得分方在全图放置 N 点影响力；太空竞赛不再给 VP，成功发射改为可以弃一抽一；军事行动不足的 VP 作废。没有回合上限。' },
-          { text: '新机制从这一回合起生效：每回合开始有合并检查（中国、朝鲜半岛、德国）、区域压制和回合红利（石油经济、中国统一、欧洲经济心脏）；每个行动轮开始有区域红利；占着敌方本土邻国会削弱敌方每回合的第一张牌；太空竞赛到顶后可以发动轨道打击。' },
-          { text: `原来三个时期的牌全部退场（双方手牌、牌库、弃牌堆），牌库换成 ${CARD_LIST.filter((c) => c.endless).length} 张不死不休专属牌，双方重新补牌。已经生效的持续事件留在桌上，其中会给胜利点的改为给影响力。` },
+          { text: '没有头条，也不再计分：事件的 VP 改为行动点，持续事件的 VP 改为影响力，太空竞赛改为弃一抽一。' },
+          { text: `老牌全部退场，换成 ${CARD_LIST.filter((c) => c.endless).length} 张专属牌。` },
+          { text: '每回合开始、每个行动轮开始各结算一次（合并、红利、压制等），详见规则页。' },
           { text: '地图也要变了——' },
         ],
       },
@@ -1080,7 +1081,7 @@ export class Game {
     const ids = COUNTRY_LIST.map((c) => c.id).filter(filter);
     const opts: [string, string][] = [];
     const budget0 = this.opsBudget(side, base, o.card, 'none', o.raw);
-    if (allowed.includes('influence') && ids.some((c) => this.canPlaceOps(side, c, snap, o.anywhere))) opts.push(['influence', o.anywhere ? '放置影响力（全图任意）' : '放置影响力']);
+    if (allowed.includes('influence') && ids.some((c) => this.canPlaceOps(side, c, snap, o.anywhere))) opts.push(['influence', '放置影响力']);
     if (allowed.includes('coup') && ids.some((c) => this.canTarget(side, c, 'coup', o))) opts.push(['coup', '政变']);
     if (allowed.includes('realign') && ids.some((c) => this.canTarget(side, c, 'realign', o))) opts.push(['realign', '调整阵营']);
     if (!opts.length) {
@@ -1088,7 +1089,7 @@ export class Game {
       return;
     }
     if (o.optional) opts.push(['skip', '放弃']);
-    const mode = yield* this.askOption(side, `${o.why ? `${o.why}：` : ''}使用 ${budget0} 点行动点`, opts, { tag: 'opsMode', card: o.card, auto: !o.optional });
+    const mode = yield* this.askOption(side, `${o.why ? `${o.why}：` : ''}使用 ${budget0} 点行动点`, opts, { tag: 'opsMode', card: o.card, auto: !o.optional, note: o.note });
     if (mode === 'skip') return;
     if (mode === 'influence') yield* this.placeOps(side, base, o, ids, snap);
     else if (mode === 'coup') {
@@ -1257,6 +1258,7 @@ export class Game {
     const d = this.draw();
     if (d !== undefined) this.addToHand(side, d);
     this.log(`${SIDE_ZH[side]}弃掉 ${cardName(c)}，抽 1 张牌（太空竞赛奖励）`, { side, move: { cards: [c], from: side, to: 'discard', why: '太空竞赛：弃一抽一' } });
+    if (d !== undefined) this.log(`${SIDE_ZH[side]}抽到 ${cardName(d)}（只有你看得到）`, { side, to: side });
   }
 
   advanceSpace(side: Side, n: number) {
