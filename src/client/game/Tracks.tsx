@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
+import { st } from '../streamer';
 import { CARDS, COUNTRIES, REGION_ZH } from '../../data';
 import { ORBIT, keyProgress } from '../../engine/endless';
 import { SPACE } from '../../engine/space';
@@ -404,7 +405,7 @@ function SpacePop({ view }: { view: GameView }) {
       </table>
       {view.flags.endlessWorld && (
         <div class="pop-note">
-          <b>不死不休：</b>各格的 VP 改为同样多的影响力（下一次行动轮开始结算时放）；「载人环绕地球」特权改为每回合开始对手公开手牌；
+          <b>不死不休：</b>各格不再给 VP，每次成功发射（到空间站为止）可以弃一张手牌、再抽一张；「载人环绕地球」特权改为每回合开始对手公开手牌；
           到达空间站后仍可继续尝试（行动点 ≥{ORBIT.ops}，掷 ≤{ORBIT.roll}），每次成功发动一次<b>轨道打击</b>：在无人控制的洲免费政变，行动点 = 己方支配 / 控制的洲数 + 2。
         </div>
       )}
@@ -444,6 +445,7 @@ const FLAG_ZH: Partial<Record<keyof Flags, [string, number]>> = {
   deGaulle: ['戴高乐：法国不受北约保护', 17],
   usJapan: ['美日防卫协定', 27],
   formosan: ['台湾决议', 35],
+  euFounded: ['欧盟：欧洲禁止打牌政变 / 调整', 147],
   willyBrandt: ['维利·勃兰特：西德不受北约保护', 55],
   flowerPower: ['花之力', 59],
   campDavid: ['戴维营协议', 65],
@@ -466,7 +468,7 @@ export function Effects({ view, onPeek }: { view: GameView; onPeek: (id: number 
   const chips: { text: string; card: number; cls: string }[] = [];
   for (const [k, v] of Object.entries(FLAG_ZH) as [keyof Flags, [string, number]][]) {
     if (!f[k]) continue;
-    chips.push({ text: v[0], card: v[1], cls: CARDS[v[1]].side.toLowerCase() });
+    chips.push({ text: st(v[0]), card: v[1], cls: CARDS[v[1]].side.toLowerCase() });
   }
   if (f.redScare?.length) for (const s of f.redScare) chips.push({ text: `${s === 'US' ? '红色恐慌：美' : '大清洗：苏'} -1 行动点`, card: 31, cls: s === 'US' ? 'ussr' : 'us' });
   if (f.cmc) chips.push({ text: `古巴导弹危机：${f.cmc === 'US' ? '美' : '苏'}政变即输`, card: 40, cls: 'warn' });

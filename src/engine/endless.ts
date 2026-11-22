@@ -3,7 +3,7 @@
 import { COUNTRIES, COUNTRY_LIST, REGIONS, REGION_ZH, koreaKeep, setWorld, worldOf, type RegionId } from '../data';
 import type { Game, Gen } from './game';
 import { controller, scoreRegion } from './scoring';
-import { SIDE_ZH, opp, type GameState, type Side } from './types';
+import { SIDE_ZH, opp, type GameState, type Scene, type Side } from './types';
 import { countryName } from './util';
 
 /** 石油国（同「石油输出国组织」） */
@@ -118,8 +118,11 @@ export function* orbitalStrike(g: Game, side: Side): Gen {
 }
 
 /** 铁幕纵深：美国对苏联控制的东欧国家政变 -1 */
+/** 铁幕纵深：美国对苏联控制的东欧国家、苏联对美国控制的西欧国家政变 -1 */
 export function ironDepth(g: Game, side: Side, c: string): number {
-  return g.endlessOn && side === 'US' && COUNTRIES[c].sub.includes('easternEurope') && g.controls('USSR', c) ? -1 : 0;
+  if (!g.endlessOn) return 0;
+  const sub = side === 'US' ? 'easternEurope' : 'westernEurope';
+  return COUNTRIES[c].sub.includes(sub) && g.controls(opp(side), c) ? -1 : 0;
 }
 
 /** 欧洲经济心脏：德国的邻国 */
@@ -155,8 +158,7 @@ export function unifyCheck(g: Game): string[] {
   if (!f.unifyGermany && s.inf.westGermany && s.inf.eastGermany) {
     const x = controller(s, 'westGermany');
     if (x && controller(s, 'eastGermany') === x) {
-      const i = x === 'US' ? 0 : 1;
-      const n = s.inf.westGermany[i] + s.inf.eastGermany[i];
+      const n = 4;
       f.unifyGermany = x;
       delete s.inf.westGermany;
       delete s.inf.eastGermany;
@@ -208,6 +210,7 @@ function* placeGrants(g: Game, side: Side, grants: Grant[], title: string): Gen 
 export function* turnStart(g: Game): Gen {
   const s = g.s, f = s.flags;
   const lines: { text: string; country?: string }[] = [];
+  const anims: NonNullable<Scene['anims']> = [];
   const merged = unifyCheck(g);
   for (const t of merged) lines.push({ text: t });
   // 半岛导弹
@@ -216,6 +219,7 @@ export function* turnStart(g: Game): Gen {
     const enemy = opp(k), name = COUNTRIES[koreaKeep(k)].zh;
     if (g.inf('japan', enemy)) {
       g.removeInf('japan', enemy, 1);
+      anims.push({ kind: 'missile', from: koreaKeep(k), to: 'japan' });
       lines.push({ text: `${name}向日本发射导弹：日本${SIDE_ZH[enemy]}影响力 -1。`, country: 'japan' });
     } else lines.push({ text: `${name}向日本发射导弹：日本没有${SIDE_ZH[enemy]}影响力，没有效果。`, country: 'japan' });
   }
@@ -245,6 +249,7 @@ export function* turnStart(g: Game): Gen {
     if (held.length) {
       pts[side] += held.length;
       bonus[side].push(`石油经济 +${held.length}（${names(held)}）`);
+      if (!anims.some((a) => a.kind === 'tanker') && s.inf.china) anims.push({ kind: 'tanker', from: s.inf.gulfStates ? 'gulfStates' : held[0], to: 'china' });
     }
     if (f.unifyChina === side) {
       pts[side] += 2;
@@ -255,6 +260,7 @@ export function* turnStart(g: Game): Gen {
       if (open.length) {
         pts[side] += open.length;
         bonus[side].push(`欧洲经济心脏 +${open.length}（${names(open)}尚未控制）`);
+        anims.push({ kind: 'train', from: 'germany', to: 'france' });
       }
     }
     if (pts[side]) lines.push({ text: `${SIDE_ZH[side]}回合红利 ${pts[side]} 点行动点：${bonus[side].join('，')}。` });
@@ -263,7 +269,7 @@ export function* turnStart(g: Game): Gen {
   g.log(`第 ${s.turn} 回合开始结算：${lines.map((x) => x.text).join(' ')}`, {
     kind: 'turn',
     scene: {
-      title: `第 ${s.turn} 回合开始结算`, art: 'squeeze', flat: true, world: merged.length > 0,
+      title: `第 ${s.turn} 回合开始结算`, art: 'squeeze', flat: true, world: merged.length > 0, anims,
       sub: '先结算固定调整，再发回合红利。回合红利是行动点：可以放影响力（全图任意国家）或调整阵营，不能政变。',
       steps: lines,
     },
@@ -271,7 +277,7 @@ export function* turnStart(g: Game): Gen {
   for (const side of ['USSR', 'US'] as Side[]) {
     if (!pts[side]) continue;
     g.log(`${SIDE_ZH[side]}使用回合红利 ${pts[side]} 点行动点（${bonus[side].join('，')}）`, { side });
-    yield* g.opsPlay(side, pts[side], { modes: ['influence', 'realign'], raw: true, anywhere: true, why: '回合红利' });
+    yield* g.opsPlay(side, pts[side], { modes: ['influence', 'realign'], raw: true, anywhere: true, why: '回合红利', settlement: true });
   }
 }
 

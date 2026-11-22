@@ -1,5 +1,6 @@
 // 国家方框右下角闪电 / 航弹点开：列出点名影响该国的卡（航弹只列战争卡），按时期分组，标出生效 / 移除 / 位置。
 import { useEffect } from 'preact/hooks';
+import { st } from '../streamer';
 import { CARDS, COUNTRIES } from '../../data';
 import type { GameView } from '../../engine/view';
 import { ERA_ZH, GROUP_NOTE, STATUS_ZH, cardStatus, countryCards, eraNow, isSpecial, type CardKind } from './countryCards';
@@ -27,7 +28,7 @@ const TITLE: Record<CardKind, (n: string) => string> = {
   usjp: (n) => `🤝 ${n}与「美日共同防御协定」`,
   fist: (n) => `✊ ${n}与「越南起义」`,
   scepter: (n) => `👑 ${n}与「罗马尼亚国王退位」`,
-  ship: (n) => `⚓ ${n}与「台湾决议」`,
+  ship: (n) => st(`⚓ ${n}与「台湾决议」`),
   hostage: (n) => `🏳 ${n}与「伊朗人质危机」`,
   unrest: (n) => `🔥 ${n}与「南非动乱」`,
   solidarity: (n) => `✊ ${n}与「团结工会」`,

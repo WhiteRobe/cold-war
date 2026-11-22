@@ -1,6 +1,7 @@
 import { render } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
 import './styles.css';
+import './streamer';
 import { route, toastMsg } from './store';
 import { setMusicTrack } from './audio';
 import { Home } from './pages/Home';

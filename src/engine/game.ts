@@ -44,6 +44,8 @@ export interface OpsOpts {
   anywhere?: boolean;
   /** 行动点来源（提示里显示） */
   why?: string;
+  /** 来自回合 / 行动轮结算（不受欧盟限制） */
+  settlement?: boolean;
 }
 
 function initialState(setup: GameSetup): GameState {
@@ -108,6 +110,15 @@ export class Game {
       if (err) throw new Error(`回放失败（第 ${g.history.length} 步）：${err}`);
     }
     return g;
+  }
+
+  /** 尽量回放：遇到按现行规则走不通的一步就停下（规则更新后读旧存档用），返回实际回放的步数 */
+  static replayLenient(setup: GameSetup, history: HistoryEntry[]): { game: Game; applied: number } {
+    const g = new Game(setup);
+    for (const h of history) {
+      if (g.over || g.submit(h.side, h.v)) break;
+    }
+    return { game: g, applied: g.history.length };
   }
 
   get over() {
@@ -209,12 +220,13 @@ export class Game {
     if (this.endlessOn) {
       // 不死不休没有胜利点：事件给的 VP 改成同样多的行动点（事件结算完立刻使用），其他来源的 VP 直接作废
       if (n <= 0) return;
-      if (this.eventDepth > 0 && !why?.startsWith('太空竞赛')) {
+      if (why?.startsWith('太空竞赛')) return; // 不死不休：太空竞赛不给 VP，成功发射改为弃一抽一
+      if (this.eventDepth > 0) {
         this.pendingOps[side] += n;
         this.pendingWhy[side] = [...this.pendingWhy[side], why ?? '事件'];
         this.log(`${SIDE_ZH[side]} +${n} VP${why ? `（${why}）` : ''} → 不死不休改为 +${n} 行动点`, { side, kind: 'score' });
       } else if (why && !/^军事行动/.test(why)) {
-        // 持续事件（花之力、尤里和萨曼莎、我们将埋葬你们……）和太空竞赛给的 VP 改为影响力，在下一次行动轮开始结算时放置
+        // 持续事件（花之力、尤里和萨曼莎、我们将埋葬你们……）给的 VP 改为影响力，在下一次行动轮开始结算时放置
         this.pendingInf[side] += n;
         this.pendingInfWhy[side] = [...this.pendingInfWhy[side], why];
         this.log(`${SIDE_ZH[side]} +${n} VP（${why}）→ 不死不休改为放置 ${n} 点影响力`, { side, kind: 'score' });
@@ -431,7 +443,7 @@ export class Game {
         art: 'endless',
         steps: [
           { text: '没有头条阶段：每回合补牌后直接进入行动轮。' },
-          { text: '不再有计分：胜利点冻结。事件里的「+N VP」改为得分方立刻获得 N 点行动点；持续事件（如花之力、尤里和萨曼莎）和太空竞赛给的 VP 改为得分方在全图放置 N 点影响力；军事行动不足的 VP 作废。没有回合上限。' },
+          { text: '不再有计分：胜利点冻结。事件里的「+N VP」改为得分方立刻获得 N 点行动点；持续事件（如花之力、尤里和萨曼莎）给的 VP 改为得分方在全图放置 N 点影响力；太空竞赛不再给 VP，成功发射改为可以弃一抽一；军事行动不足的 VP 作废。没有回合上限。' },
           { text: '新机制从这一回合起生效：每回合开始有合并检查（中国、朝鲜半岛、德国）、区域压制和回合红利（石油经济、中国统一、欧洲经济心脏）；每个行动轮开始有区域红利；占着敌方本土邻国会削弱敌方每回合的第一张牌；太空竞赛到顶后可以发动轨道打击。' },
           { text: `原来三个时期的牌全部退场（双方手牌、牌库、弃牌堆），牌库换成 ${CARD_LIST.filter((c) => c.endless).length} 张不死不休专属牌，双方重新补牌。已经生效的持续事件留在桌上，其中会给胜利点的改为给影响力。` },
           { text: '地图也要变了——' },
@@ -451,7 +463,7 @@ export class Game {
         sub: '中国不再只是一张牌，而是棋盘上的一极；蒙古也走上前台。',
         art: 'eastRise',
         steps: [
-          { text: `中国成为亚洲战场国，稳定度 5。起始影响力照搬台湾当前的影响力：美 ${s.inf.china[0]}、苏 ${s.inf.china[1]}${tw[0] || tw[1] ? '' : '（台湾双方都没有影响力，按美 1、苏 2）'}。`, country: 'china' },
+          { text: `中国成为亚洲战场国，稳定度 4。起始影响力照搬台湾当前的影响力：美 ${s.inf.china[0]}、苏 ${s.inf.china[1]}${tw[0] || tw[1] ? '' : '（台湾双方都没有影响力，按美 1、苏 2）'}。`, country: 'china' },
           { text: '中国与苏联、朝鲜、台湾、印度、蒙古相邻，算作苏联的本土邻国。', country: 'china' },
           { text: '蒙古成为亚洲非战场国，稳定度 2，苏联控制，与中国、苏联相邻，也是苏联的本土邻国。', country: 'mongolia' },
           { text: '中国牌退场，换成「联合国牌」：固定 4 点，持有方每控制英国、法国、中国中的一个 +1 点，用后交给对手。苏联先拿到它（正面朝上）。' },
@@ -465,7 +477,7 @@ export class Game {
     for (const c of old) this.purgeCard(c);
     s.flags.missileEnvy = undefined;
     s.deck = shuffle(s, CARD_LIST.filter((c) => c.endless).map((c) => c.id));
-    this.log('太平洋战略：澳大利亚、菲律宾成为美国本土邻国，澳大利亚 +1 苏联影响力', {
+    this.log('太平洋战略：澳大利亚、菲律宾成为美国本土邻国，澳大利亚 +1 苏联影响力；南非与巴西相邻', {
       kind: 'turn',
       scene: {
         title: '太平洋战略',
@@ -475,6 +487,7 @@ export class Game {
           { text: '澳大利亚成为美国的本土邻国。', country: 'australia' },
           { text: '菲律宾成为美国的本土邻国。', country: 'philippines' },
           { text: '苏联在澳大利亚获得 1 点影响力。', country: 'australia' },
+          { text: '南非与巴西之间开通跨大西洋航线，两国从此相邻。', country: 'southAfrica' },
         ],
       },
     });
@@ -1009,10 +1022,12 @@ export class Game {
   }
 
   /** 政变 / 调整的目标是否合法 */
-  canTarget(side: Side, c: string, kind: 'coup' | 'realign', o: { free?: boolean } = {}): boolean {
+  canTarget(side: Side, c: string, kind: 'coup' | 'realign', o: { free?: boolean; settlement?: boolean } = {}): boolean {
     const s = this.s;
     const d = COUNTRIES[c];
     if (this.inf(c, opp(side)) <= 0) return false;
+    // 欧盟成立：行动轮里打出的牌不能在欧洲政变、调整阵营（回合 / 行动轮结算不受影响）
+    if (s.flags.euFounded && d.region === 'europe' && !o.settlement) return false;
     if (!o.free) {
       if (s.defcon <= 4 && d.region === 'europe') return false;
       if (s.defcon <= 3 && d.region === 'asia') return false;
@@ -1174,7 +1189,7 @@ export class Game {
       },
     );
     if (side === 'US' && s.flags.yuri) this.vp('USSR', 1, '尤里和萨曼莎');
-    if (depth) this.log(`铁幕纵深：${countryName(c)}由苏联控制，美国在东欧政变 -1`, { side: 'USSR' });
+    if (depth) this.log(`铁幕纵深：${countryName(c)}由${SIDE_ZH[opp(side)]}控制，${SIDE_ZH[side]}在${side === 'US' ? '东欧' : '西欧'}政变 -1`, { side: opp(side) });
     if (d.bg && !o.orbital && !(side === 'US' && s.flags.nuclearSubs && !o.free)) this.degradeDefcon(1, '战场国政变');
     return removed;
   }
@@ -1201,7 +1216,24 @@ export class Game {
     this.log(`${SIDE_ZH[side]}用 ${cardName(card)} 进行太空竞赛（${box.name}，需 ≤${box.roll}）：掷出 ${r}，${ok ? '成功' : '失败'}`, {
       side, kind: 'roll', roll: { type: 'space', side, dice: [r], ok, need: `${box.name}：需要 ≤${box.roll}`, result: ok ? `推进到「${box.name}」` : '发射失败' },
     });
-    if (ok) this.advanceSpace(side, 1);
+    if (ok) {
+      this.advanceSpace(side, 1);
+      // 不死不休：成功发射不再拿 VP，改为可以弃一张手牌、再抽一张
+      if (this.endlessOn) yield* this.spaceSwap(side);
+    }
+  }
+
+  /** 不死不休的太空竞赛奖励：弃一抽一（可以放弃） */
+  *spaceSwap(side: Side): Gen {
+    const s = this.s;
+    if (!s.hands[side].length) return;
+    const c = yield* this.askCard(side, 'discard', '太空竞赛成功：可以弃一张手牌，再从牌库抽一张', s.hands[side], { pass: '不换', auto: false });
+    if (c === 'pass') return this.log(`${SIDE_ZH[side]}没有换牌`, { side });
+    this.removeFromHand(side, c);
+    this.discardCard(c);
+    const d = this.draw();
+    if (d !== undefined) this.addToHand(side, d);
+    this.log(`${SIDE_ZH[side]}弃掉 ${cardName(c)}，抽 1 张牌（太空竞赛奖励）`, { side, move: { cards: [c], from: side, to: 'discard', why: '太空竞赛：弃一抽一' } });
   }
 
   advanceSpace(side: Side, n: number) {

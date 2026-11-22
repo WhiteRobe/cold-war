@@ -110,8 +110,9 @@ export function SpaceArsenal({ view, home }: { view: GameView; home: Record<Side
       // 得分：先到拿高分、后到拿低分（引擎只按最后到达的那格给分）
       const box = SPACE[to];
       const vp = p[other] >= to ? box.vp[1] : box.vp[0];
-      // 不死不休：太空竞赛的 VP 改为影响力
-      if (vp) add.push({ key: ++popSeq, side, kind: 'vp', text: view.flags.endlessWorld ? `+${vp} 影响力` : `+${vp} VP`, at: SLOTS[side](to - 1) });
+      // 不死不休：太空竞赛不给 VP，成功发射改为弃一抽一
+      if (view.flags.endlessWorld) add.push({ key: ++popSeq, side, kind: 'vp', text: '可弃一抽一', at: SLOTS[side](to - 1) });
+      else if (vp) add.push({ key: ++popSeq, side, kind: 'vp', text: `+${vp} VP`, at: SLOTS[side](to - 1) });
       for (let n = from + 1; n <= to; n++) {
         const b = SPACE[n];
         if (!b.perk) continue;

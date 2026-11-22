@@ -264,6 +264,8 @@ export function eventMe(cx: Ctx, inf: Inf, card: number, exec: Side): number {
     case 144: return greedyAdd(cx, inf, exec, 3, (c) => OIL.includes(c), 1).value;
     case 145: return vp(v.defcon <= 3 ? 1.2 : 0.2);
     case 146: return vp(0.7);
+    case 147: return vp(0.2);
+    case 148: return greedyAdd(cx, inf, exec, 2, (c) => infOf(inf, c, exec) > 0, 1).value;
     default: return 0;
   }
 }

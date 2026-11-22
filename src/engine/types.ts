@@ -98,6 +98,8 @@ export interface Scene {
   minor?: boolean;
   /** 这段说明伴随地图变化（国家合并）：界面先切到最新局面再播 */
   world?: boolean;
+  /** 说明显示期间地图上同时播放的动画 */
+  anims?: { kind: 'missile' | 'train' | 'tanker'; from: string; to: string }[];
 }
 
 export type PileName = 'deck' | 'discard' | 'removed' | 'played';
@@ -230,6 +232,8 @@ export interface Flags {
   unifyKorea?: Side;
   /** 两德合并的一方 */
   unifyGermany?: Side;
+  /** 欧盟成立：行动轮打出的牌不能在欧洲政变、调整阵营 */
+  euFounded?: boolean;
   /** 已经弹过首次说明的机制 */
   seen?: string[];
 }

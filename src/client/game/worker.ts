@@ -80,10 +80,13 @@ self.onmessage = (e: MessageEvent<WorkerIn>) => {
       level = s.ai;
       seed = s.seed;
       aiRand = (s.seed ^ 0x5bd1e995) & 0x7fffffff || 1;
-      game = Game.replay({ seed: s.seed, options: s.options }, s.history);
+      // 规则更新后旧存档可能有走不通的步骤：回放到能走的地方为止
+      const r = Game.replayLenient({ seed: s.seed, options: s.options }, s.history);
+      game = r.game;
+      if (r.applied < s.history.length) post({ type: 'error', msg: `规则已更新，这局存档从第 ${r.applied + 1} 步起无法按新规则重放，已退回到第 ${r.applied} 步继续` });
       sentLog = game.s.log.length;
       // AI 的随机数也要可复现：按已走步数推进
-      for (let i = 0; i < s.history.length; i++) rand();
+      for (let i = 0; i < game.history.length; i++) rand();
       send();
       pump();
     } else if (m.type === 'choose') {

@@ -1,4 +1,5 @@
 import { signal } from '@preact/signals';
+import { toast } from '../store';
 import type { AiLevel } from '../../ai';
 import type { Choice, GameOptions, LogEntry, Side } from '../../engine/types';
 import type { GameView } from '../../engine/view';
@@ -55,6 +56,7 @@ export function offlineSession(save: OfflineSave): GameSession {
     const m = e.data;
     if (m.type === 'error') {
       console.warn(m.msg);
+      if (m.msg.startsWith('规则已更新')) toast(m.msg);
       return;
     }
     view.value = m.view;

@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
+import { st, streamer } from '../streamer';
 import { cloudCountries, keyProgress } from '../../engine/endless';
 import type { JSX } from 'preact';
 import { CARDS, COUNTRIES, COUNTRY_LIST, REGIONS, REGION_ZH, countriesIn, endlessWorld, getWorldVersion, type RegionId, type Side } from '../../data';
 import type { SubRegionId } from '../../data/types';
 import { controller, scoreRegion, scoreSEA } from '../../engine/scoring';
 import type { GameView } from '../../engine/view';
+import type { Scene } from '../../engine/types';
 import { WORLD } from './worldmap.gen';
 import { remapX, remapY } from '../../data/layout';
 import { Flag, FogLayer, FxLayer, Tank, useMapFx } from './MapFx';
@@ -134,6 +136,10 @@ const LAND: Record<string, string[]> = {
 };
 
 const CHINA_PATHS = WORLD.filter((w) => w.kind === 'china').map((w) => w.d);
+/** 主播模式下苏联东西分界（乌拉尔一线，底图横坐标） */
+const URAL_X = 1240;
+/** 主播模式下并入亚洲色块的苏联加盟共和国 */
+const CENTRAL_ASIA = new Set(['Kazakhstan', 'Uzbekistan', 'Tajikistan', 'Kyrgyzstan', 'Turkmenistan']);
 
 function shade(id: string, kind: string) {
   const list = LAND[kind] ?? LAND.other;
@@ -153,12 +159,14 @@ interface Props {
   focus?: string;
   /** 记录区点国家定位时的序号（每次点击重新播放闪烁） */
   focusKey?: number;
+  /** 结算说明显示期间同时播放的地图动画（key 变了就重播） */
+  anims?: { key: number; list: NonNullable<Scene['anims']> };
   /** 点了国家右下角的闪电：列出点名该国的卡 */
   onBolt?: (id: string, x: number, y: number, now?: boolean, kind?: CardKind) => void;
   onBoltLeave?: () => void;
 }
 
-export function MapView({ view, selectable, onPick, flash, onRegion, focus, focusKey, onBolt, onBoltLeave }: Props) {
+export function MapView({ view, selectable, onPick, flash, onRegion, focus, focusKey, anims, onBolt, onBoltLeave }: Props) {
   const [hover, setHover] = useState<string | null>(null);
   const { fx, fresh, regionCtl } = useMapFx(view);
   const [zoom, setZoom] = useState({ x: 0, y: 0, k: 1 });
@@ -168,21 +176,44 @@ export function MapView({ view, selectable, onPick, flash, onRegion, focus, focu
   // 世界版本：不死不休把中国、蒙古变成亚洲国家、增加新邻接，地图缓存跟着重算
   const wv = getWorldVersion();
   const ew = endlessWorld();
+  const sm = streamer.value;
   const bg = useMemo(
-    () => (
-      <g class="map-bg">
-        {WORLD.map((w, i) => {
-          const kind = ew && (w.id === 'China' || w.id === 'Mongolia') ? 'asia' : w.kind;
-          return <path key={i} d={w.d} fill={shade(w.id, kind)} class={`land k-${kind}`} />;
-        })}
-        {!ew && <text class="land-label" x={rx(1225)} y="400">中 国</text>}
-      </g>
-    ),
-    [wv],
+    () =>
+      sm ? (
+        // 主播模式：不画国界，各洲一整块颜色；苏联西半（欧洲部分）保留苏联红，东半并入亚洲
+        <g class="map-bg flat">
+          <defs>
+            <clipPath id="ruWest"><rect x="0" y="-200" width={URAL_X} height="1600" /></clipPath>
+            <clipPath id="ruEast"><rect x="-400" y="-200" width="400" height="1600" /><rect x={URAL_X} y="-200" width="2000" height="1600" /></clipPath>
+          </defs>
+          {WORLD.map((w, i) => {
+            if (w.id === 'Russia') {
+              return (
+                <g key={i}>
+                  <path d={w.d} fill={LAND.ussr[0]} stroke={LAND.ussr[0]} class="land flat k-ussr" clip-path="url(#ruWest)" />
+                  <path d={w.d} fill={LAND.asia[0]} stroke={LAND.asia[0]} class="land flat k-asia" clip-path="url(#ruEast)" />
+                </g>
+              );
+            }
+            const kind = w.kind === 'china' || (w.kind === 'ussr' && CENTRAL_ASIA.has(w.id)) ? 'asia' : w.kind;
+            const fill = (LAND[kind] ?? LAND.other)[0];
+            return <path key={i} d={w.d} fill={fill} stroke={fill} class={`land flat k-${kind}`} />;
+          })}
+        </g>
+      ) : (
+        <g class="map-bg">
+          {WORLD.map((w, i) => {
+            const kind = ew && (w.id === 'China' || w.id === 'Mongolia') ? 'asia' : w.kind;
+            return <path key={i} d={w.d} fill={shade(w.id, kind)} class={`land k-${kind}`} />;
+          })}
+          {!ew && <text class="land-label" x={rx(1225)} y="400">中 国</text>}
+        </g>
+      ),
+    [wv, sm],
   );
 
   // 中国牌在谁手里，中国本土就染上谁的光晕（背面朝上暂不能用时淡一些）
-  const chinaGlow = ew ? null : (
+  const chinaGlow = ew || sm ? null : (
     <g class={`china-glow china-${view.china.holder.toLowerCase()}${view.china.faceUp ? '' : ' facedown'}`}>
       <title>中国牌在{view.china.holder === 'US' ? '美国' : '苏联'}手中{view.china.faceUp ? '' : '（背面朝上，本回合不能用）'}</title>
       {CHINA_PATHS.map((d, i) => <path key={i} d={d} />)}
@@ -483,6 +514,7 @@ export function MapView({ view, selectable, onPick, flash, onRegion, focus, focu
           </g>
         )}
         <FxLayer fx={fx} pos={pos} />
+        {anims && <SceneAnims key={anims.key} list={anims.list} />}
         {regionCtl && (
           <g class={`rc-wave rc-${regionCtl.side.toLowerCase()}`} key={regionCtl.key}>
             {countriesIn(regionCtl.region).map((c, i) => (
@@ -782,6 +814,35 @@ function starPts(cx: number, cy: number, r: number) {
   }).join(' ');
 }
 
+/** 回合开始结算的地图动画：半岛导弹飞向日本、德国列车开往法国、中东油轮开往中国（同时播放） */
+function SceneAnims({ list }: { list: NonNullable<Scene['anims']> }) {
+  return (
+    <g class="scene-anims">
+      {list.map((a, i) => {
+        if (!COUNTRIES[a.from] || !COUNTRIES[a.to]) return null;
+        const [x1, y1] = pos(a.from), [x2, y2] = pos(a.to);
+        // 导弹走高抛弧线，油轮绕到南边的海上，列车直线
+        const cx = (x1 + x2) / 2, cy = a.kind === 'missile' ? Math.min(y1, y2) - 120 : a.kind === 'tanker' ? Math.max(y1, y2) + 170 : (y1 + y2) / 2;
+        const d = `M${x1},${y1} Q${cx},${cy} ${x2},${y2}`;
+        const dur = a.kind === 'missile' ? '1.6s' : a.kind === 'train' ? '2.4s' : '3.2s';
+        return (
+          <g key={i} class={`sa-${a.kind}`}>
+            <path d={d} class="sa-route" />
+            <g>
+              <g transform="scale(1.7)">
+              {a.kind === 'missile' && <g><path d="M-10,-3 L6,-3 L12,0 L6,3 L-10,3Z" class="sa-body" /><path d="M-10,-3 L-15,-7 L-13,0 L-15,7 L-10,3Z" class="sa-fin" /><circle cx="-16" r="3" class="sa-fire" /></g>}
+              {a.kind === 'train' && <g><rect x="-26" y="-6" width="14" height="10" rx="2" class="sa-car" /><rect x="-10" y="-6" width="14" height="10" rx="2" class="sa-car" /><rect x="6" y="-9" width="16" height="13" rx="2" class="sa-body" /><rect x="16" y="-14" width="4" height="6" class="sa-body" /><circle cx="18" cy="-17" r="3" class="sa-smoke" /></g>}
+              {a.kind === 'tanker' && <g><path d="M-18,0 L18,0 L13,7 L-14,7Z" class="sa-body" /><rect x="-12" y="-5" width="20" height="5" class="sa-car" /><rect x="9" y="-9" width="6" height="9" class="sa-fin" /></g>}
+              </g>
+              <animateMotion dur={dur} repeatCount="indefinite" rotate="auto" {...({ path: d } as Record<string, string>)} />
+            </g>
+          </g>
+        );
+      })}
+    </g>
+  );
+}
+
 /** 士兵 / 坦克放在洲名下方（避开计分说明和图例） */
 const TROOP_AT: Record<RegionId, [number, number]> = {
   europe: [30, 86], africa: [40, 74], asia: [40, 100], middleEast: [40, 76], centralAmerica: [40, 78], southAmerica: [40, 78],
@@ -865,7 +926,7 @@ function CountryBox({ id, view, selectable, dimmed, flash, adjHl, onPick, onHove
       <text class="c-name" x={left + (BW - 13) / 2} y={top + (name.length >= 5 ? 12.8 : 13.5)} style={name.length >= 5 ? { fontSize: '9.6px' } : undefined} textLength={name.length >= 4 ? BW - 16 : undefined} lengthAdjust="spacingAndGlyphs">{name}</text>
       {bg ? (
         <>
-          <polygon class="c-bg-star" points={STAR_PTS(left + BW - 7, top + 6, 11)}>{formosan && <title>台湾决议生效：美国控制台湾时，亚洲计分把台湾算作战场国</title>}</polygon>
+          <polygon class="c-bg-star" points={STAR_PTS(left + BW - 7, top + 6, 11)}>{formosan && <title>{st('台湾决议')}生效：美国控制台湾时，亚洲计分把台湾算作战场国</title>}</polygon>
           <text class="c-stab-t bg" x={left + BW - 7} y={top + 10.5}>{c.stability}</text>
         </>
       ) : (
@@ -1006,7 +1067,7 @@ function CountryTip({ id, view }: { id: string; view: GameView }) {
         {REGION_ZH[c.region]}
         {c.sub.map((s) => ` · ${REGION_ZH[s]}`)} · 稳定度 {c.stability}
         {c.bg && <b class="ct-bg"> · 战场国</b>}
-        {id === 'taiwan' && !c.bg && view.flags.formosan && <b class="ct-bg"> · 战场国（台湾决议：美国控制时计分算战场国）</b>}
+        {id === 'taiwan' && !c.bg && view.flags.formosan && <b class="ct-bg"> · 战场国（{st('台湾决议')}：美国控制时计分算战场国）</b>}
       </div>
       <div>
         影响力：<span class="us">美 {us}</span> / <span class="ussr">苏 {ussr}</span>
@@ -1844,7 +1905,7 @@ function AAGun({ x, y }: { x: number; y: number }) {
   return (
     <g transform={`translate(${x},${y})`}>
       <g class="aa-wrap">
-        <title>{decorTip('1950 年代台海两度爆发炮击危机，美国国会通过台湾决议，授权总统在必要时动用武力保卫台湾及澎湖。', '美国控制台湾时，亚洲计分把台湾算作战场国')}</title>
+        <title>{st(decorTip('1950 年代台海两度爆发炮击危机，美国国会通过台湾决议，授权总统在必要时动用武力保卫台湾及澎湖。', '美国控制台湾时，亚洲计分把台湾算作战场国'))}</title>
         <ellipse cx="0" cy="5" rx="10" ry="2.4" class="sp-shadow" />
         <polygon points="-8,5 -6,0 6,0 8,5" class="aa-base" />
         <rect x="-3" y="-4" width="6" height="4" class="aa-mount" />

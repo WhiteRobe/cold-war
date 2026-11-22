@@ -4,7 +4,7 @@ import { COUNTRY_LIST } from './countries.gen';
 import type { CardDef, CountryDef } from './types';
 
 export const CHINA: CountryDef = {
-  id: 'china', name: 'China', zh: '中国', region: 'asia', sub: [], stability: 5, bg: true,
+  id: 'china', name: 'China', zh: '中国', region: 'asia', sub: [], stability: 4, bg: true,
   adj: ['ussr', 'northKorea', 'india', 'taiwan', 'mongolia'], pos: [812, 268], start: [1, 2],
 };
 export const MONGOLIA: CountryDef = {
@@ -22,6 +22,7 @@ export const GERMANY: CountryDef = {
 const LINKS: [string, string][] = [
   ['northKorea', 'china'], ['india', 'china'], ['taiwan', 'china'],
   ['australia', 'usa'], ['philippines', 'usa'],
+  ['southAfrica', 'brazil'], ['brazil', 'southAfrica'],
 ];
 
 const UN_CARD: Partial<CardDef> = {
@@ -52,6 +53,10 @@ let gone = new Set<string>();
 export let worldVersion = 0;
 export const endlessWorld = () => on;
 export const getWorldVersion = () => worldVersion;
+/** 国家名等显示数据变了（主播模式）：让依赖国家表的缓存重算 */
+export const bumpWorldVersion = () => {
+  worldVersion++;
+};
 /** 因统一而从地图上消失的国家（名字仍可查，但不再参与任何结算） */
 export const goneCountry = (id: string) => gone.has(id);
 
@@ -115,7 +120,7 @@ export function applyWorld(w: WorldState, countries: Record<string, CountryDef>,
   // 中国统一：台湾并入中国，中国不再是战场国
   if (w.china) {
     drop('taiwan');
-    CHINA.stability = 5;
+    CHINA.stability = 4;
     CHINA.bg = false;
   }
   // 朝鲜半岛统一：并成一个战场国，稳定度 3，与苏联、中国、日本、台湾（若还在）相邻

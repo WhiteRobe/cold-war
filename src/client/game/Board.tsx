@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
+import { setStreamer, st, streamer } from '../streamer';
 import { signal } from '@preact/signals';
 import { CARDS, CARD_LIST, CHINA_CARD, COUNTRY_LIST, REGION_ZH, byWorld, setWorld, worldOf, type RegionId, type Side } from '../../data';
 import { REGION_POINTS, scoreRegion } from '../../engine/scoring';
@@ -165,7 +166,7 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
           const open = () => setBolt((b) => (b?.id === id && b.kind === kind ? b : { id, x, y, kind }));
           if (now || (bolt?.id === id && bolt.kind === kind)) open();
           else boltOpenTimer.current = setTimeout(open, HOVER_MS);
-        }} onBoltLeave={() => { clearTimeout(boltOpenTimer.current); leaveBolt(); }} focus={paced.beat?.kind === 'roll' ? paced.beat.roll.target : paced.beat?.kind === 'scene' ? paced.beat.scene.steps[paced.beat.step]?.country : locateCountry.value?.id} focusKey={paced.beat ? undefined : locateCountry.value?.n} />
+        }} onBoltLeave={() => { clearTimeout(boltOpenTimer.current); leaveBolt(); }} focus={paced.beat?.kind === 'roll' ? paced.beat.roll.target : paced.beat?.kind === 'scene' ? paced.beat.scene.steps[paced.beat.step]?.country : locateCountry.value?.id} focusKey={paced.beat ? undefined : locateCountry.value?.n} anims={paced.beat?.kind === 'scene' && paced.beat.scene.anims?.length ? { key: paced.beat.key, list: paced.beat.scene.anims } : undefined} />
         <BeatOverlay beat={paced.beat} names={names} onNext={paced.next} onSkipAll={paced.skipAll} />
       </main>
       <aside class="board-side">
@@ -365,7 +366,7 @@ function DecisionPanel({ view, d, names, choose, onZoom }: { view: GameView; d?:
           <MiniCard id={d.card!} />
         </div>
       ) : null}
-      <div class="prompt">{d.prompt}</div>
+      <div class="prompt">{st(d.prompt)}</div>
       {d.ops && (
         <div class="ops-bar">
           {Array.from({ length: d.ops.total }, (_, i) => (
@@ -377,7 +378,7 @@ function DecisionPanel({ view, d, names, choose, onZoom }: { view: GameView; d?:
         <div class="options">
           {d.options.map((o) => (
             <button type="button" key={o.v} class={`btn opt opt-${o.v}`} onClick={() => choose(o.v)}>
-              {boldLabel(o.label ?? String(o.v))}
+              {boldLabel(st(o.label ?? String(o.v)))}
             </button>
           ))}
         </div>
@@ -387,7 +388,7 @@ function DecisionPanel({ view, d, names, choose, onZoom }: { view: GameView; d?:
           <div class="hint">在地图上点击高亮的国家</div>
           <div class="country-chips">
             {d.options.filter((o) => o.v !== 'done').map((o) => (
-              <button type="button" key={o.v} class="chip" onClick={() => choose(o.v)}>{o.label}</button>
+              <button type="button" key={o.v} class="chip" onClick={() => choose(o.v)}>{st(o.label ?? String(o.v))}</button>
             ))}
           </div>
           {d.options.some((o) => o.v === 'done') && (
@@ -498,7 +499,7 @@ const LOG_WORDS = byWorld(() => {
 });
 /** 普通文字片段：国家名做成按区域着色的小标签，±数值做成胶囊，掷骰对比、成功 / 失败、DEFCON 变化做成徽章 */
 function richSeg(text: string, key: string): (string | preact.JSX.Element)[] {
-  return text.split(LOG_WORDS().token).map((part, i) => {
+  return st(text).split(LOG_WORDS().token).map((part, i) => {
     if (!part) return part;
     const k = `${key}-${i}`;
     const c = LOG_WORDS().zh.get(part);
@@ -877,7 +878,7 @@ export function AudioToggles({ musicOnly }: { musicOnly?: boolean }) {
           </svg>
         </button>
       )}
-      <button type="button" class={`icon-btn${open ? ' on' : ''}`} title="音量" onClick={() => setOpen(!open)}>
+      <button type="button" class={`icon-btn${open ? ' on' : ''}`} title="音量与设置" onClick={() => setOpen(!open)}>
         <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
           <path d="M4 7h10M18 7h2M4 17h4M12 17h8" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
           <circle cx="16" cy="7" r="2.4" fill="none" stroke="currentColor" stroke-width="2" />
@@ -898,6 +899,10 @@ export function AudioToggles({ musicOnly }: { musicOnly?: boolean }) {
               <b>{Math.round(p.sfxVol * 100)}</b>
             </label>
           )}
+          <label class="check streamer-check" title="底图去掉国界（各洲一整块颜色），涉及台湾的表述改为「台湾地区」">
+            <input type="checkbox" checked={streamer.value} onChange={(e) => setStreamer((e.target as HTMLInputElement).checked)} />
+            主播模式
+          </label>
           <button type="button" class="btn small" onClick={() => setOpen(false)}>完成</button>
         </div>
       )}

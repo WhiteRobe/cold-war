@@ -11,7 +11,10 @@ const inR = (c: string, r: string) => COUNTRIES[c].region === r || COUNTRIES[c].
 /** 太空竞赛前进一格；已到空间站时改为轨道打击 */
 function* spaceStep(g: Game, me: Side): Gen {
   if (g.s.space[me] >= 8) yield* orbitalStrike(g, me);
-  else g.advanceSpace(me, 1);
+  else {
+    g.advanceSpace(me, 1);
+    yield* g.spaceSwap(me);
+  }
 }
 
 /** 免费政变（不计军事行动、不降 DEFCON） */
@@ -157,6 +160,14 @@ export const ENDLESS: Record<number, Effect> = {
   },
   144: { *run(g, me) { yield* g.placeInfluence(me, 144, 3, (c) => OIL_COUNTRIES.includes(c), { maxPer: 1 }); } },
   145: { *run(g) { g.improveDefcon(2, '缓和峰会'); } },
+  147: {
+    can: (g) => !!g.s.flags.unifyGermany,
+    *run(g) {
+      g.s.flags.euFounded = true;
+      g.log('欧盟成立：此后行动轮中打出的牌不能在欧洲政变、调整阵营');
+    },
+  },
+  148: { *run(g, me) { yield* g.placeInfluence(me, 148, 2, (c) => g.inf(c, me) > 0, { maxPer: 1 }); } },
   146: {
     *run(g, me) {
       const c = g.draw();

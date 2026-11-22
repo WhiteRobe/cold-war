@@ -150,6 +150,15 @@ export const ENDLESS_ART: Record<number, () => string> = {
   145: () =>
     rect(0, 0, 240, 150, C.paper2) + rect(0, 0, 240, 24, C.ne) + at({ x: 80, y: 108 }, leader({}, S.us, { tie: C.us })) + at({ x: 160, y: 108 }, leader({}, S.ink, { tie: C.su })) +
     at({ x: 120, y: 140 }, table({}, S.ne, 200)),
+  // 欧盟成立：蓝底星环
+  147: () =>
+    rect(0, 0, 240, 150, C.us3) + rays(120, 75, C.us, 16) +
+    Array.from({ length: 12 }, (_, i) => star(120 + 46 * Math.cos((i * Math.PI) / 6), 75 + 46 * Math.sin((i * Math.PI) / 6), 7, C.gold2, C.gold)).join('') +
+    at({ x: 120, y: 92, s: 0.8 }, flag({}, 'de', 30, 20)),
+  // 流行文化攻势：电影院霓虹、人群
+  148: () =>
+    rect(0, 0, 240, 150, C.night) + skyline(110, S.night, 148) + rect(70, 40, 100, 34, C.su2) + rect(76, 46, 88, 22, C.gold2) +
+    star(120, 57, 8, C.su) + at({ x: 120, y: 150 }, crowd({}, 9, S.us, 148, 220)),
   // 情报交换：桥上两名间谍
   146: () =>
     night(146) + rect(0, 110, 240, 10, C.ink3) + wall(0, 240, 140, S.ne) + at({ x: 80, y: 110 }, spy({}, S.us)) + at({ x: 160, y: 110 }, spy({}, S.su)),

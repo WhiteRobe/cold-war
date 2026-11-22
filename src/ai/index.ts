@@ -467,6 +467,8 @@ class Smart {
       }
       return { c: best, k: bv };
     };
+    // 不死不休的太空竞赛奖励：把最差的一张换掉
+    if (d.prompt.startsWith('太空竞赛成功')) return lowest().c ?? 'pass';
     if (card === 42 || card === 44) {
       const sc = cards.filter((c) => CARDS[c].scoring);
       if (sc.length && (scoringForced(v, me) || sc.length === cards.length)) {

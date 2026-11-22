@@ -32,6 +32,7 @@ export function useMapFx(view: GameView) {
     let gain = false, lose = false;
     for (const c of COUNTRY_LIST) {
       const a = p.inf[c.id], b = view.inf[c.id];
+      if (!a || !b) continue;
       if (a[0] === b[0] && a[1] === b[1]) continue;
       const before = controller(p as never, c.id), after = controller(view as never, c.id);
       if (after && after !== before) {

@@ -1,5 +1,6 @@
 // 掷骰动画：新的掷骰先播动画，播完才把局面更新出来，避免结果先于骰子出现。
 import { useEffect, useRef, useState } from 'preact/hooks';
+import { st } from '../streamer';
 import { CARDS, COUNTRIES } from '../../data';
 import type { CardMove, LogEntry, RollInfo, Scene, Side } from '../../engine/types';
 import type { GameView } from '../../engine/view';
@@ -487,13 +488,13 @@ function SceneOverlay({ beat, onNext }: { beat: Extract<Beat, { kind: 'scene' }>
   return (
     <div class={`scene-box${scene.side ? ` side-${scene.side.toLowerCase()}` : ''}`}>
       <SceneArt art={scene.art} />
-      <div class="scene-title">{scene.title}</div>
-      {scene.sub && <div class="scene-sub">{scene.sub}</div>}
+      <div class="scene-title">{st(scene.title)}</div>
+      {scene.sub && <div class="scene-sub">{st(scene.sub)}</div>}
       <ol class="scene-steps">
         {/* 还没轮到的条目用省略号占位，让人知道后面还有几步 */}
-        {scene.steps.map((st, i) => (
-          scene.flat ? <li key={i} class="now">{st.text}</li>
-            : <li key={i} class={i < step ? 'done' : i === step ? 'now' : 'todo'}>{i <= step ? st.text : '……'}</li>
+        {scene.steps.map((x, i) => (
+          scene.flat ? <li key={i} class="now">{st(x.text)}</li>
+            : <li key={i} class={i < step ? 'done' : i === step ? 'now' : 'todo'}>{i <= step ? st(x.text) : '……'}</li>
         ))}
       </ol>
       <button type="button" class="btn primary" onClick={onNext}>{step + 1 < n ? `下一步（${step + 1}/${n}）` : '继续'}</button>

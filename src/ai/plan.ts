@@ -138,6 +138,7 @@ export function canTarget(cx: Ctx, inf: Inf, side: Side, c: string, kind: 'coup'
   const v = cx.v;
   const d = COUNTRIES[c];
   if (infOf(inf, c, opp(side)) <= 0) return false;
+  if (v.flags.euFounded && d.region === 'europe') return false;
   if (!free) {
     if (v.defcon <= 4 && d.region === 'europe') return false;
     if (v.defcon <= 3 && d.region === 'asia') return false;
