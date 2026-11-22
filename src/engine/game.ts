@@ -1,4 +1,4 @@
-import { CARDS, CARD_LIST, CHINA_CARD, COUNTRIES, COUNTRY_LIST, REGIONS, REGION_ZH, countriesIn, inRegion, type CardDef, type RegionId, type SubRegionId } from '../data';
+import { CARDS, CARD_LIST, CHINA_CARD, COUNTRIES, COUNTRY_LIST, REGIONS, REGION_ZH, setEndlessWorld, countriesIn, inRegion, type CardDef, type RegionId, type SubRegionId } from '../data';
 import { nextRandom, randInt, shuffle } from './rng';
 import { controller, controls, scoreRegion, scoreSEA } from './scoring';
 import { SPACE } from './space';
@@ -83,6 +83,8 @@ export class Game {
   private gen: Gen;
 
   constructor(public setup: GameSetup) {
+    // 国家表是全局的：新对局一律从标准世界开始（不死不休到第 11 回合才会改变）
+    setEndlessWorld(false);
     this.s = initialState(setup);
     this.gen = this.main();
     this.resume(undefined);
@@ -368,9 +370,61 @@ export class Game {
     if (!this.endless) return this.finalScore();
     // 不死不休：不做终局计分，一直打到一方控制全球（不设回合上限）
     for (let t = this.lastTurn + 1; ; t++) {
-      if (t === 11) this.log('—— 进入不死不休：目标是控制全球 ——', { kind: 'turn' });
       yield* this.turn(t);
     }
+  }
+
+  /** 第 11 回合开始：世界变化（东亚第三极崛起、太平洋战略），中国牌换成联合国牌 */
+  private enterEndless() {
+    const s = this.s;
+    this.log('—— 进入不死不休：目标是控制全球 ——', {
+      kind: 'turn',
+      scene: {
+        title: '不死不休',
+        sub: '冷战没有在 1989 年结束。从这一回合起，胜负只看一件事：谁能控制全部六个洲。',
+        art: 'endless',
+        steps: [
+          { text: '胜利点、控制欧洲、回合末持有计分卡都不再结束对局，也没有回合上限。' },
+          { text: '新机制从这一回合起生效：支配 / 控制一个洲有免费影响力，控制的洲会压制敌方；占着敌方本土邻国会削弱敌方每回合的第一张牌；太空竞赛到顶后可以发动轨道打击；苏联还有石油经济。' },
+          { text: '新卡会洗入牌库。地图也要变了——' },
+        ],
+      },
+    });
+    setEndlessWorld(true);
+    s.flags.endlessWorld = true;
+    // 中国的起始影响力照搬台湾当前的影响力；台湾双方都是 0 时为美 1、苏 2
+    const tw = s.inf.taiwan;
+    s.inf.china = tw[0] || tw[1] ? [tw[0], tw[1]] : [1, 2];
+    s.inf.mongolia = [0, 2];
+    this.log('东亚第三极崛起：中国成为亚洲战场国，蒙古成为亚洲国家', {
+      kind: 'turn',
+      scene: {
+        title: '东亚第三极崛起',
+        sub: '中国不再只是一张牌，而是棋盘上的一极；蒙古也走上前台。',
+        art: 'eastRise',
+        steps: [
+          { text: `中国成为亚洲战场国，稳定度 5。起始影响力照搬台湾当前的影响力：美 ${s.inf.china[0]}、苏 ${s.inf.china[1]}${tw[0] || tw[1] ? '' : '（台湾双方都没有影响力，按美 1、苏 2）'}。`, country: 'china' },
+          { text: '中国与苏联、朝鲜、台湾、印度、蒙古相邻，算作苏联的本土邻国。', country: 'china' },
+          { text: '蒙古成为亚洲非战场国，稳定度 2，苏联控制，与中国、苏联相邻，也是苏联的本土邻国。', country: 'mongolia' },
+          { text: '中国牌退场，换成「联合国牌」：固定 4 点，持有方每控制英国、法国、中国中的一个 +1 点，用后交给对手。苏联先拿到它（正面朝上）。' },
+        ],
+      },
+    });
+    s.china = { holder: 'USSR', faceUp: true };
+    s.inf.australia[1] += 1;
+    this.log('太平洋战略：澳大利亚、菲律宾成为美国本土邻国，澳大利亚 +1 苏联影响力', {
+      kind: 'turn',
+      scene: {
+        title: '太平洋战略',
+        sub: '太平洋成了美国的内湖，也成了苏联渗透的新方向。',
+        art: 'pacific',
+        steps: [
+          { text: '澳大利亚成为美国的本土邻国。', country: 'australia' },
+          { text: '菲律宾成为美国的本土邻国。', country: 'philippines' },
+          { text: '苏联在澳大利亚获得 1 点影响力。', country: 'australia' },
+        ],
+      },
+    });
   }
 
   /** 不死不休的胜利条件：一方在六个洲都达到“控制” */
@@ -467,6 +521,7 @@ export class Game {
     s.turn = t;
     s.ar = 0;
     this.log(`—— 第 ${t} 回合 ——`, { kind: 'turn' });
+    if (this.endless && t === 11) this.enterEndless();
     // 剧本的第一个回合：DEFCON 和手牌已经按剧本设好
     if (t > this.firstTurn) this.improveDefcon(1, '回合开始');
     if (t > this.firstTurn) this.deal(t <= 3 ? 8 : 9);
@@ -660,6 +715,7 @@ export class Game {
   canSpace(side: Side, card: number): boolean {
     const s = this.s;
     if (card !== CHINA_CARD && CARDS[card].scoring) return false;
+    if (card === CHINA_CARD && this.s.flags.endlessWorld) return false;
     const next = s.space[side] + 1;
     if (next > 8) return false;
     const limit = this.hasPerk(side, 2) ? 2 : 1;
@@ -679,19 +735,20 @@ export class Game {
     s.playing = { card, side };
     const snapshot = this.snapshot(side);
     if (card === CHINA_CARD) {
-      const opts: [string, string][] = [['ops', '行动点']];
+      const un = !!s.flags.endlessWorld;
+      const opts: [string, string][] = [['ops', un ? `行动点（${this.unOps(side)}）` : '行动点']];
       if (this.canSpace(side, card)) opts.push(['space', '太空竞赛']);
-      const mode = yield* this.askOption(side, '中国牌：选择打法', opts, { tag: 'mode', card });
+      const mode = yield* this.askOption(side, un ? '联合国牌：选择打法' : '中国牌：选择打法', opts, { tag: 'mode', card });
       this.log(`${SIDE_ZH[side]}打出 ${cardName(card)}（${mode === 'space' ? '太空竞赛' : '行动点'}）`, { side, kind: 'card' });
       this.recordPlay(side, card, mode === 'space' ? 'space' : 'ops');
       s.china = { holder: opp(side), faceUp: false };
-      if (side === 'US' && s.flags.formosan) {
+      if (side === 'US' && s.flags.formosan && !un) {
         s.flags.formosan = false;
         this.cancelInPlay(35);
         this.log('美国打出中国牌，台湾决议失效');
       }
       if (mode === 'space') yield* this.spaceAttempt(side, card);
-      else yield* this.opsPlay(side, this.card(card).ops, { card, snapshot });
+      else yield* this.opsPlay(side, un ? this.unOps(side) : this.card(card).ops, { card, snapshot });
       s.playing = prevPlaying;
       return;
     }
@@ -792,6 +849,8 @@ export class Game {
     const plus = this.hasPlus(side);
     let ops = base + (plus ? 1 : 0) - (this.hasMinus(side) ? 1 : 0);
     let cap = 4;
+    // 联合国牌（不死不休）没有亚洲加成，点数在 unOps 里已经算好，也不受 4 点上限限制
+    if (card === CHINA_CARD && this.s.flags.endlessWorld) return Math.max(base + (plus ? 1 : 0) - (this.hasMinus(side) ? 1 : 0), 1);
     if (card === CHINA_CARD && rs !== 'other') {
       ops += 1;
       cap = 5;
@@ -801,10 +860,16 @@ export class Game {
     return Math.max(ops, 1);
   }
 
+  /** 联合国牌的基础行动点：4 + 持有方控制的常任理事国（英国、法国、中国）数 */
+  unOps(side: Side): number {
+    return 4 + ['uk', 'france', 'china'].filter((c) => this.s.inf[c] && controller(this.s, c) === side).length;
+  }
+
   /** 不指定地区时的实际行动点（太空竞赛、陷阱弃牌、显示） */
   effOps(side: Side, card: number): number {
     const def = CARDS[card];
     if (def.scoring) return 0;
+    if (card === CHINA_CARD && this.s.flags.endlessWorld) return this.opsBudget(side, this.unOps(side), card, 'other');
     return this.opsBudget(side, def.ops, undefined, 'other');
   }
 

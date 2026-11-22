@@ -9,6 +9,7 @@ const PHASE_ZH = { setup: '开局布置', headline: '头条阶段', action: '行
 
 export function Tracks({ view, names, onPile }: { view: GameView; names: Record<Side, string>; onPile: (p: 'discard' | 'removed' | 'deck') => void }) {
   const era = view.turn <= 3 ? '早期' : view.turn <= 7 ? '中期' : '后期';
+  const un = !!view.flags.endlessWorld;
   return (
     <div class="tracks" data-tour="tracks">
       <div class="trk trk-turn has-pop">
@@ -54,19 +55,27 @@ export function Tracks({ view, names, onPile }: { view: GameView; names: Record<
       </div>
       <div class="trk trk-cards">
         <div data-tour="china" class={`china has-pop ${view.china.holder.toLowerCase()}${view.china.faceUp ? '' : ' down'}`}>
-          中国牌 · {view.china.holder === 'US' ? '美' : '苏'}
+          {un ? '联合国牌' : '中国牌'} · {view.china.holder === 'US' ? '美' : '苏'}
           {view.china.faceUp ? '' : '（背面）'}
           <div class="trk-pop china-pop">
-            <div class="pop-title">中国牌（#6）</div>
+            <div class="pop-title">{un ? '联合国牌（原中国牌 #6）' : '中国牌（#6）'}</div>
             <div class="pop-note">
               现在在<b>{view.china.holder === 'US' ? '美国' : '苏联'}</b>手中，{view.china.faceUp ? '正面朝上，可以打出' : '背面朝上，本回合不能打出，回合结束翻回正面'}。
             </div>
+            {un ? (
+              <ul class="pop-list">
+                <li>固定 4 行动点；持有方每控制英国、法国、中国中的一个 +1。</li>
+                <li>没有亚洲加成，不能打事件，也不能拿去太空竞赛。</li>
+                <li>打完翻面交给对手，本回合对手不能用。</li>
+              </ul>
+            ) : (
             <ul class="pop-list">
               <li>4 行动点，全用在亚洲再 +1。</li>
               <li>打完翻面交给对手，本回合对手不能用。</li>
               <li>不能当头条，不占手牌，不会被弃；能拿去太空竞赛。</li>
               <li>终局时谁拿着谁 +1 VP。</li>
             </ul>
+            )}
           </div>
         </div>
         <div class="piles">

@@ -77,8 +77,21 @@ export interface LogEntry {
   roll?: RollInfo;
   /** 卡牌移动（界面做飞牌动画） */
   move?: CardMove;
+  /** 过场说明（界面逐步播放，每一步点击继续）：不死不休的世界变化、机制触发等 */
+  scene?: Scene;
   /** 逐点放置影响力的顺序（界面逐个播放）：[国家, 点数] */
   place?: { side: Side; steps: [string, number][] };
+}
+
+export interface Scene {
+  title: string;
+  /** 副标题：一句话说明为什么发生 */
+  sub?: string;
+  /** 配色：美方 / 苏方 / 中性 */
+  side?: Side;
+  /** 插图种类（界面据此画过场图） */
+  art?: string;
+  steps: { text: string; country?: string }[];
 }
 
 export type PileName = 'deck' | 'discard' | 'removed' | 'played';
@@ -200,6 +213,9 @@ export interface Flags {
   evilEmpire?: boolean;
   norad?: boolean;
   awacs?: boolean;
+  // ---- 不死不休 ----
+  /** 世界已经变化（中国、蒙古、新邻接、联合国牌） */
+  endlessWorld?: boolean;
 }
 
 export const TURN_FLAGS: (keyof Flags)[] = [

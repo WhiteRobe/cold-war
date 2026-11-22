@@ -1,5 +1,6 @@
 import { CARDS, CHINA_CARD } from '../../data';
-import { cardArt } from '../../art';
+import { cardArt, unCardArt } from '../../art';
+import { endlessWorld } from '../../data';
 import { richCardText } from './SubBadge';
 import { cardView } from './cardCtx';
 import { cardKind } from './countryCards';
@@ -11,6 +12,7 @@ const SIDE_ZH = { US: '美国事件', USSR: '苏联事件', NEUTRAL: '双方事�
 
 const artCache = new Map<number, string>();
 function art(id: number) {
+  if (id === 6 && endlessWorld()) return unCardArt();
   let a = artCache.get(id);
   if (a === undefined) {
     try {

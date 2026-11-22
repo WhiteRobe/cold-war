@@ -1,6 +1,6 @@
 // 西欧 / 东欧徽记和战场国星章：地图方框和卡牌文字里共用，保持一致。
 import type { JSX } from 'preact';
-import { CARDS, COUNTRY_LIST } from '../../data';
+import { CARDS, COUNTRY_LIST, byWorld } from '../../data';
 import { EFFECTS } from '../../engine/effects';
 import { refPeek } from './cardCtx';
 import { controller } from '../../engine/scoring';
@@ -45,9 +45,14 @@ export function SubIcon({ kind }: { kind: 'w' | 'e' }) {
 }
 
 /** 卡牌说明排版：国家名加下划线（已被控制的用控制方颜色），「美国」「苏联」加粗红蓝，「西欧」「东欧」后接徽记 */
-const NAMES = [...COUNTRY_LIST].sort((a, b) => b.zh.length - a.zh.length);
-const BY_ZH = new Map(COUNTRY_LIST.map((c) => [c.zh, c.id]));
-const TOKEN = new RegExp(`(${[...NAMES.map((c) => c.zh), '美国', '苏联', '西欧', '东欧'].map((n) => n.replace(/[/]/g, '\\/')).join('|')})`);
+// 国家名的匹配表依赖国家表（不死不休会加入中国、蒙古），世界变化时重算
+const WORDS = byWorld(() => {
+  const names = [...COUNTRY_LIST].sort((a, b) => b.zh.length - a.zh.length);
+  return {
+    byZh: new Map(COUNTRY_LIST.map((c) => [c.zh, c.id])),
+    token: new RegExp(`(${[...names.map((c) => c.zh), '美国', '苏联', '西欧', '东欧'].map((n) => n.replace(/[/]/g, '\\/')).join('|')})`),
+  };
+});
 
 /** 卡牌说明里的《卡名》（#编号）：阵营色下划线，悬停弹出那张卡；对局中标出它是否已经发生 */
 function CardRef({ id, label, view }: { id: number; label: string; view: GameView | null }) {
@@ -94,12 +99,12 @@ function inline(text: string, view: GameView | null, key: string) {
   return text.split(REF).flatMap((seg, si) => {
     const m = seg.match(/^《([^》]+)》（#(\d+)）$/);
     if (m) return [<CardRef key={`${key}r${si}`} id={Number(m[2])} label={`《${m[1]}》`} view={view} />];
-    return seg.split(TOKEN).map((part, i) => {
+    return seg.split(WORDS().token).map((part, i) => {
       const k = `${key}-${si}-${i}`;
       if (part === '西欧' || part === '东欧') return <span key={k} class="sub-word">{part}<SubIcon kind={part === '西欧' ? 'w' : 'e'} /></span>;
       if (part === '美国') return <b key={k} class="ct-side us">美国</b>;
       if (part === '苏联') return <b key={k} class="ct-side ussr">苏联</b>;
-      const cid = BY_ZH.get(part);
+      const cid = WORDS().byZh.get(part);
       if (cid) {
         const ctl = view ? controller(view as never, cid) : null;
         return <span key={k} class={`ct-country${ctl ? ` ctl-${ctl.toLowerCase()}` : ''}`} title={ctl ? `${part}：${ctl === 'US' ? '美国' : '苏联'}控制` : part}>{part}</span>;

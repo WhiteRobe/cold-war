@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { CARDS, CARD_LIST, CHINA_CARD, COUNTRY_LIST, REGION_ZH, type RegionId, type Side } from '../../data';
+import { CARDS, CARD_LIST, CHINA_CARD, COUNTRY_LIST, REGION_ZH, byWorld, setEndlessWorld, type RegionId, type Side } from '../../data';
 import { REGION_POINTS, scoreRegion } from '../../engine/scoring';
 import type { Choice, Decision, LogEntry } from '../../engine/types';
 import { Coach, coachOn, danger, instantOutcome, setCoach, suicide } from './Coach';
@@ -40,6 +40,8 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
   const aiOpponent = session.kind === 'offline' || names[oppOf].startsWith('AI');
   const paced = useEventPacing(incoming, aiOpponent);
   const view = paced.view;
+  // 不死不休的世界变化（中国、蒙古、新邻接、联合国牌）跟着当前显示的局面切换
+  if (view) setEndlessWorld(!!view.flags.endlessWorld);
   const [zoomCard, setZoomCard] = useState<number | null>(null);
   const [pile, setPile] = useState<'discard' | 'removed' | 'deck' | null>(null);
   const [region, setRegion] = useState<RegionId | null>(null);
@@ -162,7 +164,7 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
           const open = () => setBolt((b) => (b?.id === id && b.kind === kind ? b : { id, x, y, kind }));
           if (now || (bolt?.id === id && bolt.kind === kind)) open();
           else boltOpenTimer.current = setTimeout(open, HOVER_MS);
-        }} onBoltLeave={() => { clearTimeout(boltOpenTimer.current); leaveBolt(); }} focus={paced.beat?.kind === 'roll' ? paced.beat.roll.target : undefined} />
+        }} onBoltLeave={() => { clearTimeout(boltOpenTimer.current); leaveBolt(); }} focus={paced.beat?.kind === 'roll' ? paced.beat.roll.target : paced.beat?.kind === 'scene' ? paced.beat.scene.steps[paced.beat.step]?.country : undefined} />
         <BeatOverlay beat={paced.beat} names={names} onNext={paced.next} onSkipAll={paced.skipAll} />
       </main>
       <aside class="board-side">
@@ -474,17 +476,21 @@ function logKind(e: LogEntry): { icon: string; cls: string } | null {
 const REGION_TINT: Record<string, string> = {
   europe: '#5b6177', asia: '#9a6f16', middleEast: '#4a7429', africa: '#8b3a72', centralAmerica: '#22796f', southAmerica: '#55569f',
 };
-const LOG_COUNTRY = [...COUNTRY_LIST].sort((a, b) => b.zh.length - a.zh.length);
-const LOG_ZH = new Map(COUNTRY_LIST.map((c) => [c.zh, c]));
+const LOG_WORDS = byWorld(() => {
+  const list = [...COUNTRY_LIST].sort((a, b) => b.zh.length - a.zh.length);
+  return {
+    zh: new Map(COUNTRY_LIST.map((c) => [c.zh, c])),
+    token: new RegExp(
+      `(${list.map((c) => c.zh.replace(/[/]/g, '\\/')).join('|')}|DEFCON \\d → \\d|\\d+(?:[+\\-−]\\d+)*\\s*对\\s*\\d+(?:[+\\-−]\\d+)*|[+\\-−]\\d+(?: VP)?|→ 成功|→ 失败|成功|失败)`,
+    ),
+  };
+});
 /** 普通文字片段：国家名做成按区域着色的小标签，±数值做成胶囊，掷骰对比、成功 / 失败、DEFCON 变化做成徽章 */
-const LOG_TOKEN = new RegExp(
-  `(${LOG_COUNTRY.map((c) => c.zh.replace(/[/]/g, '\\/')).join('|')}|DEFCON \\d → \\d|\\d+(?:[+\\-−]\\d+)*\\s*对\\s*\\d+(?:[+\\-−]\\d+)*|[+\\-−]\\d+(?: VP)?|→ 成功|→ 失败|成功|失败)`,
-);
 function richSeg(text: string, key: string): (string | preact.JSX.Element)[] {
-  return text.split(LOG_TOKEN).map((part, i) => {
+  return text.split(LOG_WORDS().token).map((part, i) => {
     if (!part) return part;
     const k = `${key}-${i}`;
-    const c = LOG_ZH.get(part);
+    const c = LOG_WORDS().zh.get(part);
     if (c) return <span key={k} class="lg-country" style={{ background: REGION_TINT[c.region] }}>{part}</span>;
     if (part.startsWith('DEFCON')) {
       const to = Number(part.slice(-1));

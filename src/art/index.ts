@@ -6,7 +6,7 @@ import { EARLY_ART } from './cards/early';
 import { MID_ART } from './cards/mid';
 import { LATE_ART } from './cards/late';
 import { SCORING_ART } from './cards/scoring';
-import { C, rect } from './kit';
+import { C, S, at, flag, globe, rays, rect } from './kit';
 
 const ART: Record<number, () => string> = { ...SCORING_ART, ...EARLY_ART, ...MID_ART, ...LATE_ART };
 
@@ -20,6 +20,23 @@ export function cardArt(id: number): string {
   if (s === undefined) {
     s = ART[id]?.() ?? rect(0, 0, 240, 150, C.paper2);
     cache.set(id, s);
+  }
+  return s;
+}
+
+/** 不死不休里中国牌换成联合国牌：蓝底、地球、英法中三面旗 */
+export function unCardArt(): string {
+  let s = cache.get(-6);
+  if (s === undefined) {
+    s =
+      rect(0, 0, 240, 150, C.us2) +
+      rays(120, 70, C.sky3, 16) +
+      at({ x: 120, y: 66 }, globe({}, 40, S.sky, S.white)) +
+      rect(0, 124, 240, 26, C.us3) +
+      at({ x: 52, y: 146 }, flag({}, 'uk', 36, 24)) +
+      at({ x: 112, y: 146 }, flag({}, 'fr', 36, 24)) +
+      at({ x: 172, y: 146 }, flag({}, 'cn', 36, 24));
+    cache.set(-6, s);
   }
   return s;
 }

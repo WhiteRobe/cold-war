@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { JSX } from 'preact';
-import { CARDS, COUNTRIES, COUNTRY_LIST, REGIONS, REGION_ZH, countriesIn, type RegionId, type Side } from '../../data';
+import { CARDS, COUNTRIES, COUNTRY_LIST, REGIONS, REGION_ZH, countriesIn, endlessWorld, getWorldVersion, type RegionId, type Side } from '../../data';
 import type { SubRegionId } from '../../data/types';
 import { controller, scoreRegion, scoreSEA } from '../../engine/scoring';
 import type { GameView } from '../../engine/view';
@@ -162,20 +162,24 @@ export function MapView({ view, selectable, onPick, flash, onRegion, focus, onBo
   const drag = useRef<{ x: number; y: number; zx: number; zy: number; moved: boolean } | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
+  // 世界版本：不死不休把中国、蒙古变成亚洲国家、增加新邻接，地图缓存跟着重算
+  const wv = getWorldVersion();
+  const ew = endlessWorld();
   const bg = useMemo(
     () => (
       <g class="map-bg">
-        {WORLD.map((w, i) => (
-          <path key={i} d={w.d} fill={shade(w.id, w.kind)} class={`land k-${w.kind}`} />
-        ))}
-        <text class="land-label" x={rx(1225)} y="400">中 国</text>
+        {WORLD.map((w, i) => {
+          const kind = ew && (w.id === 'China' || w.id === 'Mongolia') ? 'asia' : w.kind;
+          return <path key={i} d={w.d} fill={shade(w.id, kind)} class={`land k-${kind}`} />;
+        })}
+        {!ew && <text class="land-label" x={rx(1225)} y="400">中 国</text>}
       </g>
     ),
-    [],
+    [wv],
   );
 
   // 中国牌在谁手里，中国本土就染上谁的光晕（背面朝上暂不能用时淡一些）
-  const chinaGlow = (
+  const chinaGlow = ew ? null : (
     <g class={`china-glow china-${view.china.holder.toLowerCase()}${view.china.faceUp ? '' : ' facedown'}`}>
       <title>中国牌在{view.china.holder === 'US' ? '美国' : '苏联'}手中{view.china.faceUp ? '' : '（背面朝上，本回合不能用）'}</title>
       {CHINA_PATHS.map((d, i) => <path key={i} d={d} />)}
@@ -195,7 +199,7 @@ export function MapView({ view, selectable, onPick, flash, onRegion, focus, onBo
       }
     }
     return out;
-  }, []);
+  }, [wv]);
 
   /** 把连线裁到两个方框之外；间隙太小的连线另画一个“锁扣”标记，保证看得见 */
   const clipped = useMemo(
@@ -218,8 +222,8 @@ export function MapView({ view, selectable, onPick, flash, onRegion, focus, onBo
       edges.map(({ a, b, inter }) => {
         let [x1, y1] = pos(a);
         let [x2, y2] = pos(b);
-        // 日本与美国：从日本向右画出地图边缘
-        if (a === 'japan' && b === 'usa') {
+        // 亚太国家（日本，不死不休里还有澳大利亚、菲律宾）与美国：向右画出地图边缘
+        if (b === 'usa' && COUNTRIES[a].region === 'asia') {
           x2 = MAP_W - 4;
           y2 = y1;
         }
@@ -418,7 +422,8 @@ export function MapView({ view, selectable, onPick, flash, onRegion, focus, onBo
         )}
         {view.flags.flowerPower && <AntiWarProtest x={262} y={318} />}
         <text x={MAP_W - 8} y={pos('japan')[1] + 38} class="edge-label" text-anchor="end">→ 美国</text>
-        <text x={8} y={pos('usa')[1] - 10} class="edge-label">日本 ←</text>
+        {ew && ['philippines', 'australia'].map((c) => <text key={c} x={MAP_W - 8} y={pos(c)[1] - 6} class="edge-label" text-anchor="end">→ 美国</text>)}
+        <text x={8} y={pos('usa')[1] - 10} class="edge-label">{ew ? '日本 · 菲律宾 · 澳大利亚 ←' : '日本 ←'}</text>
         {COUNTRY_LIST.map((c) => (
           <CountryBox
             key={c.id}
@@ -921,8 +926,8 @@ function SpyLinks({ view }: { view: GameView }) {
       if (controller(view as never, c.id) !== enemy) continue;
       const [x1, y1] = pos(c.id);
       let [x2, y2] = pos(home);
-      // 日本连美国的线向右画出地图边缘
-      if (c.id === 'japan' && home === 'usa') {
+      // 亚太国家连美国的线向右画出地图边缘
+      if (home === 'usa' && c.region === 'asia') {
         x2 = MAP_W - 4;
         y2 = y1;
       }

@@ -1,0 +1,76 @@
+// 不死不休的世界变化：第 11 回合起中国、蒙古成为国家，澳大利亚、菲律宾成为美国本土邻国，中国牌换成联合国牌。
+// 国家表是全局数据，这里原地修改（每个线程同时只有一局在跑；Game 构造时会重置回标准世界）。
+import { COUNTRY_LIST } from './countries.gen';
+import type { CardDef, CountryDef } from './types';
+
+export const CHINA: CountryDef = {
+  id: 'china', name: 'China', zh: '中国', region: 'asia', sub: [], stability: 5, bg: true,
+  adj: ['ussr', 'northKorea', 'india', 'taiwan', 'mongolia'], pos: [812, 268], start: [1, 2],
+};
+export const MONGOLIA: CountryDef = {
+  id: 'mongolia', name: 'Mongolia', zh: '蒙古', region: 'asia', sub: [], stability: 2, bg: false,
+  adj: ['ussr', 'china'], pos: [800, 205], start: [0, 2],
+};
+
+/** 新增邻接：[国家, 新邻居] */
+const LINKS: [string, string][] = [
+  ['northKorea', 'china'], ['india', 'china'], ['taiwan', 'china'],
+  ['australia', 'usa'], ['philippines', 'usa'],
+];
+
+const UN_CARD: Partial<CardDef> = {
+  name: 'The UN Card',
+  zh: '联合国牌',
+  text: '固定 4 点行动点；持有方每控制英国、法国、中国中的一个，使用时行动点 +1。不能作为事件打出，也不能用于太空竞赛。打出后正面朝下交给对手，下个回合才能使用。',
+  textEn: '4 Ops; +1 Op for each of UK, France, China you control. Cannot be played as an event or for the Space Race. After use, pass it face down to your opponent.',
+};
+let chinaCardBackup: Partial<CardDef> | null = null;
+
+let on = false;
+/** 世界版本号：界面据此重算地图上的连线等缓存 */
+export let worldVersion = 0;
+export const endlessWorld = () => on;
+export const getWorldVersion = () => worldVersion;
+
+/** 依赖国家表的缓存：世界变化后自动重算 */
+export function byWorld<T>(fn: () => T): () => T {
+  let v = -1;
+  let val: T;
+  return () => {
+    if (v !== worldVersion) {
+      val = fn();
+      v = worldVersion;
+    }
+    return val;
+  };
+}
+
+/** 切换世界。countries / cards 是 index.ts 里的索引表，一起更新 */
+export function applyEndlessWorld(enable: boolean, countries: Record<string, CountryDef>, cards: Record<number, CardDef>) {
+  if (enable === on) return;
+  on = enable;
+  worldVersion++;
+  if (enable) {
+    for (const c of [CHINA, MONGOLIA]) {
+      COUNTRY_LIST.push(c);
+      countries[c.id] = c;
+    }
+    for (const [a, b] of LINKS) if (!countries[a].adj.includes(b)) countries[a].adj.push(b);
+    const china = cards[6];
+    chinaCardBackup = { name: china.name, zh: china.zh, text: china.text, textEn: china.textEn };
+    Object.assign(china, UN_CARD);
+  } else {
+    for (const id of ['china', 'mongolia']) {
+      const i = COUNTRY_LIST.findIndex((c) => c.id === id);
+      if (i >= 0) COUNTRY_LIST.splice(i, 1);
+      delete countries[id];
+    }
+    for (const [a, b] of LINKS) {
+      const adj = countries[a].adj;
+      const i = adj.indexOf(b);
+      if (i >= 0) adj.splice(i, 1);
+    }
+    if (chinaCardBackup) Object.assign(cards[6], chinaCardBackup);
+    chinaCardBackup = null;
+  }
+}

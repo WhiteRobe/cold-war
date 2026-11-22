@@ -1,7 +1,7 @@
 // 掷骰动画：新的掷骰先播动画，播完才把局面更新出来，避免结果先于骰子出现。
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { CARDS, COUNTRIES } from '../../data';
-import type { CardMove, LogEntry, RollInfo, Side } from '../../engine/types';
+import type { CardMove, LogEntry, RollInfo, Scene, Side } from '../../engine/types';
 import type { GameView } from '../../engine/view';
 import { sfx } from '../audio';
 import { CardFace, MiniCard } from './CardFace';
@@ -29,6 +29,8 @@ export type Beat =
   | { key: number; kind: 'roll'; roll: RollInfo }
   | { key: number; kind: 'move'; move: CardMove }
   | { key: number; kind: 'place'; side: Side; country: string; n: number }
+  /** 过场说明的一步（点击继续）；world：这一段改变了世界（新国家），开始播放前先切到最新局面 */
+  | { key: number; kind: 'scene'; scene: Scene; step: number; world?: boolean }
   | { key: number; kind: 'card'; card: number; side: Side; how: keyof typeof HOW_ZH; needConfirm: boolean; own?: boolean };
 
 /**
@@ -59,6 +61,13 @@ export function useEventPacing(incoming: GameView | null, aiOpponent: boolean): 
     const b = queue.current.shift();
     if (!b) return finish();
     setBeat(b);
+    if (b.kind === 'scene') {
+      if (b.world && b.step === 0 && latest.current) {
+        shownRef.current = latest.current;
+        setShown(latest.current);
+      }
+      return; // 等玩家点击
+    }
     if (b.kind === 'place') {
       // 在当前显示的局面上逐点加影响力，地图上的插旗动画和音效随之播放
       setShown((v) => {
@@ -102,6 +111,11 @@ export function useEventPacing(incoming: GameView | null, aiOpponent: boolean): 
       if (i < from) return;
       if (e.move) items.push({ at: i - 0.5, beat: { key: ++seq.current, kind: 'move', move: e.move } });
       if (e.roll) items.push({ at: i, beat: { key: ++seq.current, kind: 'roll', roll: e.roll } });
+      if (e.scene) {
+        const world = e.scene.art === 'eastRise' || e.scene.art === 'pacific';
+        const n = Math.max(1, e.scene.steps.length);
+        for (let k = 0; k < n; k++) items.push({ at: i - 0.45 + k * 0.001, beat: { key: ++seq.current, kind: 'scene', scene: e.scene, step: k, world } });
+      }
       // 对手放影响力逐点播放（自己点的不必重播）
       if (e.place && e.place.side !== incoming.me) {
         e.place.steps.forEach(([country, n], k) => items.push({ at: i - 0.4 + k * 0.001, beat: { key: ++seq.current, kind: 'place', side: e.place!.side, country, n } }));
@@ -133,8 +147,9 @@ export function useEventPacing(incoming: GameView | null, aiOpponent: boolean): 
     busy.current = true;
     // 一次太多（读档、跳转）就只展示最后几项
     // 逐点放影响力不算在内，只看出牌 / 掷骰 / 移牌的数量
-    const heavy = beats.filter((b) => b.kind !== 'place').length;
-    queue.current = heavy > 12 || beats.length > 40 ? beats.filter((b) => b.kind !== 'place').slice(-6) : beats;
+    const heavy = beats.filter((b) => b.kind !== 'place' && b.kind !== 'scene').length;
+    // 过场说明一律保留（机制触发要讲清楚）
+    queue.current = heavy > 12 || beats.length > 40 ? [...beats.filter((b) => b.kind === 'scene'), ...beats.filter((b) => b.kind !== 'place' && b.kind !== 'scene').slice(-6)] : beats;
     next();
   }, [incoming]);
 
@@ -195,6 +210,7 @@ export function BeatOverlay({ beat, names, onNext, onSkipAll }: { beat: Beat | n
     if (beat?.kind === 'card') sfx('card');
   }, [beat?.key]);
   if (!beat || beat.kind === 'place') return null;
+  if (beat.kind === 'scene') return <SceneOverlay beat={beat} onNext={onNext} key={beat.key} />;
   if (beat.kind === 'move') return <MoveOverlay move={beat.move} key={beat.key} onNext={onNext} />;
   if (beat.kind === 'card') {
     const c = CARDS[beat.card];
@@ -345,5 +361,92 @@ function Rocket({ ok, side }: { ok: boolean; side?: Side }) {
         <polygon points="60,112 70,100 82,106 92,98 104,110" fill="#c9c0ab" />
       </g>
     </svg>
+  );
+}
+
+/** 过场插图：几种机制各一张简单的剪影 */
+function SceneArt({ art }: { art?: string }) {
+  switch (art) {
+    case 'eastRise':
+      return (
+        <svg viewBox="0 0 120 60" class="sc-art">
+          <circle cx="60" cy="40" r="22" fill="#d8463a" />
+          <path d="M0,46 L120,46 L120,60 L0,60Z" fill="#5a3a2a" />
+          {[[26, 46, 14], [44, 46, 22], [76, 46, 18], [94, 46, 12]].map(([x, y, h], i) => (
+            <g key={i}><rect x={x - 3} y={y - h} width="6" height={h} fill="#2a1a12" /><path d={`M${x - 7},${y - h} L${x},${y - h - 6} L${x + 7},${y - h}Z`} fill="#2a1a12" /></g>
+          ))}
+        </svg>
+      );
+    case 'pacific':
+      return (
+        <svg viewBox="0 0 120 60" class="sc-art">
+          <rect width="120" height="60" fill="#2a5f8a" />
+          {[14, 26, 38, 50].map((y) => <path key={y} d={`M0,${y} q10,-4 20,0 t20,0 t20,0 t20,0 t20,0 t20,0`} stroke="#9cc6f0" fill="none" opacity="0.5" />)}
+          <polygon points="30,44 92,44 98,38 26,38" fill="#3a4656" /><rect x="70" y="30" width="8" height="8" fill="#3a4656" />
+          <polygon points="12,52 22,46 24,56" fill="#c9a06a" /><polygon points="100,20 110,16 112,26 104,28" fill="#c9a06a" />
+        </svg>
+      );
+    case 'oil':
+      return (
+        <svg viewBox="0 0 120 60" class="sc-art">
+          <rect width="120" height="60" fill="#3a2a1a" />
+          {[24, 48, 72, 96].map((x) => (
+            <g key={x}><rect x={x - 8} y="22" width="16" height="26" rx="2" fill="#1b1712" stroke="#f5d76e" /><path d={`M${x},28 c3,4 4,6 4,8 a4,4 0 0 1 -8,0 c0,-2 1,-4 4,-8z`} fill="#f5d76e" /></g>
+          ))}
+        </svg>
+      );
+    case 'squeeze':
+      return (
+        <svg viewBox="0 0 120 60" class="sc-art">
+          <rect width="120" height="60" fill="#2a2420" />
+          {[20, 44, 68, 92].map((x) => <g key={x}><rect x={x} y="34" width="16" height="8" rx="3" fill="#5f6b4a" /><rect x={x + 4} y="28" width="8" height="6" fill="#5f6b4a" /><path d={`M${x + 12},31 L${x + 24},30`} stroke="#5f6b4a" stroke-width="2" /></g>)}
+        </svg>
+      );
+    case 'cloud':
+      return (
+        <svg viewBox="0 0 120 60" class="sc-art">
+          <rect width="120" height="60" fill="#2a2d33" />
+          <path d="M30,34 a12,12 0 0 1 20,-10 a16,16 0 0 1 30,4 a10,10 0 0 1 4,20 h-52 a8,8 0 0 1 -2,-14z" fill="#4a4e58" />
+          <path d="M52,46 l-6,10 l8,-4 l-4,10" stroke="#f5d76e" stroke-width="2" fill="none" />
+        </svg>
+      );
+    default:
+      return (
+        <svg viewBox="0 0 120 60" class="sc-art">
+          <rect width="120" height="60" fill="#1f1c17" />
+          <circle cx="60" cy="30" r="20" fill="none" stroke="#f5d76e" stroke-width="2" />
+          <path d="M40,30 h40 M60,10 v40" stroke="#f5d76e" stroke-width="1" opacity="0.6" />
+          <circle cx="60" cy="30" r="6" fill="#c9503f" />
+        </svg>
+      );
+  }
+}
+
+/** 过场说明：标题、为什么发生、逐条展开的变化；每条都要点击继续，不会一闪而过 */
+function SceneOverlay({ beat, onNext }: { beat: Extract<Beat, { kind: 'scene' }>; onNext: () => void }) {
+  const { scene, step } = beat;
+  const n = Math.max(1, scene.steps.length);
+  useEffect(() => {
+    const k = (e: KeyboardEvent) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        onNext();
+      }
+    };
+    window.addEventListener('keydown', k);
+    return () => window.removeEventListener('keydown', k);
+  }, []);
+  return (
+    <div class={`scene-box${scene.side ? ` side-${scene.side.toLowerCase()}` : ''}`}>
+      <SceneArt art={scene.art} />
+      <div class="scene-title">{scene.title}</div>
+      {scene.sub && <div class="scene-sub">{scene.sub}</div>}
+      <ol class="scene-steps">
+        {scene.steps.map((st, i) => (
+          <li key={i} class={i < step ? 'done' : i === step ? 'now' : 'todo'}>{i <= step ? st.text : '……'}</li>
+        ))}
+      </ol>
+      <button type="button" class="btn primary" onClick={onNext}>{step + 1 < n ? `下一步（${step + 1}/${n}）` : '继续'}</button>
+    </div>
   );
 }

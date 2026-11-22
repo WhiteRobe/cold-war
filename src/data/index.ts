@@ -1,6 +1,7 @@
 import { CARD_LIST } from './cards.gen';
 import { COUNTRY_LIST } from './countries.gen';
 import type { CardDef, CountryDef, RegionId, SubRegionId } from './types';
+import { applyEndlessWorld } from './world';
 
 export * from './types';
 export { CARD_LIST, COUNTRY_LIST };
@@ -25,3 +26,11 @@ export function countriesIn(r: RegionId | SubRegionId): CountryDef[] {
 }
 
 export const CHINA_CARD = 6;
+
+/** 切换不死不休的世界（中国、蒙古、新邻接、联合国牌） */
+export function setEndlessWorld(enable: boolean) {
+  applyEndlessWorld(enable, COUNTRIES, CARDS);
+  COUNTRY_IDS.length = 0;
+  COUNTRY_IDS.push(...COUNTRY_LIST.map((c) => c.id));
+}
+export { endlessWorld, getWorldVersion, byWorld, CHINA, MONGOLIA } from './world';

@@ -1867,3 +1867,21 @@ g.links { pointer-events: none; }
 .btn.endless-btn { background: linear-gradient(180deg, #5a1f17, #2a0f0a); border-color: #f08a7c; color: #ffd9d2; font-weight: 800; }
 .btn.endless-btn:hover { background: linear-gradient(180deg, #7a2a20, #3a140f); }
 .endless-note { margin-top: 10px; font-size: 12.5px; line-height: 1.7; color: #d9c9a8; }
+
+/* 过场说明（不死不休的世界变化、机制触发）：逐条点击继续 */
+.scene-box { position: fixed; left: 16px; bottom: 184px; max-height: calc(100vh - 300px); overflow: auto; z-index: 75; width: min(480px, 60vw); background: linear-gradient(180deg, #2a2620f5, #1a1712f5); border: 2px solid #a8862e; border-radius: 14px; padding: 16px 20px 14px; box-shadow: 0 18px 48px #000c; animation: scIn 0.35s ease-out; }
+.scene-box.side-us { border-color: #5a8ac8; }
+.scene-box.side-ussr { border-color: #d0584a; }
+@keyframes scIn { from { opacity: 0; transform: translateY(12px); } }
+.sc-art { display: block; width: 100%; height: 86px; border-radius: 8px; margin-bottom: 10px; }
+.scene-title { font-size: 26px; font-weight: 900; color: #f5d76e; letter-spacing: 4px; }
+.scene-box.side-us .scene-title { color: #9cc6f0; }
+.scene-box.side-ussr .scene-title { color: #f5a090; }
+.scene-sub { margin: 4px 0 10px; color: #d9c9a8; font-size: 14px; line-height: 1.6; }
+.scene-steps { margin: 0 0 12px; padding-left: 22px; display: flex; flex-direction: column; gap: 6px; }
+.scene-steps li { font-size: 14px; line-height: 1.6; color: #e9dfc7; }
+.scene-steps li.done { color: #9a917e; }
+.scene-steps li.now { color: #fff; font-weight: 700; animation: scStep 0.4s ease-out; }
+.scene-steps li.todo { color: #6b6458; }
+@keyframes scStep { from { opacity: 0; transform: translateX(-6px); } }
+.scene-box .btn { float: right; }

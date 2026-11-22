@@ -1,6 +1,8 @@
 // AI 的轻量局面评估：只读影响力和公开信息，不依赖引擎推进。
 import { CARDS, CHINA_CARD, COUNTRIES, COUNTRY_LIST, REGIONS, type CountryDef, type RegionId, type Side } from '../data';
 import type { GameView } from '../engine/view';
+import { controller as ctrlOf0 } from '../engine/scoring';
+const ctrlOf = (v: GameView, c: string) => ctrlOf0(v as never, c);
 
 export const opp = (s: Side): Side => (s === 'US' ? 'USSR' : 'US');
 const idx = (s: Side) => (s === 'US' ? 0 : 1);
@@ -185,6 +187,8 @@ export function opsBudget(v: GameView, side: Side, base: number, card: number | 
   const f = v.flags;
   const plus = side === 'US' ? !!f.containment : !!f.brezhnev;
   let ops = base + (plus ? 1 : 0) - (f.redScare?.includes(side) ? 1 : 0);
+  // 联合国牌（不死不休）：没有亚洲加成，也不受 4 点上限
+  if (card === CHINA_CARD && f.endlessWorld) return Math.max(ops, 1);
   let cap = 4;
   if (card === CHINA_CARD && rs !== 'other') {
     ops += 1;
@@ -198,7 +202,13 @@ export function opsBudget(v: GameView, side: Side, base: number, card: number | 
 export function effOps(v: GameView, side: Side, card: number): number {
   const d = CARDS[card];
   if (d.scoring) return 0;
+  if (card === CHINA_CARD && v.flags.endlessWorld) return opsBudget(v, side, unOps(v, side), card, 'other');
   return opsBudget(v, side, d.ops, card, 'other');
+}
+
+/** 联合国牌的基础行动点：4 + 持有方控制的英国、法国、中国数 */
+export function unOps(v: GameView, side: Side): number {
+  return 4 + ['uk', 'france', 'china'].filter((c) => v.inf[c] && ctrlOf(v, c) === side).length;
 }
 
 export function maxARs(v: GameView, side: Side): number {
