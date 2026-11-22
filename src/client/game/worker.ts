@@ -107,7 +107,19 @@ self.onmessage = (e: MessageEvent<WorkerIn>) => {
       let i = h.length - 1;
       while (i >= 0 && h[i].side !== human) i--;
       if (i < 0) return;
-      game = Game.replay({ seed, options: game.setup.options }, h.slice(0, i));
+      let options = game.setup.options;
+      // 不死不休里撤销到原来的终局之前：退回普通对局（按原规则重放，若此时对局还没结束就说明回到了终局前）
+      if (options.endless) {
+        const { endless: _, ...plain } = options;
+        let over = true;
+        try {
+          over = Game.replay({ seed, options: plain }, h.slice(0, i)).over;
+        } catch {
+          over = true;
+        }
+        if (!over) options = plain;
+      }
+      game = Game.replay({ seed, options }, h.slice(0, i));
       sentLog = game.s.log.length;
       send();
       pump();

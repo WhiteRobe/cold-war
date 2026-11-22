@@ -489,8 +489,9 @@ function SceneOverlay({ beat, onNext }: { beat: Extract<Beat, { kind: 'scene' }>
       <div class="scene-title">{scene.title}</div>
       {scene.sub && <div class="scene-sub">{scene.sub}</div>}
       <ol class="scene-steps">
-        {scene.steps.map((st, i) => (
-          <li key={i} class={i < step ? 'done' : i === step ? 'now' : 'todo'}>{i <= step ? st.text : '……'}</li>
+        {/* 只显示已经展开的条目，还没轮到的不占位 */}
+        {scene.steps.slice(0, step + 1).map((st, i) => (
+          <li key={i} class={i < step ? 'done' : 'now'}>{st.text}</li>
         ))}
       </ol>
       <button type="button" class="btn primary" onClick={onNext}>{step + 1 < n ? `下一步（${step + 1}/${n}）` : '继续'}</button>

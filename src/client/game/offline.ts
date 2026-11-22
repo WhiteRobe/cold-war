@@ -3,7 +3,7 @@ import type { AiLevel } from '../../ai';
 import type { Choice, GameOptions, LogEntry, Side } from '../../engine/types';
 import type { GameView } from '../../engine/view';
 import { AI_LEVEL_ZH } from '../../ai';
-import { recordResult } from './record';
+import { recordResult, voidRecord } from './record';
 import type { GameSession, OfflineSave, WorkerIn, WorkerOut } from './session';
 
 const KEY = 'cw.saves.v1';
@@ -61,6 +61,12 @@ export function offlineSession(save: OfflineSave): GameSession {
     log.value = m.view.log;
     canUndo.value = m.canUndo;
     const v = m.view;
+    // 撤销回到终局之前时，worker 会退出不死不休，这里同步存档
+    if (!!cur.options.endless !== !!v.options.endless) {
+      const { endless: _, ...plain } = cur.options;
+      cur = { ...cur, options: v.options.endless ? { ...plain, endless: true } : plain };
+      if (!v.options.endless) voidRecord(`off:${cur.id}:endless`);
+    }
     cur = { ...cur, history: m.history, updatedAt: Date.now(), summary: { turn: v.turn, vp: v.vp, defcon: v.defcon, over: v.phase === 'over', winner: v.winner } };
     putSave(cur);
     // 不死不休另记一局，原来那局的胜负不被覆盖

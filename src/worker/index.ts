@@ -91,7 +91,7 @@ async function handleApi(req: Request, env: Env, path: string): Promise<Response
     const b = await readBody(req);
     const items = Array.isArray(b.items) ? (b.items as { id?: unknown; outcome?: unknown }[]).slice(0, 200) : [];
     const ok = items.filter(
-      (x) => typeof x.id === 'string' && /^c_[A-Za-z0-9]{8,32}:off:[A-Za-z0-9_:-]{1,64}$/.test(x.id) && ['US', 'USSR', 'draw', 'pending'].includes(x.outcome as string),
+      (x) => typeof x.id === 'string' && /^c_[A-Za-z0-9]{8,32}:off:[A-Za-z0-9_:-]{1,64}$/.test(x.id) && ['US', 'USSR', 'draw', 'pending', 'void'].includes(x.outcome as string),
     );
     if (ok.length) {
       const now = Date.now();

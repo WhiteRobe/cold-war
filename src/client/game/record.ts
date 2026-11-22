@@ -24,6 +24,15 @@ export function recordResult(id: string, v: GameView) {
   upload([[id, o]]);
 }
 
+/** 撤销导致某局不存在了（如退回不死不休之前）：本机删掉，云端标记作废（不计入统计） */
+export function voidRecord(id: string) {
+  const all = loadRecord();
+  if (!(id in all)) return;
+  delete all[id];
+  localStorage.setItem(KEY, JSON.stringify(all));
+  upload([[id, 'void' as Outcome]]);
+}
+
 /** 本浏览器的匿名编号（全局战绩按“浏览器 + 对局 id”去重） */
 function clientId(): string {
   let c = localStorage.getItem(CLIENT_KEY);
