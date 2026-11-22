@@ -1917,3 +1917,12 @@ g.links { pointer-events: none; }
 .lg-country:hover { filter: brightness(1.25); box-shadow: 0 0 0 1px #f5d76e; }
 /* 记录区点国家定位：金圈脉冲 + 方框高亮 */
 .roll-focus.locate circle { stroke-width: 6; animation-iteration-count: 3; }
+/* 结算框：再矮的屏幕也能看到按钮；计分表自己滚动，旗帜随屏幕高度缩小 */
+.victory-box .over-box { max-height: calc(100vh - 24px - min(36vh, 320px)); display: flex; flex-direction: column; overflow: hidden; }
+.over-box .over-scroll { flex: 1 1 auto; min-height: 0; overflow: auto; }
+.over-box .row { flex-wrap: wrap; justify-content: center; flex-shrink: 0; }
+.victory .flag-svg, .victory .liberty { max-height: min(36vh, 320px); }
+.endless-wrap { display: inline-flex; align-items: center; }
+.help-q.up .help-pop { top: auto; bottom: calc(100% + 8px); left: auto; right: -8px; transform: none; text-align: left; }
+.help-q .help-pop a { color: #f5d76e; margin-left: 4px; }
+.victory-box .over-box > p, .victory-box .over-box > h2 { flex-shrink: 0; margin: 6px 0; }
