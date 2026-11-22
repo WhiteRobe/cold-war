@@ -276,10 +276,10 @@ export function MapView({ view, selectable, onPick, flash, onRegion, focus, focu
           />
         );
       }).concat(
-        // 另一半：美国向左通到地图左边缘（太平洋两岸相连）
-        edges.some(({ a, b }) => a === 'japan' && b === 'usa')
-          ? [<line key="usa-wrap" x1={pos('usa')[0]} y1={pos('usa')[1]} x2={4} y2={pos('usa')[1]} class="edge inter sp-usa" />]
-          : [],
+        // 另一半：美国向左通到地图左边缘（太平洋两岸相连），每个亚太邻国各一条，高度与右边对应
+        edges
+          .filter(({ a, b }) => b === 'usa' && COUNTRIES[a].region === 'asia')
+          .map(({ a }) => <line key={`usa-wrap-${a}`} x1={pos('usa')[0]} y1={pos('usa')[1]} x2={4} y2={pos(a)[1]} class="edge inter sp-usa" />),
       ),
     [edges],
   );
@@ -471,7 +471,9 @@ export function MapView({ view, selectable, onPick, flash, onRegion, focus, focu
         {view.flags.flowerPower && <AntiWarProtest x={262} y={318} />}
         <text x={MAP_W - 8} y={pos('japan')[1] + 38} class="edge-label" text-anchor="end">→ 美国</text>
         {ew && ['philippines', 'australia'].map((c) => <text key={c} x={MAP_W - 8} y={pos(c)[1] - 6} class="edge-label" text-anchor="end">→ 美国</text>)}
-        <text x={8} y={pos('usa')[1] - 10} class="edge-label">{ew ? '日本 · 菲律宾 · 澳大利亚 ←' : '日本 ←'}</text>
+        {(ew ? ['japan', 'philippines', 'australia'] : ['japan']).map((c) => (
+          <text key={c} x={8} y={pos(c)[1] - 6} class="edge-label">{COUNTRIES[c].zh} ←</text>
+        ))}
         {COUNTRY_LIST.map((c) => (
           <CountryBox
             key={c.id}
