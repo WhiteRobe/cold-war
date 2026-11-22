@@ -179,7 +179,7 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
           <button type="button" class={tab === 'regions' ? 'on' : ''} onClick={() => setTab('regions')}>局势</button>
           <button type="button" class={tab === 'help' ? 'on' : ''} onClick={() => setTab('help')}>速查</button>
         </div>
-        {tab === 'log' ? <LogView log={view.log} me={me} onPeek={peekLater} /> : tab === 'headlines' ? <HeadlineHistory view={view} names={names} onZoom={setZoomCard} /> : tab === 'cards' ? <CardsPanel view={view} names={names} onZoom={setZoomCard} /> : tab === 'regions' ? <RegionPanel view={view} /> : <QuickRef />}
+        {tab === 'log' ? <LogView log={view.log} me={me} onPeek={peekLater} /> : tab === 'headlines' ? <HeadlineHistory view={view} names={names} onZoom={setZoomCard} /> : tab === 'cards' ? <CardsPanel view={view} names={names} onZoom={setZoomCard} /> : tab === 'regions' ? <RegionPanel view={view} /> : <QuickRef endless={!!view.options.endless} />}
       </aside>
       <button type="button" class={`hand-toggle${handChoice ? ' need' : ''}`} onClick={() => setHandOpen(!handOpen)}>
         手牌 {myHand.length}{handOpen ? ' ▾' : ' ▴'}
@@ -599,7 +599,7 @@ function HeadlineHistory({ view, names, onZoom }: { view: GameView; names: Recor
   );
 }
 
-function QuickRef() {
+function QuickRef({ endless }: { endless?: boolean }) {
   return (
     <div class="quickref">
       <h4>行动点用途</h4>
@@ -613,6 +613,13 @@ function QuickRef() {
       <p><b>存在</b>：至少控制 1 国。<b>支配</b>：国家数与战场国数都多于对手，且至少有 1 个非战场国。<b>控制</b>：国家数多于对手且控制全部战场国。另每控制一个战场国 +1，每控制一个与敌方超级大国相邻的国家 +1。</p>
       <h4>回合结束</h4>
       <p>军事行动每少 1 点对手 +1 VP；手里有计分卡直接判负；中国牌翻回正面。</p>
+      {endless && (
+        <>
+          <h4>不死不休</h4>
+          <p>六个洲全部控制才获胜，胜利点和计分卡不再结束对局。每回合开始：区域压制、半岛导弹、石油经济；每个行动轮前：统一检查、中国统一红利、区域红利（支配 +1 / 控制 +2）。每回合第一张行动点牌结算乌云压境与落后补给；空间站之后可发动轨道打击。</p>
+          <p><a href="#/rules/endless">不死不休完整规则 →</a></p>
+        </>
+      )}
       <p><a href="#/rules">完整规则摘要 →</a></p>
     </div>
   );
