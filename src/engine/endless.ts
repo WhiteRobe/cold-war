@@ -52,72 +52,6 @@ export function openRegions(s: GameState): RegionId[] {
 const LV_ZH: Record<RegionLevel, string> = { none: '无', presence: '存在', domination: '支配', control: '控制' };
 const names = (ids: string[]) => ids.map(countryName).join('、');
 
-/** 第一次触发某个机制时多给一句说明 */
-function firstTime(g: Game, key: string): boolean {
-  const f = g.s.flags;
-  const seen = f.seen ?? [];
-  if (seen.includes(key)) return false;
-  f.seen = [...seen, key];
-  return true;
-}
-
-/** 每个行动轮前：支配 / 控制的洲给免费影响力（全图任意） */
-export function* bonusBeforeAR(g: Game, side: Side): Gen {
-  const { total, parts } = regionBonus(g.s, side);
-  if (!total) return;
-  const why = parts.map(([r, l, n]) => `${l === 'control' ? '控制' : '支配'}${REGION_ZH[r]} +${n}`).join('、');
-  const first = firstTime(g, `bonus${side}`);
-  g.log(`区域红利：${SIDE_ZH[side]}${why}，行动轮前免费放置 ${total} 点影响力`, {
-    side,
-    scene: first
-      ? {
-          title: '区域红利', side, art: 'bonus',
-          sub: `${SIDE_ZH[side]}在一个洲站稳了脚跟。不死不休里，每个行动轮开始前，支配一个洲 +1、控制一个洲 +2 点免费影响力，可以放在全图任意国家。`,
-          steps: [{ text: `${SIDE_ZH[side]}：${why}，这个行动轮前免费放置 ${total} 点。` }, { text: '以后每个行动轮都会这样结算，记录区会写明来源。' }],
-        }
-      : undefined,
-  });
-  yield* g.placeInfluence(side, 0, total, () => true, { prompt: `区域红利（${why}）：在全图任意国家放置影响力` });
-}
-
-/** 回合开始：控制的洲压制敌方——洲内每个有敌方影响力的国家各移除 1 点 */
-export function squeeze(g: Game) {
-  for (const side of ['USSR', 'US'] as Side[]) {
-    const enemy = opp(side);
-    const lv = regionLevels(g.s, side);
-    const steps: { text: string; country?: string }[] = [];
-    for (const r of REGIONS) {
-      if (lv[r] !== 'control') continue;
-      const hit = COUNTRY_LIST.filter((c) => c.region === r && g.inf(c.id, enemy) > 0).map((c) => c.id);
-      if (!hit.length) continue;
-      for (const c of hit) g.removeInf(c, enemy, 1);
-      steps.push({ text: `${SIDE_ZH[side]}控制${REGION_ZH[r]}：${names(hit)}的${SIDE_ZH[enemy]}影响力各 -1。`, country: hit[0] });
-    }
-    if (!steps.length) continue;
-    g.log(`区域压制：${steps.map((x) => x.text).join(' ')}`, {
-      side,
-      scene: { title: '区域压制', side, art: 'squeeze', sub: `${SIDE_ZH[side]}控制的洲，每回合开始时清扫敌方据点：洲内每个有${SIDE_ZH[enemy]}影响力的国家各移除 1 点。`, steps },
-    });
-  }
-}
-
-/** 回合开始（区域压制之后）：石油经济——苏联控制几个石油国，就在全图放几点影响力 */
-export function* oil(g: Game): Gen {
-  const held = OIL_COUNTRIES.filter((c) => g.controls('USSR', c));
-  if (!held.length) return;
-  g.log(`石油经济：苏联控制 ${held.length} 个石油国（${names(held)}），在全图放置 ${held.length} 点影响力`, {
-    side: 'USSR',
-    scene: {
-      title: '石油经济', side: 'USSR', art: 'oil',
-      sub: '油价就是国力。每回合开始，苏联每控制一个石油国（埃及、伊朗、利比亚、沙特、伊拉克、海湾诸国、委内瑞拉），就在全图任意国家放 1 点影响力；北海油田也挡不住。',
-      steps: [
-        { text: `苏联控制的石油国：${names(held)}。`, country: held[0] },
-        { text: `苏联在全图任意国家放置 ${held.length} 点影响力。` },
-      ],
-    },
-  });
-  yield* g.placeInfluence('USSR', 0, held.length, () => true, { prompt: `石油经济：在全图任意国家放置影响力` });
-}
 
 /**
  * 每回合第一张用行动点打出的牌：乌云压境（对手占着我方本土邻国，每国 -1）。
@@ -247,46 +181,118 @@ export function unifyCheck(g: Game) {
   }
 }
 
-/** 中国统一的红利：苏联每个行动轮前在中东或非洲放 1 点；美国每个行动轮前在朝鲜（半岛统一后为合并后的国家）放 1 点 */
-export function* unifyBonus(g: Game, side: Side): Gen {
-  const f = g.s.flags;
-  if (f.unifyChina !== side) return;
-  const first = firstTime(g, `unifyBonus${side}`);
-  if (side === 'USSR') {
-    g.log('中国统一红利：苏联在中东或非洲任一国家放置 1 点影响力', {
-      side,
-      scene: first ? { title: '中国统一 · 红利', side, art: 'unifyChina', sub: '统一的中国支持第三世界的革命：苏联每个行动轮开始时，可在中东或非洲任一国家放置 1 点影响力。', steps: [{ text: '这个行动轮的 1 点现在放置；以后每个行动轮都会在记录区写明。' }] } : undefined,
-    });
-    yield* g.placeInfluence('USSR', 0, 1, (c) => COUNTRIES[c].region === 'middleEast' || COUNTRIES[c].region === 'africa', { prompt: '中国统一红利：在中东或非洲任一国家放置影响力' });
-  } else {
-    const k = f.unifyKorea ? koreaKeep(f.unifyKorea) : 'northKorea';
-    g.log(`中国统一红利：美国在${COUNTRIES[k].zh}放置 1 点影响力`, {
-      side,
-      scene: first ? { title: '中国统一 · 红利', side, art: 'unifyChina', sub: `统一的中国倒向西方，朝鲜半岛北部失去后盾：美国每个行动轮开始时在${COUNTRIES[k].zh}放置 1 点影响力。`, steps: [{ text: '这个行动轮的 1 点现在放置；以后每个行动轮都会在记录区写明。', country: k }] } : undefined,
-    });
-    yield* g.placeInfluence('US', 0, 1, (c) => c === k, { prompt: `中国统一红利：在${COUNTRIES[k].zh}放置影响力` });
-  }
+/** 一次合并放置里的一项来源：n 点，可放的国家（不填为全图任意） */
+interface Grant {
+  label: string;
+  n: number;
+  ok?: (c: string) => boolean;
+  where?: string;
 }
 
-/** 回合开始：统一后的朝鲜半岛向日本发射导弹 */
-export function missile(g: Game) {
-  const x = g.s.flags.unifyKorea;
-  if (!x) return;
-  const enemy = opp(x);
-  const name = COUNTRIES[koreaKeep(x)].zh;
-  if (!g.inf('japan', enemy)) {
-    g.log(`${name}向日本发射导弹：日本没有${SIDE_ZH[enemy]}影响力，跳过`, { side: x });
-    return;
+/** 把几项来源的影响力合成一次放置：每点优先记到限制最严的来源上 */
+function* placeGrants(g: Game, side: Side, grants: Grant[], title: string): Gen {
+  const left = grants.map((x) => x.n);
+  const total = left.reduce((a, b) => a + b, 0);
+  if (!total) return;
+  const steps: [string, number][] = [];
+  const placed: Record<string, number> = {};
+  const src = grants.map((x, i) => `${x.label} ${x.n}${x.where ? `（${x.where}）` : ''}`).join('，');
+  for (let i = 0; i < total; i++) {
+    const usable = (c: string) => grants.some((x, k) => left[k] > 0 && (!x.ok || x.ok(c)));
+    const ids = COUNTRY_LIST.map((c) => c.id).filter(usable);
+    if (!ids.length) break;
+    const c = yield* g.askCountry(side, 'placeEvent', `${title}：${src}（剩余 ${total - i}）`, ids, { ops: { total, spent: i } });
+    // 先用有限制的来源，再用全图任意的
+    let k = grants.findIndex((x, j) => left[j] > 0 && x.ok && x.ok(c));
+    if (k < 0) k = grants.findIndex((x, j) => left[j] > 0 && !x.ok);
+    left[k]--;
+    g.addInf(c, side, 1);
+    placed[c] = (placed[c] ?? 0) + 1;
+    steps.push([c, 1]);
   }
-  g.removeInf('japan', enemy, 1);
-  g.log(`${name}向日本发射导弹：日本${SIDE_ZH[enemy]}影响力 -1`, {
-    side: x,
+  const list = Object.entries(placed).map(([c, n]) => `${countryName(c)} +${n}`).join('，');
+  if (list) g.log(`${SIDE_ZH[side]}：${list}`, { side, place: { side, steps } });
+}
+
+/**
+ * 回合开始结算（补牌之后、第一个行动轮之前）：先固定调整（半岛导弹、区域压制），再放置影响力（石油经济）。
+ * 所有变化合成一段说明。
+ */
+export function* turnStart(g: Game): Gen {
+  const s = g.s;
+  const lines: { text: string; country?: string }[] = [];
+  // 固定调整 1：统一后的朝鲜半岛向日本发射导弹
+  const k = s.flags.unifyKorea;
+  if (k) {
+    const enemy = opp(k), name = COUNTRIES[koreaKeep(k)].zh;
+    if (g.inf('japan', enemy)) {
+      g.removeInf('japan', enemy, 1);
+      lines.push({ text: `${name}向日本发射导弹：日本${SIDE_ZH[enemy]}影响力 -1。`, country: 'japan' });
+    } else lines.push({ text: `${name}向日本发射导弹：日本没有${SIDE_ZH[enemy]}影响力，没有效果。`, country: 'japan' });
+  }
+  // 固定调整 2：区域压制
+  for (const side of ['USSR', 'US'] as Side[]) {
+    const enemy = opp(side);
+    const lv = regionLevels(s, side);
+    for (const r of REGIONS) {
+      if (lv[r] !== 'control') continue;
+      const hit = COUNTRY_LIST.filter((c) => c.region === r && g.inf(c.id, enemy) > 0).map((c) => c.id);
+      if (!hit.length) continue;
+      for (const c of hit) g.removeInf(c, enemy, 1);
+      lines.push({ text: `区域压制：${SIDE_ZH[side]}控制${REGION_ZH[r]}，${names(hit)}的${SIDE_ZH[enemy]}影响力各 -1。`, country: hit[0] });
+    }
+  }
+  // 放置：石油经济
+  const held = OIL_COUNTRIES.filter((c) => g.controls('USSR', c));
+  if (held.length) lines.push({ text: `石油经济：苏联控制 ${held.length} 个石油国（${names(held)}），在全图放置 ${held.length} 点影响力。`, country: held[0] });
+  if (!lines.length) return;
+  g.log(`第 ${s.turn} 回合开始结算：${lines.map((x) => x.text).join(' ')}`, {
+    kind: 'turn',
     scene: {
-      title: `${name}向日本发射导弹`, side: x, art: 'missile',
-      sub: `统一后的${name}每个回合开始都会向日本示威。`,
-      steps: [{ text: `日本的${SIDE_ZH[enemy]}影响力 -1。`, country: 'japan' }],
+      title: `第 ${s.turn} 回合开始结算`, art: 'squeeze', flat: true,
+      sub: '先结算固定调整（导弹、区域压制），再放置影响力（石油经济）。',
+      steps: lines,
     },
   });
+  if (held.length) yield* placeGrants(g, 'USSR', [{ label: '石油经济', n: held.length }], '回合开始结算 · 苏联放置影响力');
+}
+
+/**
+ * 行动轮开始结算（行动方行动之前）：先固定调整（中国统一、朝鲜半岛统一），
+ * 再把行动方的区域红利、中国统一红利，以及双方持续事件换来的影响力一次放完。
+ */
+export function* arStart(g: Game, side: Side): Gen {
+  unifyCheck(g);
+  const s = g.s, f = s.flags;
+  const bySide: Record<Side, Grant[]> = { US: [], USSR: [] };
+  const { parts } = regionBonus(s, side);
+  if (parts.length) {
+    bySide[side].push({ label: `区域红利（${parts.map(([r, l, n]) => `${l === 'control' ? '控制' : '支配'}${REGION_ZH[r]} +${n}`).join('、')}）`, n: parts.reduce((a, p) => a + p[2], 0) });
+  }
+  if (f.unifyChina === side) {
+    if (side === 'USSR') bySide.USSR.push({ label: '中国统一红利', n: 1, ok: (c) => COUNTRIES[c].region === 'middleEast' || COUNTRIES[c].region === 'africa', where: '中东或非洲' });
+    else {
+      const kr = f.unifyKorea ? koreaKeep(f.unifyKorea) : 'northKorea';
+      if (s.inf[kr]) bySide.US.push({ label: '中国统一红利', n: 1, ok: (c) => c === kr, where: COUNTRIES[kr].zh });
+    }
+  }
+  for (const x of ['US', 'USSR'] as Side[]) {
+    const p = g.takePendingInf(x);
+    if (p) bySide[x].push({ label: `持续事件（${p.why}）`, n: p.n });
+  }
+  const lines: { text: string }[] = [];
+  for (const x of [side, opp(side)] as Side[]) {
+    const gs = bySide[x];
+    if (!gs.length) continue;
+    const n = gs.reduce((a, b) => a + b.n, 0);
+    lines.push({ text: `${SIDE_ZH[x]}放置 ${n} 点影响力：${gs.map((y) => `${y.label} ${y.n}${y.where ? `（限${y.where}）` : ''}`).join('，')}。` });
+  }
+  if (!lines.length) return;
+  g.log(`行动轮开始结算：${lines.map((x) => x.text).join(' ')}`, {
+    side,
+    scene: { title: `${SIDE_ZH[side]}行动轮开始结算`, side, art: 'bonus', flat: true, minor: true, sub: '不受限制的点数可以放在全图任意国家。', steps: lines },
+  });
+  for (const x of [side, opp(side)] as Side[]) yield* placeGrants(g, x, bySide[x], `${SIDE_ZH[x]}行动轮开始结算`);
 }
 
 export { LV_ZH };

@@ -358,12 +358,12 @@ class Smart {
   coupTarget(d: Decision): Choice | undefined {
     const cands = d.options.map((o) => o.v as string).filter((c) => COUNTRIES[c]);
     const hasDone = d.options.some((o) => o.v === 'done');
-    if (d.card === 36) {
-      // 局部战争
+    if (d.card === 36 || d.card === 142) {
+      // 局部战争 / 代理人战争
       let best: string | undefined;
       let bv = -Infinity;
       for (const c of cands) {
-        const val = warEV(this.cx, this.inf, this.me, c, 3, 1);
+        const val = d.card === 142 ? warEV(this.cx, this.inf, this.me, c, 4, 2) : warEV(this.cx, this.inf, this.me, c, 3, 1);
         if (val > bv) {
           bv = val;
           best = c;
@@ -374,7 +374,7 @@ class Smart {
     const n = this.parseOps(d);
     const china = d.card === CHINA_CARD;
     const vr = this.me === 'USSR' && this.v.flags.vietnamRevolts;
-    const free = [47, 96, 91].includes(d.card ?? 0);
+    const free = [47, 96, 91, 121, 133].includes(d.card ?? 0);
     const pick = bestCoup(this.cx, this.inf, this.me, cands, (c) => n + (china && COUNTRIES[c].region === 'asia' ? 1 : 0) + (vr && COUNTRIES[c].sub.includes('southeastAsia') ? 1 : 0), { arsLeft: arsLeft(this.v, this.me), free });
     if (!pick) return hasDone ? 'done' : cands[0];
     if (hasDone && pick.value < 0) return 'done';

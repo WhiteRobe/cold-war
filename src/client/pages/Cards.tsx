@@ -4,13 +4,16 @@ import { STORIES } from '../../data/stories';
 import { CardFace, MiniCard } from '../game/CardFace';
 import { go } from '../store';
 
-const ERA_ZH: Record<Era, string> = { early: '冷战早期', mid: '冷战中期', late: '冷战后期' };
+type Phase = Era | 'endless';
+const ERA_ZH: Record<Phase, string> = { early: '冷战早期', mid: '冷战中期', late: '冷战后期', endless: '不死不休' };
+/** 卡牌所属阶段：不死不休专属牌单独一档 */
+const phaseOf = (c: (typeof CARD_LIST)[number]): Phase => (c.endless ? 'endless' : c.era);
 const SIDE_ORDER = { US: 0, USSR: 1, NEUTRAL: 2 } as const;
 type SortKey = 'side' | 'ops' | 'id';
 const SORT_ZH: Record<SortKey, string> = { side: '按阵营', ops: '按点数', id: '按编号' };
 
 export function Cards() {
-  const [era, setEra] = useState<Era | 'all'>('all');
+  const [era, setEra] = useState<Phase | 'all'>('all');
   const [side, setSide] = useState<'all' | 'US' | 'USSR' | 'NEUTRAL'>('all');
   const [q, setQ] = useState('');
   const [zoom, setZoom] = useState<number | null>(null);
@@ -18,7 +21,7 @@ export function Cards() {
   // 阵营：美 → 苏 → 中立，同阵营按点数从小到大（计分卡 0 点排在中立最前）；点数：先点数再阵营
   const bySide = (a: (typeof CARD_LIST)[number], b: (typeof CARD_LIST)[number]) => SIDE_ORDER[a.side] - SIDE_ORDER[b.side];
   const byOps = (a: (typeof CARD_LIST)[number], b: (typeof CARD_LIST)[number]) => a.ops - b.ops;
-  const list = CARD_LIST.filter((c) => (era === 'all' || c.era === era) && (side === 'all' || c.side === side) && (!q || c.zh.includes(q) || c.name.toLowerCase().includes(q.toLowerCase()) || String(c.id) === q)).sort(
+  const list = CARD_LIST.filter((c) => (era === 'all' || phaseOf(c) === era) && (side === 'all' || c.side === side) && (!q || c.zh.includes(q) || c.name.toLowerCase().includes(q.toLowerCase()) || String(c.id) === q)).sort(
     (a, b) => (sort === 'side' ? bySide(a, b) || byOps(a, b) : sort === 'ops' ? byOps(a, b) || bySide(a, b) : 0) || a.id - b.id,
   );
   const at = zoom === null ? -1 : list.findIndex((c) => c.id === zoom);
@@ -30,7 +33,7 @@ export function Cards() {
       </header>
       <div class="filters">
         <div class="seg">
-          {(['all', 'early', 'mid', 'late'] as const).map((e) => (
+          {(['all', 'early', 'mid', 'late', 'endless'] as const).map((e) => (
             <button type="button" key={e} class={era === e ? 'on' : ''} onClick={() => setEra(e)}>{e === 'all' ? '全部' : ERA_ZH[e]}</button>
           ))}
         </div>

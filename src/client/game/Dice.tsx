@@ -111,9 +111,10 @@ export function useEventPacing(incoming: GameView | null, aiOpponent: boolean): 
       if (i < from) return;
       if (e.move) items.push({ at: i - 0.5, beat: { key: ++seq.current, kind: 'move', move: e.move } });
       if (e.roll) items.push({ at: i, beat: { key: ++seq.current, kind: 'roll', roll: e.roll } });
-      if (e.scene) {
+      // 例行结算（minor）只给行动方自己看；flat 的结算汇总一次显示全部条目
+      if (e.scene && !(e.scene.minor && e.scene.side !== incoming.me)) {
         const world = ['eastRise', 'pacific', 'unifyChina', 'unifyKorea'].includes(e.scene.art ?? '');
-        const n = Math.max(1, e.scene.steps.length);
+        const n = e.scene.flat ? 1 : Math.max(1, e.scene.steps.length);
         for (let k = 0; k < n; k++) items.push({ at: i - 0.45 + k * 0.001, beat: { key: ++seq.current, kind: 'scene', scene: e.scene, step: k, world } });
       }
       // 对手放影响力逐点播放（自己点的不必重播）
@@ -472,7 +473,7 @@ function SceneArt({ art }: { art?: string }) {
 /** 过场说明：标题、为什么发生、逐条展开的变化；每条都要点击继续，不会一闪而过 */
 function SceneOverlay({ beat, onNext }: { beat: Extract<Beat, { kind: 'scene' }>; onNext: () => void }) {
   const { scene, step } = beat;
-  const n = Math.max(1, scene.steps.length);
+  const n = scene.flat ? 1 : Math.max(1, scene.steps.length);
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
       if (e.key === 'Enter' || e.key === ' ') {
@@ -491,7 +492,8 @@ function SceneOverlay({ beat, onNext }: { beat: Extract<Beat, { kind: 'scene' }>
       <ol class="scene-steps">
         {/* 还没轮到的条目用省略号占位，让人知道后面还有几步 */}
         {scene.steps.map((st, i) => (
-          <li key={i} class={i < step ? 'done' : i === step ? 'now' : 'todo'}>{i <= step ? st.text : '……'}</li>
+          scene.flat ? <li key={i} class="now">{st.text}</li>
+            : <li key={i} class={i < step ? 'done' : i === step ? 'now' : 'todo'}>{i <= step ? st.text : '……'}</li>
         ))}
       </ol>
       <button type="button" class="btn primary" onClick={onNext}>{step + 1 < n ? `下一步（${step + 1}/${n}）` : '继续'}</button>

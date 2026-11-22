@@ -9,7 +9,7 @@ import {
 import { EFFECTS } from './effects';
 import { EVENT_FLAGS, erasUpTo } from './scenario';
 import { GameOver, cardName, countryName } from './util';
-import { ORBIT, bonusBeforeAR, firstOpsCard, ironDepth, keyProgress, missile, oil, orbitalStrike, squeeze, unifyBonus, unifyCheck } from './endless';
+import { ORBIT, arStart, firstOpsCard, ironDepth, keyProgress, orbitalStrike, turnStart } from './endless';
 
 export { GameOver, cardName, countryName };
 
@@ -85,6 +85,8 @@ export class Game {
   private eventDepth = 0;
   private pendingOps: Record<Side, number> = { US: 0, USSR: 0 };
   private pendingWhy: Record<Side, string[]> = { US: [], USSR: [] };
+  private pendingInf: Record<Side, number> = { US: 0, USSR: 0 };
+  private pendingInfWhy: Record<Side, string[]> = { US: [], USSR: [] };
   private gen: Gen;
 
   constructor(public setup: GameSetup) {
@@ -202,10 +204,16 @@ export class Game {
     if (n === 0) return;
     if (this.endlessOn) {
       // 不死不休没有胜利点：事件给的 VP 改成同样多的行动点（事件结算完立刻使用），其他来源的 VP 直接作废
-      if (this.eventDepth > 0 && n > 0) {
+      if (n <= 0) return;
+      if (this.eventDepth > 0) {
         this.pendingOps[side] += n;
         this.pendingWhy[side] = [...this.pendingWhy[side], why ?? '事件'];
         this.log(`${SIDE_ZH[side]} +${n} VP${why ? `（${why}）` : ''} → 不死不休改为 +${n} 行动点`, { side, kind: 'score' });
+      } else if (why && !/^(军事行动|太空竞赛)/.test(why)) {
+        // 持续事件（花之力、尤里和萨曼莎、我们将埋葬你们……）给的 VP 改为影响力，在下一次行动轮开始结算时放置
+        this.pendingInf[side] += n;
+        this.pendingInfWhy[side] = [...this.pendingInfWhy[side], why];
+        this.log(`${SIDE_ZH[side]} +${n} VP（${why}）→ 不死不休改为放置 ${n} 点影响力`, { side, kind: 'score' });
       }
       return;
     }
@@ -419,9 +427,10 @@ export class Game {
         art: 'endless',
         steps: [
           { text: '没有头条阶段：每回合补牌后直接进入行动轮。' },
-          { text: '不再有计分：计分卡全部移出游戏，胜利点冻结。事件里的「+N VP」改为得分方立刻获得 N 点行动点；其他来源（军事行动、太空竞赛）的 VP 作废。没有回合上限。' },
+          { text: '不再有计分：胜利点冻结。事件里的「+N VP」改为得分方立刻获得 N 点行动点；持续事件给的 VP（如花之力、尤里和萨曼莎）改为得分方在全图放置 N 点影响力；军事行动、太空竞赛的 VP 作废。没有回合上限。' },
           { text: '新机制从这一回合起生效：支配 / 控制一个洲有免费影响力，控制的洲会压制敌方；占着敌方本土邻国会削弱敌方每回合的第一张牌；太空竞赛到顶后可以发动轨道打击；苏联还有石油经济。' },
-          { text: `${CARD_LIST.filter((c) => c.endless).length} 张不死不休专属卡洗入牌库：${CARD_LIST.filter((c) => c.endless).map((c) => `#${c.id} ${c.zh}`).join('、')}。地图也要变了——` },
+          { text: `原来三个时期的牌全部退场（双方手牌、牌库、弃牌堆），牌库换成 ${CARD_LIST.filter((c) => c.endless).length} 张不死不休专属牌，双方重新补牌。已经生效的持续事件留在桌上，其中会给胜利点的改为给影响力。` },
+          { text: '地图也要变了——' },
         ],
       },
     });
@@ -447,10 +456,11 @@ export class Game {
     });
     s.china = { holder: 'USSR', faceUp: true };
     s.inf.australia[1] += 1;
-    // 不死不休没有计分：计分卡全部移出游戏
-    for (const c of CARD_LIST.filter((x) => x.scoring)) this.purgeCard(c.id);
-    const extra = CARD_LIST.filter((c) => c.endless).map((c) => c.id);
-    s.deck = shuffle(s, [...s.deck, ...extra]);
+    // 原来三个时期的牌全部退场（持续生效的事件留在桌上），牌库换成不死不休专属牌
+    const old = [...s.deck, ...s.discard, ...s.hands.US, ...s.hands.USSR].filter((c) => c !== CHINA_CARD && !CARDS[c].endless);
+    for (const c of old) this.purgeCard(c);
+    s.flags.missileEnvy = undefined;
+    s.deck = shuffle(s, CARD_LIST.filter((c) => c.endless).map((c) => c.id));
     this.log('太平洋战略：澳大利亚、菲律宾成为美国本土邻国，澳大利亚 +1 苏联影响力', {
       kind: 'turn',
       scene: {
@@ -564,9 +574,7 @@ export class Game {
     if (t > this.firstTurn) this.deal(t <= 3 ? 8 : 9);
     s.spaceAttempts = { US: 0, USSR: 0 };
     if (this.endlessOn) {
-      squeeze(this);
-      missile(this);
-      yield* oil(this);
+      yield* turnStart(this);
       this.checkGlobal();
     }
     // 不死不休没有头条阶段
@@ -579,9 +587,7 @@ export class Game {
         s.ar = ar;
         s.phasing = side;
         if (this.endlessOn) {
-          unifyCheck(this);
-          yield* unifyBonus(this, side);
-          yield* bonusBeforeAR(this, side);
+          yield* arStart(this, side);
           this.checkGlobal();
         }
         yield* this.actionRound(side, ar > this.baseARs());
@@ -856,6 +862,16 @@ export class Game {
       this.log(`${SIDE_ZH[side]}使用「${why}」的 VP 换来的 ${n} 点行动点`, { side });
       yield* this.opsPlay(side, n, { raw: true });
     }
+  }
+
+  /** 不死不休：取走持续事件的 VP 换成的影响力（在下一次行动轮开始结算时放置） */
+  takePendingInf(side: Side): { n: number; why: string } | null {
+    const n = this.pendingInf[side];
+    if (!n) return null;
+    const why = [...new Set(this.pendingInfWhy[side])].join('、');
+    this.pendingInf[side] = 0;
+    this.pendingInfWhy[side] = [];
+    return { n, why };
   }
 
   /** 用行动点打出：不死不休里每回合第一张要先结算乌云压境 / 落后补给 */

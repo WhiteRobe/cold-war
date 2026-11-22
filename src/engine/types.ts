@@ -92,6 +92,10 @@ export interface Scene {
   /** 插图种类（界面据此画过场图） */
   art?: string;
   steps: { text: string; country?: string }[];
+  /** 所有条目一次显示，点一下就关（结算汇总用） */
+  flat?: boolean;
+  /** 例行结算：只给行动方自己看（对手的例行结算只写进记录） */
+  minor?: boolean;
 }
 
 export type PileName = 'deck' | 'discard' | 'removed' | 'played';

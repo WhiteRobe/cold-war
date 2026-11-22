@@ -7,7 +7,8 @@ import { applyWorld, type WorldState } from './world';
 export * from './types';
 export { CARD_LIST, COUNTRY_LIST };
 
-CARD_LIST.push(...ENDLESS_CARDS);
+// 不死不休专属牌接在原版 110 张之后（模块被重复执行时不重复追加）
+for (const c of ENDLESS_CARDS) if (!CARD_LIST.some((x) => x.id === c.id)) CARD_LIST.push(c);
 
 export const COUNTRIES: Record<string, CountryDef> = Object.fromEntries(COUNTRY_LIST.map((c) => [c.id, c]));
 export const CARDS: Record<number, CardDef> = Object.fromEntries(CARD_LIST.map((c) => [c.id, c]));

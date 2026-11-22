@@ -627,7 +627,7 @@ function QuickRef({ endless }: { endless?: boolean }) {
       {endless && (
         <>
           <h4>不死不休</h4>
-          <p>控制全部战场国 + 对手本土全部邻国即获胜；没有头条，没有计分，事件里的 VP 改为行动点。每回合开始：区域压制、半岛导弹、石油经济；每个行动轮前：统一检查、中国统一红利、区域红利（支配 +1 / 控制 +2）。每回合第一张行动点牌结算乌云压境；空间站之后可发动轨道打击。</p>
+          <p>控制全部战场国 + 对手本土全部邻国即获胜；没有头条，没有计分，事件里的 VP 改为行动点。老牌全部退场，换成不死不休专属牌。每回合开始一次结算：半岛导弹、区域压制（固定），石油经济（放置）；每个行动轮开始一次结算：统一检查（固定），区域红利（支配 +1 / 控制 +2）、中国统一红利、持续事件换来的影响力（合并放置）。每回合第一张行动点牌结算乌云压境；空间站之后可发动轨道打击。</p>
           <p><a href="#/rules/endless">不死不休完整规则 →</a></p>
         </>
       )}
@@ -659,7 +659,9 @@ function pileCards(view: GameView, pile: 'discard' | 'removed' | 'deck'): { card
   const era = view.turn <= 3 ? ['early'] : view.turn <= 7 ? ['early', 'mid'] : ['early', 'mid', 'late'];
   const seen = new Set([...view.discard, ...view.removed, ...view.inPlay, ...view.hands.US, ...view.hands.USSR, ...Object.values(view.headline), CHINA_CARD]);
   if (view.playing) seen.add(view.playing.card);
-  const cards = CARD_LIST.filter((c) => era.includes(c.era) && (view.options.optionalCards || !c.optional) && !seen.has(c.id)).map((c) => c.id);
+  // 不死不休：牌库只有专属牌
+  const ew = !!view.flags.endlessWorld;
+  const cards = CARD_LIST.filter((c) => (ew ? c.endless : !c.endless && era.includes(c.era) && (view.options.optionalCards || !c.optional)) && !seen.has(c.id)).map((c) => c.id);
   return { cards, title: `牌库（${view.deckCount} 张）或对手手牌中的牌` };
 }
 

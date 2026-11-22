@@ -7,6 +7,7 @@ import {
 import { greedyAdd, greedyRemove, opsValue } from './plan';
 import { SPACE } from '../engine/space';
 
+const OIL = ['egypt', 'iran', 'libya', 'saudiArabia', 'iraq', 'gulfStates', 'venezuela'];
 const inR = (c: string, r: string) => COUNTRIES[c].region === r || COUNTRIES[c].sub.includes(r as never);
 
 /** 直接改动局面的价值 */
@@ -230,6 +231,39 @@ export function eventMe(cx: Ctx, inf: Inf, card: number, exec: Side): number {
     case 112: return inf.china ? apply(cx, inf, (x) => { x.china[1] += 2 + (ctrl(inf, 'mongolia') === 'USSR' ? 1 : 0); }, ['china']) : 0;
     case 113: return apply(cx, inf, (x) => { for (const c of ['japan', 'australia', 'philippines']) if (x[c]) x[c][0] += 1; }, ['japan', 'australia', 'philippines']);
     case 114: return greedyRemove(cx, inf, exec, them, 3, () => true, 1).value;
+    // ---- 不死不休专属牌 ----
+    case 115: return greedyAdd(cx, inf, exec, 4, (c) => inR(c, 'easternEurope'), 2).value;
+    case 116: case 132: return greedyAdd(cx, inf, exec, 3, (c) => inR(c, 'africa'), 1).value;
+    case 117: return greedyAdd(cx, inf, exec, ctrl(inf, 'cuba') === exec ? 4 : 3, (c) => inR(c, 'centralAmerica'), 2).value;
+    case 118: {
+      const n = Math.min(4, OIL.filter((c) => inf[c] && ctrl(inf, c) === exec).length);
+      return n ? greedyAdd(cx, inf, exec, n, (c) => inR(c, 'europe')).value : 0;
+    }
+    case 119: case 130: return v.space[exec] >= 8 ? vp(2.5) : vp(spaceValue(cx, exec));
+    case 120: return ops(4, ['influence']);
+    case 121: case 133: return vp(1.2);
+    case 122: return greedyRemove(cx, inf, exec, them, 3, (c) => inR(c, 'southAmerica'), 2).value;
+    case 123: return vp(1.0);
+    case 124: return apply(cx, inf, (x) => { for (const c of ['mongolia', 'china', 'northKorea', 'southKorea']) if (x[c]) x[c][exec === 'US' ? 0 : 1] += 1; }, ['mongolia', 'china', 'northKorea', 'southKorea'].filter((c) => inf[c]));
+    case 125: return greedyAdd(cx, inf, exec, 2, (c) => inR(c, 'westernEurope'), 1).value + vp(0.3);
+    case 126: return greedyAdd(cx, inf, exec, 5, (c) => inR(c, 'westernEurope'), 2).value;
+    case 127: return greedyAdd(cx, inf, exec, 3, (c) => inR(c, 'centralAmerica'), 1).value;
+    case 128: return greedyAdd(cx, inf, exec, 3, (c) => inR(c, 'southeastAsia'), 1).value;
+    case 129: return greedyRemove(cx, inf, exec, them, 3, (c) => inR(c, 'easternEurope'), 1).value;
+    case 131: return greedyAdd(cx, inf, exec, 3, (c) => inR(c, 'middleEast'), 1).value;
+    case 134: return greedyAdd(cx, inf, exec, 2, (c) => COUNTRIES[c].adj.includes(exec === 'US' ? 'ussr' : 'usa'), 2).value;
+    case 135: return greedyRemove(cx, inf, exec, them, 4, (c) => OIL.includes(c), 1).value;
+    case 136: return ops(4, ['coup', 'realign']);
+    case 137: return ops(3, ['influence']) - (v.defcon > 2 ? vp(0.4) : 0);
+    case 138: return greedyRemove(cx, inf, exec, them, 2, (c) => inR(c, 'africa') || inR(c, 'southAmerica')).value;
+    case 139: return greedyAdd(cx, inf, exec, 2, (c) => inR(c, 'europe'), 1).value;
+    case 140: return v.china.holder !== exec ? vp(2.0) : greedyAdd(cx, inf, exec, 2, (c) => ['uk', 'france', 'china'].includes(c)).value;
+    case 141: return ops(3, ['realign']);
+    case 142: return vp(1.5);
+    case 143: return vp(0.8);
+    case 144: return greedyAdd(cx, inf, exec, 3, (c) => OIL.includes(c), 1).value;
+    case 145: return vp(v.defcon <= 3 ? 1.2 : 0.2);
+    case 146: return vp(0.7);
     default: return 0;
   }
 }

@@ -43,7 +43,7 @@ describe('卡牌数据', () => {
   });
   it('计分卡与战争卡', () => {
     expect(CARD_LIST.filter((c) => c.scoring).map((c) => c.id)).toEqual([1, 2, 3, 37, 38, 79, 81]);
-    expect(CARD_LIST.filter((c) => c.war).map((c) => c.id)).toEqual([11, 13, 24, 36, 102]);
+    expect(CARD_LIST.filter((c) => c.war && !c.endless).map((c) => c.id)).toEqual([11, 13, 24, 36, 102]);
   });
   it('都有中文名和文本', () => {
     for (const c of CARD_LIST) {
