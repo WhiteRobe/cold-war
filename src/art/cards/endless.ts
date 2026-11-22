@@ -159,6 +159,10 @@ export const ENDLESS_ART: Record<number, () => string> = {
   148: () =>
     rect(0, 0, 240, 150, C.night) + skyline(110, S.night, 148) + rect(70, 40, 100, 34, C.su2) + rect(76, 46, 88, 22, C.gold2) +
     star(120, 57, 8, C.su) + at({ x: 120, y: 150 }, crowd({}, 9, S.us, 148, 220)),
+  // Z 世代：手机屏幕光、人群、点赞星
+  149: () =>
+    rect(0, 0, 240, 150, C.night2) + rays(120, 160, C.night, 12) + rect(96, 26, 48, 80, C.ink) + rect(100, 32, 40, 66, C.sky2) +
+    star(120, 64, 14, C.gold2, C.gold) + at({ x: 120, y: 150 }, crowd({}, 10, S.sky, 149, 230)),
   // 情报交换：桥上两名间谍
   146: () =>
     night(146) + rect(0, 110, 240, 10, C.ink3) + wall(0, 240, 140, S.ne) + at({ x: 80, y: 110 }, spy({}, S.us)) + at({ x: 160, y: 110 }, spy({}, S.su)),

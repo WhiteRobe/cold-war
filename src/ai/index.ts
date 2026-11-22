@@ -3,7 +3,7 @@ import type { GameView } from '../engine/view';
 import type { Choice, Decision, Option } from '../engine/types';
 import { SPACE } from '../engine/space';
 import { ORBIT, defconOff, regionLevels } from '../engine/endless';
-import { addDelta, arsLeft, cloneInf, ctrl, effOps, infOf, makeCtx, opp, warEV, type Ctx, type Inf } from './eval';
+import { addDelta, arsLeft, cloneInf, ctrl, deltaVal, effOps, infOf, makeCtx, opp, warEV, type Ctx, type Inf } from './eval';
 import { eventMe, scoringNet, spaceValue, suicidal } from './events';
 import { bestCoup, bestRealign, defconCost, greedyAdd, milopsValue, opsValue, planInfluence, threat } from './plan';
 
@@ -363,6 +363,19 @@ class Smart {
   coupTarget(d: Decision): Choice | undefined {
     const cands = d.options.map((o) => o.v as string).filter((c) => COUNTRIES[c]);
     const hasDone = d.options.some((o) => o.v === 'done');
+    if (d.card === 149) {
+      // Z 世代：挑换完影响力后收益最大的国家
+      const i = this.me === 'US' ? 0 : 1;
+      let best: string | undefined, bv = -Infinity;
+      for (const c of cands) {
+        const after = cloneInf(this.inf);
+        after[c][i] += after[c][1 - i] + 1;
+        after[c][1 - i] = 0;
+        const val = deltaVal(this.cx, this.inf, after, [c]);
+        if (val > bv) { bv = val; best = c; }
+      }
+      return best;
+    }
     if (d.card === 36 || d.card === 142) {
       // 局部战争 / 代理人战争
       let best: string | undefined;

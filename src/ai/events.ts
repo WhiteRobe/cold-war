@@ -265,6 +265,15 @@ export function eventMe(cx: Ctx, inf: Inf, card: number, exec: Side): number {
     case 145: return vp(v.defcon <= 3 ? 1.2 : 0.2);
     case 146: return vp(0.7);
     case 147: return vp(0.2);
+    case 149: {
+      let best = 0;
+      for (const c of Object.keys(inf)) {
+        if (!['asia', 'middleEast', 'europe'].includes(COUNTRIES[c].region) || (f.euFounded && COUNTRIES[c].region === 'europe')) continue;
+        const d = apply(cx, inf, (x) => { const i = exec === 'US' ? 0 : 1; x[c][i] += x[c][1 - i] + 1; x[c][1 - i] = 0; }, [c]) * sg;
+        if (d > best) best = d;
+      }
+      return best * sg;
+    }
     case 148: return greedyAdd(cx, inf, exec, 2, (c) => infOf(inf, c, exec) > 0, 1).value;
     default: return 0;
   }

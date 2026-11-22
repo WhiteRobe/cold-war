@@ -123,4 +123,7 @@ export const ENDLESS_CARDS: CardDef[] = [
   card(148, '流行文化攻势', 'Pop Culture Offensive', 'US', 2, false,
     '美国在已有美国影响力的国家放置 2 点影响力，每国最多 1 点。',
     'Add 2 US Influence to countries that already contain US Influence, no more than 1 per country.'),
+  card(149, 'Z 世代', 'Generation Z', 'NEUTRAL', 1, false,
+    '在亚洲、中东或欧洲任选一个国家，视为一次成功的政变：对手在该国的影响力全部换成己方影响力，再额外 +1 点己方影响力。不掷骰、不降 DEFCON、不计军事行动；欧盟成立后不能选欧洲。',
+    'Pick any country in Asia, the Middle East or Europe: treat it as a successful coup, replacing all opponent Influence there with your own, then add 1 more. No roll, no DEFCON change, no Military Ops; not Europe after the EU is founded.'),
 ];

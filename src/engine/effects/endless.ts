@@ -167,6 +167,17 @@ export const ENDLESS: Record<number, Effect> = {
       g.log('欧盟成立：此后行动轮中打出的牌不能在欧洲政变、调整阵营');
     },
   },
+  149: {
+    *run(g, me) {
+      const them = opp(me);
+      const ids = g.countries((c) => ['asia', 'middleEast', 'europe'].includes(COUNTRIES[c].region) && !(g.s.flags.euFounded && COUNTRIES[c].region === 'europe'));
+      const c = yield* g.askCountry(me, 'coupTarget', 'Z 世代：选择政变成功的国家（亚洲、中东、欧洲）', ids, { card: 149 });
+      const n = g.inf(c, them);
+      g.setInf(c, them, 0);
+      g.addInf(c, me, n + 1);
+      g.log(`Z 世代：${countryName(c)}政变成功，${SIDE_ZH[them]}的 ${n} 点影响力换成${SIDE_ZH[me]}，再 +1（${SIDE_ZH[me]} +${n + 1}）`, { side: me });
+    },
+  },
   148: { *run(g, me) { yield* g.placeInfluence(me, 148, 2, (c) => g.inf(c, me) > 0, { maxPer: 1 }); } },
   146: {
     *run(g, me) {
