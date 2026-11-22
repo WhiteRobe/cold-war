@@ -9,7 +9,7 @@ import {
 import { EFFECTS } from './effects';
 import { EVENT_FLAGS, erasUpTo } from './scenario';
 import { GameOver, cardName, countryName } from './util';
-import { ORBIT, arStart, firstOpsCard, ironDepth, keyProgress, orbitalStrike, turnStart } from './endless';
+import { ORBIT, defconOff, arStart, firstOpsCard, ironDepth, keyProgress, orbitalStrike, turnStart } from './endless';
 
 export { GameOver, cardName, countryName };
 
@@ -259,6 +259,29 @@ export class Game {
     this.s.defcon = nv;
     if (nv === 2) this.s.flags.defconTo2 = true;
     this.log(`DEFCON ${old} → ${nv}${why ? `（${why}）` : ''}`, { kind: 'warn' });
+    if (defconOff(this.s)) {
+      // 不死不休第 25 回合起：DEFCON 1 不再是核战争，改为行动方受安理会制裁；回到 2 以上制裁解除
+      const f = this.s.flags;
+      if (nv === 1) {
+        const who = this.s.phasing;
+        f.sanction = who;
+        this.log(`安理会制裁：${SIDE_ZH[who]}把 DEFCON 降到了 1，本回合剩下的行动轮里打出的牌行动点 -1`, {
+          side: opp(who),
+          scene: {
+            title: '安理会制裁', side: opp(who), art: 'cloud', flat: true,
+            sub: `${SIDE_ZH[who]}把世界推到了核战争边缘，联合国安理会一致通过制裁决议。`,
+            steps: [
+              { text: `${SIDE_ZH[who]}本回合剩下的行动轮里，打出的每张牌行动点 -1。` },
+              { text: 'DEFCON 停在 1，不会再往下降，所以这一轮里对手不会再被制裁；DEFCON 回到 2 以上（下回合开始或有牌提升）时制裁解除。' },
+            ],
+          },
+        });
+      } else if (f.sanction) {
+        this.log(`DEFCON 回到 ${nv}：${SIDE_ZH[f.sanction]}的安理会制裁解除`, { side: f.sanction });
+        f.sanction = undefined;
+      }
+      return;
+    }
     if (nv === 1) throw new GameOver(opp(this.s.phasing), `${SIDE_ZH[this.s.phasing]}引发了全面核战争（DEFCON 1）`);
   }
 
@@ -957,7 +980,7 @@ export class Game {
   }
 
   private hasMinus(side: Side) {
-    return !!this.s.flags.redScare?.includes(side);
+    return !!this.s.flags.redScare?.includes(side) || this.s.flags.sanction === side;
   }
 
   /** 按地区阶梯计算实际行动点 */
@@ -1028,7 +1051,7 @@ export class Game {
     if (this.inf(c, opp(side)) <= 0) return false;
     // 欧盟成立：行动轮里打出的牌不能在欧洲政变、调整阵营（回合 / 行动轮结算不受影响）
     if (s.flags.euFounded && d.region === 'europe' && !o.settlement) return false;
-    if (!o.free) {
+    if (!o.free && !defconOff(s)) {
       if (s.defcon <= 4 && d.region === 'europe') return false;
       if (s.defcon <= 3 && d.region === 'asia') return false;
       if (s.defcon <= 2 && d.region === 'middleEast') return false;

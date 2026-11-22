@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { st } from '../streamer';
 import { CARDS, COUNTRIES, REGION_ZH } from '../../data';
-import { ORBIT, keyProgress } from '../../engine/endless';
+import { ORBIT, defconOff, keyProgress } from '../../engine/endless';
 import { SPACE } from '../../engine/space';
 import type { Flags, Side } from '../../engine/types';
 import type { GameView } from '../../engine/view';
@@ -41,7 +41,7 @@ export function Tracks({ view, names, onPile }: { view: GameView; names: Record<
           </div>
         </div>
       </div>
-      <Defcon d={view.defcon} />
+      <Defcon d={view.defcon} view={view} />
       <Vp vp={view.vp} view={view} />
       <div class="trk trk-mil has-pop" data-tour="milops">
         <div class="trk-label">军事行动（需 {view.defcon}）</div>
@@ -174,7 +174,7 @@ function Dove({ i }: { i: number }) {
   );
 }
 
-export function Defcon({ d }: { d: number }) {
+export function Defcon({ d, view }: { d: number; view?: GameView }) {
   const fx = useDefconFx(d);
   const rows: [number, string][] = [
     [5, '没有限制'],
@@ -212,7 +212,11 @@ export function Defcon({ d }: { d: number }) {
           <li>每回合开始 +1。</li>
           <li>在战场国政变，不管成败 −1。</li>
           <li>有些事件会升降它。</li>
-          <li>掉到 1 时<b>正在行动的一方</b>输，哪怕是对手的事件害的。</li>
+          {!!view && defconOff(view) ? (
+            <li>不死不休第 25 回合起已失效：不再锁地区；掉到 1 时正在行动的一方受<b>安理会制裁</b>（本回合剩下的行动轮行动点 -1），回到 2 以上解除。</li>
+          ) : (
+            <li>掉到 1 时<b>正在行动的一方</b>输，哪怕是对手的事件害的。</li>
+          )}
         </ul>
       </div>
       <div class="trk-label">DEFCON</div>
@@ -221,7 +225,7 @@ export function Defcon({ d }: { d: number }) {
           <div key={n} class={`defcon-cell d${n}${n === d ? ' on' : ''}`}>{n}</div>
         ))}
       </div>
-      <div class="trk-sub">{d === 5 ? '无限制' : d === 4 ? '欧洲禁政变/调整' : d === 3 ? '欧亚禁政变/调整' : '欧亚中东禁政变/调整'}</div>
+      <div class="trk-sub">{!!view && defconOff(view) ? (view!.flags.sanction ? `已失效 · ${view!.flags.sanction === 'US' ? '美国' : '苏联'}受安理会制裁` : '已失效 · 降到 1 触发安理会制裁') : d === 5 ? '无限制' : d === 4 ? '欧洲禁政变/调整' : d === 3 ? '欧亚禁政变/调整' : '欧亚中东禁政变/调整'}</div>
     </div>
   );
 }
@@ -471,6 +475,7 @@ export function Effects({ view, onPeek }: { view: GameView; onPeek: (id: number 
     chips.push({ text: st(v[0]), card: v[1], cls: CARDS[v[1]].side.toLowerCase() });
   }
   if (f.redScare?.length) for (const s of f.redScare) chips.push({ text: `${s === 'US' ? '红色恐慌：美' : '大清洗：苏'} -1 行动点`, card: 31, cls: s === 'US' ? 'ussr' : 'us' });
+  if (f.sanction) chips.push({ text: `安理会制裁：${f.sanction === 'US' ? '美' : '苏'}本回合行动点 -1`, card: 6, cls: 'warn' });
   if (f.cmc) chips.push({ text: `古巴导弹危机：${f.cmc === 'US' ? '美' : '苏'}政变即输`, card: 40, cls: 'warn' });
   if (f.lads) chips.push({ text: `拉美敢死队（${f.lads === 'US' ? '美' : '苏'}）`, card: 69, cls: f.lads.toLowerCase() });
   if (f.chernobyl) chips.push({ text: `切尔诺贝利：${REGION_ZH[f.chernobyl]}`, card: 94, cls: 'us' });

@@ -9,6 +9,10 @@ import { countryName } from './util';
 /** 石油国（同「石油输出国组织」） */
 export const OIL_COUNTRIES = ['egypt', 'iran', 'libya', 'saudiArabia', 'iraq', 'gulfStates', 'venezuela'];
 
+/** 从这一回合起 DEFCON 失效：不再锁地区，降到 1 改为安理会制裁 */
+export const DEFCON_OFF_TURN = 25;
+export const defconOff = (s: { options: { endless?: boolean }; turn: number }) => !!s.options.endless && s.turn >= DEFCON_OFF_TURN;
+
 /** 轨道打击：太空竞赛到顶后的额外一格 */
 export const ORBIT = { ops: 3, roll: 4 };
 
@@ -139,10 +143,10 @@ export function unifyCheck(g: Game): string[] {
     if (x && controller(s, 'china') === x) {
       f.unifyChina = x;
       delete s.inf.taiwan;
-      s.inf.china = x === 'US' ? [6, 0] : [0, 6];
+      s.inf.china = x === 'US' ? [4, 0] : [0, 4];
       g.purgeCard(35);
       f.formosan = false;
-      out.push(`中国统一：${SIDE_ZH[x]}同时控制中国和台湾，台湾并入中国（非战场国，${SIDE_ZH[x]} 6 点、${SIDE_ZH[opp(x)]}清零）；之后${SIDE_ZH[x]}每回合开始 +2 点。`);
+      out.push(`中国统一：${SIDE_ZH[x]}同时控制中国和台湾，台湾并入中国（非战场国，${SIDE_ZH[x]} 4 点、${SIDE_ZH[opp(x)]}清零）；之后${SIDE_ZH[x]}每回合开始 +2 点。`);
     }
   }
   if (!f.unifyKorea && s.inf.northKorea && s.inf.southKorea) {

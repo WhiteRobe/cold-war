@@ -2,7 +2,7 @@ import { CARDS, CHINA_CARD, COUNTRIES, REGIONS, type Side } from '../data';
 import type { GameView } from '../engine/view';
 import type { Choice, Decision, Option } from '../engine/types';
 import { SPACE } from '../engine/space';
-import { ORBIT, regionLevels } from '../engine/endless';
+import { ORBIT, defconOff, regionLevels } from '../engine/endless';
 import { addDelta, arsLeft, cloneInf, ctrl, effOps, infOf, makeCtx, opp, warEV, type Ctx, type Inf } from './eval';
 import { eventMe, scoringNet, spaceValue, suicidal } from './events';
 import { bestCoup, bestRealign, defconCost, greedyAdd, milopsValue, opsValue, planInfluence, threat } from './plan';
@@ -15,7 +15,9 @@ export const AI_LEVEL_ZH: Record<AiLevel, string> = { 1: '新兵', 2: '参谋', 
  * AI 选择。只能看到 view（与真人同样的信息），不能作弊。
  * rand 返回 [0,1) 随机数（由调用方提供，便于复现）。
  */
-export function chooseAI(view: GameView, d: Decision, level: AiLevel, rand: () => number): Choice {
+export function chooseAI(view0: GameView, d: Decision, level: AiLevel, rand: () => number): Choice {
+  // 不死不休第 25 回合起 DEFCON 失效：AI 按 DEFCON 5 来想（不怕核战争、不受地区限制）
+  const view = defconOff(view0) ? { ...view0, defcon: 5 } : view0;
   const legal = (v: Choice | undefined): v is Choice => v !== undefined && d.options.some((o) => o.v === v);
   try {
     const v = level === 1 ? safeRandom(view, d, rand) : new Smart(view, d.side, level, rand).choose(d);

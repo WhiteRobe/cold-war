@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { st, streamer } from '../streamer';
-import { cloudCountries, keyProgress } from '../../engine/endless';
+import { cloudCountries, defconOff, keyProgress } from '../../engine/endless';
 import type { JSX } from 'preact';
 import { CARDS, COUNTRIES, COUNTRY_LIST, REGIONS, REGION_ZH, countriesIn, endlessWorld, getWorldVersion, type RegionId, type Side } from '../../data';
 import type { SubRegionId } from '../../data/types';
@@ -94,14 +94,15 @@ export function RegionGlyph({ region, x, y, r = 7, sub }: { region: RegionId; x:
 }
 
 /** DEFCON 锁住的区域（双方都不能政变 / 调整） */
-export function defconLocked(defcon: number, region: RegionId): boolean {
+export function defconLocked(defcon: number, region: RegionId, off = false): boolean {
+  if (off) return false;
   return (defcon <= 4 && region === 'europe') || (defcon <= 3 && region === 'asia') || (defcon <= 2 && region === 'middleEast');
 }
 
 /** 我方不能对这个国家政变 / 调整的原因（与引擎 canTarget 一致，不看对方影响力） */
 function coupLock(view: GameView, id: string): string | null {
   const c = COUNTRIES[id];
-  if (defconLocked(view.defcon, c.region)) return `DEFCON ${view.defcon}：${REGION_ZH[c.region]}禁止政变和调整阵营`;
+  if (defconLocked(view.defcon, c.region, defconOff(view))) return `DEFCON ${view.defcon}：${REGION_ZH[c.region]}禁止政变和调整阵营`;
   if (view.me !== 'USSR') return null;
   const f = view.flags;
   if (f.usJapan && id === 'japan') return '美日共同防卫协定：苏联不能对日本政变或调整';
@@ -423,6 +424,7 @@ export function MapView({ view, selectable, onPick, flash, onRegion, focus, focu
         ))}
         <Superpower id="usa" />
         <Superpower id="ussr" />
+        {view.flags.sanction && <SanctionProtest side={view.flags.sanction} />}
         <SpaceArsenal view={view} home={{ US: pos('usa'), USSR: pos('ussr') }} />
         <OilReserve view={view} />
         {view.flags.northSeaOil && <NorthSeaRig x={688} y={150} eight={!!view.flags.northSeaOil8} />}
@@ -695,7 +697,8 @@ function WinAlerts({ view }: { view: GameView }) {
       tip: '苏联打出“我们将埋葬你们”后，美国必须在接下来的第一个行动轮把「联合国干预」（#32）作为事件打出，否则苏联获得 3 点胜利点数。',
     });
   }
-  if (view.defcon === 2) items.push({ key: 'dc', cls: 'warn', text: 'DEFCON 2：再降一级，行动方直接输', tip: '在战场国政变或某些事件会让 DEFCON 降到 1，引发核战争；输的是当时正在行动的一方，哪怕是对手的事件。' });
+  if (view.defcon === 2 && defconOff(view)) items.push({ key: 'dc', cls: 'warn', text: 'DEFCON 2：再降一级，行动方受安理会制裁（本回合行动点 -1）', tip: '不死不休第 25 回合起 DEFCON 失效：降到 1 不再是核战争，改为行动方本回合剩下的行动轮行动点 -1；DEFCON 回到 2 以上解除。' });
+  else if (view.defcon === 2) items.push({ key: 'dc', cls: 'warn', text: 'DEFCON 2：再降一级，行动方直接输', tip: '在战场国政变或某些事件会让 DEFCON 降到 1，引发核战争；输的是当时正在行动的一方，哪怕是对手的事件。' });
   if (!items.length) return null;
   return (
     <div class="win-alerts">
@@ -730,7 +733,7 @@ function RegionLabel({ region, view, onClick }: { region: RegionId; view: GameVi
   return (
     <g class="region-label" onClick={onClick}>
       <RegionGlyph region={region} x={x - 16} y={y - 8} r={11} />
-      {defconLocked(view.defcon, region) && (
+      {defconLocked(view.defcon, region, defconOff(view)) && (
         <g class="ban-icon" transform={`translate(${x - 6},${y - 18})`}>
           <title>DEFCON {view.defcon}：{REGION_ZH[region]}禁止政变和调整阵营</title>
           <circle r="6.5" />
@@ -839,6 +842,27 @@ function SceneAnims({ list }: { list: NonNullable<Scene['anims']> }) {
           </g>
         );
       })}
+    </g>
+  );
+}
+
+/** 安理会制裁：受制裁一方的本土出现游行标语 */
+function SanctionProtest({ side }: { side: Side }) {
+  const [x, y] = pos(side === 'US' ? 'usa' : 'ussr');
+  return (
+    <g transform={`translate(${x},${y + 48})`}>
+    <g class="sanction-protest">
+      <title>安理会制裁：{side === 'US' ? '美国' : '苏联'}把 DEFCON 降到了 1，本回合剩下的行动轮行动点 -1；DEFCON 回到 2 以上解除。</title>
+      {[-34, 0, 34].map((dx, i) => (
+        <g key={i} transform={`translate(${dx},0)`}>
+          <line x1="0" y1="-30" x2="0" y2="6" class="sp-pole" />
+          <rect x="-15" y="-44" width="30" height="16" rx="2" class="sp-sign" />
+          <text x="0" y="-32" class="sp-text">{['制裁', '和平', '停火'][i]}</text>
+          <circle cy="10" r="5" class="sp-head" />
+          <rect x="-5" y="15" width="10" height="12" rx="2" class="sp-body" />
+        </g>
+      ))}
+    </g>
     </g>
   );
 }

@@ -1949,3 +1949,11 @@ g.links { pointer-events: none; }
 .scene-anims .sa-tanker .sa-body { fill: #3a4656; }
 .scene-anims .sa-tanker .sa-car { fill: #b23a2e; }
 .scene-anims .sa-tanker .sa-fin { fill: #e9dfc7; }
+/* 安理会制裁：本土游行标语 */
+.sanction-protest { cursor: help; animation: spBob 1.2s ease-in-out infinite alternate; }
+@keyframes spBob { to { transform: translateY(-3px); } }
+.sanction-protest .sp-pole { stroke: #6e6553; stroke-width: 2; }
+.sanction-protest .sp-sign { fill: #f4efe2; stroke: #b23a2e; stroke-width: 2; }
+.sanction-protest .sp-text { font-size: 10px; font-weight: 800; fill: #b23a2e; text-anchor: middle; }
+.sanction-protest .sp-head { fill: #c8a07c; }
+.sanction-protest .sp-body { fill: #3d3d3d; }

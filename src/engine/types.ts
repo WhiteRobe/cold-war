@@ -234,13 +234,15 @@ export interface Flags {
   unifyGermany?: Side;
   /** 欧盟成立：行动轮打出的牌不能在欧洲政变、调整阵营 */
   euFounded?: boolean;
+  /** 安理会制裁（不死不休第 25 回合起把 DEFCON 降到 1 的一方，本回合行动点 -1） */
+  sanction?: Side;
   /** 已经弹过首次说明的机制 */
   seen?: string[];
 }
 
 export const TURN_FLAGS: (keyof Flags)[] = [
   'containment', 'brezhnev', 'redScare', 'vietnamRevolts', 'cmc', 'nuclearSubs', 'salt', 'lads', 'iranContra',
-  'chernobyl', 'yuri', 'aldrichAmes', 'northSeaOil8', 'u2', 'firstOps',
+  'chernobyl', 'yuri', 'aldrichAmes', 'northSeaOil8', 'u2', 'firstOps', 'sanction',
 ];
 
 export const opp = (s: Side): Side => (s === 'US' ? 'USSR' : 'US');

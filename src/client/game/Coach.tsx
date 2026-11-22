@@ -1,5 +1,6 @@
 // 新手引导：按局面依次弹出提示，并把相关界面圈出来。每条只出现一次；教学局里强制开启。
 import { signal } from '@preact/signals';
+import { defconOff } from '../../engine/endless';
 import { useEffect, useLayoutEffect, useState } from 'preact/hooks';
 import { CARDS, CHINA_CARD, COUNTRIES, COUNTRY_LIST, type RegionId, type Side } from '../../data';
 import { controller, scoreRegion, scoreSEA } from '../../engine/scoring';
@@ -161,7 +162,7 @@ const TIPS: Tip[] = [
     id: 'defcon2', title: '危险：DEFCON 2', target: 'defcon',
     text: () =>
       '现在任何让 DEFCON 再降一级的行动（在战场国政变、某些事件）都会让当时的行动方直接输掉。即使是对手的事件，只要发生在你的行动轮里，输的也是你。在战场国政变会被直接禁止，其他危险操作会弹出确认。',
-    when: (v) => v.defcon === 2,
+    when: (v) => v.defcon === 2 && !defconOff(v),
   },
   {
     id: 'log', title: '对手做了什么', target: 'log',
@@ -322,6 +323,7 @@ const DEGRADE = new Set([4, 50, 89]);
 export function suicide(v: GameView, d: Decision, choice: Choice): string | null {
   const me = v.me;
   if (!me || d.tag !== 'coupTarget' || typeof choice !== 'string' || !COUNTRIES[choice]) return null;
+  if (defconOff(v)) return null;
   const free = d.card === 47 || d.card === 91 || d.card === 96;
   const subs = me === 'US' && v.flags.nuclearSubs && !free && d.card !== 107;
   if (v.defcon === 2 && COUNTRIES[choice].bg && !subs) return `${COUNTRIES[choice].zh}是战场国，DEFCON 2 时在这里政变会降到 1，你会直接输掉，已禁止。换个非战场国，或者用左下角「撤销」改选别的行动。`;
@@ -338,6 +340,10 @@ export function danger(v: GameView, d: Decision, choice: Choice): string | null 
     const subs = me === 'US' && f.nuclearSubs && !free && d.card !== 107;
   }
   if (d.tag === 'opsMode' && choice === 'coup' && f.cmc === me) return '古巴导弹危机期间你发动政变，如果不解除危机就会直接输掉。确定吗？';
+  if (defconOff(v)) {
+    if (v.defcon === 2 && d.tag === 'coupTarget' && typeof choice === 'string' && COUNTRIES[choice]?.bg) return `在战场国${COUNTRIES[choice].zh}政变会把 DEFCON 降到 1：你会受安理会制裁，本回合剩下的行动轮行动点 -1。确定吗？`;
+    return null;
+  }
   if (v.defcon === 2 && d.card) {
     const c = d.card;
     const side = CARDS[c].side;
