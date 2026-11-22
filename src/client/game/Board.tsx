@@ -251,7 +251,7 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
         />
       )}
       <Coach view={view} force={tutorial} />
-      {clockTurn !== null && <TurnClock key={clockTurn} turn={clockTurn} />}
+      {clockTurn !== null && <TurnClock key={clockTurn} turn={clockTurn} last={view.options.scenario?.endTurn ?? 10} />}
       {confirm && (
         <div class="modal modal-top" onClick={() => setConfirm(null)}>
           <div class="modal-box danger-box" onClick={(e) => e.stopPropagation()}>

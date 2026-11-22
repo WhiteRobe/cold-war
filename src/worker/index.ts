@@ -4,6 +4,7 @@ import {
 } from './auth';
 import { gameStub, lobbyStub, type Env, type Identity } from './env';
 import { sanitizeConfig } from './game';
+import { validateScenario, type Scenario } from '../engine/scenario';
 
 export { LobbyDO } from './lobby';
 export { GameDO } from './game';
@@ -74,6 +75,33 @@ async function handleApi(req: Request, env: Env, path: string): Promise<Response
     if (!(await lobbyStub(env).rateLimit('guest:' + ip, 30))) return fail('操作太频繁，请稍后再试', 429);
     const n = crypto.getRandomValues(new Uint16Array(1))[0] % 10000;
     return login(env, { id: randomId('g_'), name: `游客${String(n).padStart(4, '0')}`, guest: true });
+  }
+
+  // ---- 自定义剧本：列表 / 上传 / 删除（不需要登录） ----
+  if (path === '/api/scenarios' && method === 'GET') {
+    const rows = await env.DB.prepare('SELECT data FROM scenarios ORDER BY created_at DESC LIMIT 200').all<{ data: string }>();
+    return json(rows.results.map((r) => JSON.parse(r.data)));
+  }
+  if (path === '/api/scenarios' && method === 'POST') {
+    if (!(await lobbyStub(env).rateLimit('scenario:' + ip, 10))) return fail('上传太频繁，请稍后再试', 429);
+    const b = (await readBody(req)) as unknown as Scenario;
+    const bad = validateScenario(b);
+    if (bad) return fail(bad);
+    const id = randomId('s_');
+    const sc: Scenario = {
+      id, name: b.name.trim(), author: typeof b.author === 'string' ? b.author.trim().slice(0, 20) : undefined, year: typeof b.year === 'string' ? b.year.slice(0, 20) : undefined,
+      story: b.story.trim(), startTurn: b.startTurn, endTurn: b.endTurn, defcon: b.defcon, vp: b.vp, space: b.space, china: b.china, inf: b.inf, events: b.events, placement: b.placement === true,
+    };
+    await env.DB.prepare('INSERT INTO scenarios (id, name, author, data, created_at) VALUES (?, ?, ?, ?, ?)').bind(id, sc.name, sc.author ?? null, JSON.stringify(sc), Date.now()).run();
+    return json(sc);
+  }
+  const sm = path.match(/^\/api\/scenarios\/(s_[A-Za-z0-9_-]{4,40})$/);
+  if (sm && method === 'DELETE') {
+    if (!(await lobbyStub(env).rateLimit('scenario-del:' + ip, 20))) return fail('操作太频繁，请稍后再试', 429);
+    const { password } = await readBody(req);
+    if (password !== (env.SCENARIO_ADMIN_PASSWORD || '123456')) return fail('密码不对', 403);
+    await env.DB.prepare('DELETE FROM scenarios WHERE id = ?').bind(sm[1]).run();
+    return json({ ok: true });
   }
 
   const user = await currentUser(req, env);

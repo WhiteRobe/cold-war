@@ -1,4 +1,5 @@
 import type { RegionId, Side } from '../data/types';
+import type { Scenario } from './scenario';
 
 export type { Side } from '../data/types';
 
@@ -7,6 +8,8 @@ export interface GameOptions {
   optionalCards: boolean;
   /** 美方开局额外影响力（让分）；竞价结果也折算到这里，负数表示给苏方 */
   usBonus: number;
+  /** 剧本（缺省为标准开局） */
+  scenario?: Scenario;
 }
 
 export const DEFAULT_OPTIONS: GameOptions = { optionalCards: true, usBonus: 2 };

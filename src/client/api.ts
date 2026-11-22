@@ -1,4 +1,5 @@
 import type { Me, RoomConfig } from '../shared/protocol';
+import type { Scenario } from '../engine/scenario';
 
 async function call<T>(method: string, path: string, body?: unknown): Promise<T> {
   const res = await fetch(path, {
@@ -32,6 +33,9 @@ export interface MatchRow {
 }
 
 export const api = {
+  scenarios: () => call<Scenario[]>('GET', '/api/scenarios'),
+  uploadScenario: (s: Scenario) => call<Scenario>('POST', '/api/scenarios', s),
+  deleteScenario: (id: string, password: string) => call<{ ok: boolean }>('DELETE', `/api/scenarios/${id}`, { password }),
   me: () => call<Me>('GET', '/api/me'),
   login: (username: string, password: string) => call<Me>('POST', '/api/login', { username, password }),
   register: (username: string, password: string) => call<Me>('POST', '/api/register', { username, password }),

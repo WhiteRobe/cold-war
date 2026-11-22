@@ -10,6 +10,7 @@ export type Route =
   | { name: 'room'; id: string }
   | { name: 'rules' }
   | { name: 'cards' }
+  | { name: 'scenarios' }
   | { name: 'replay'; id: string };
 
 function parse(h: string): Route {
@@ -19,6 +20,7 @@ function parse(h: string): Route {
   if (p[0] === 'room' && p[1]) return { name: 'room', id: p[1] };
   if (p[0] === 'rules') return { name: 'rules' };
   if (p[0] === 'cards') return { name: 'cards' };
+  if (p[0] === 'scenarios') return { name: 'scenarios' };
   if (p[0] === 'replay' && p[1]) return { name: 'replay', id: p[1] };
   return { name: 'home' };
 }

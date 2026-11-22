@@ -16,10 +16,10 @@ export function Tracks({ view, names, onPile }: { view: GameView; names: Record<
         <div class="trk-label">回合</div>
         <div class="trk-big">
           {view.turn}
-          <small>/10</small>
+          <small>/{view.options.scenario?.endTurn ?? 10}</small>
         </div>
         <div class="trk-sub">
-          {view.phase === 'over' ? (view.turn < 10 ? `第 ${view.turn} 回合提前结束` : '打满 10 回合 · 终局') : `冷战${era} · ${PHASE_ZH[view.phase]}`}
+          {view.phase === 'over' ? (view.turn < (view.options.scenario?.endTurn ?? 10) ? `第 ${view.turn} 回合提前结束` : `打满 ${view.options.scenario?.endTurn ?? 10} 回合 · 终局`) : `冷战${era} · ${PHASE_ZH[view.phase]}`}
           {view.phase === 'action' && ` ${view.ar}`}
         </div>
         <div class="trk-pop">

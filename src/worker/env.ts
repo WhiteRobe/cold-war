@@ -9,6 +9,8 @@ export interface Env {
   SESSION_SECRET: string;
   PBKDF2_ITERATIONS: string;
   AI_DELAY_MS: string;
+  /** 删除自定义剧本的密码（未配置时默认 123456） */
+  SCENARIO_ADMIN_PASSWORD?: string;
 }
 
 export interface Identity {

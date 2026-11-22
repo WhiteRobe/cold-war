@@ -7,6 +7,7 @@ import {
   type Choice, type Decision, type DecisionKind, type DecisionTag, type GameSetup, type GameState, type LogEntry, type Option, type Side,
 } from './types';
 import { EFFECTS } from './effects';
+import { EVENT_FLAGS, erasUpTo } from './scenario';
 import { GameOver, cardName, countryName } from './util';
 
 export { GameOver, cardName, countryName };
@@ -43,18 +44,20 @@ export interface OpsOpts {
 function initialState(setup: GameSetup): GameState {
   const inf: Record<string, [number, number]> = {};
   for (const c of COUNTRY_LIST) inf[c.id] = [c.start[0], c.start[1]];
+  const sc = setup.options.scenario;
+  for (const [c, v] of Object.entries(sc?.inf ?? {})) if (inf[c]) inf[c] = [v[0], v[1]];
   return {
     options: setup.options,
     rng: setup.seed | 0,
     rngCount: 0,
     phase: 'setup',
-    turn: 1,
+    turn: sc?.startTurn ?? 1,
     ar: 0,
     phasing: 'USSR',
-    defcon: 5,
-    vp: 0,
+    defcon: sc?.defcon ?? 5,
+    vp: sc?.vp ?? 0,
     milops: { US: 0, USSR: 0 },
-    space: { US: 0, USSR: 0 },
+    space: { US: sc?.space?.US ?? 0, USSR: sc?.space?.USSR ?? 0 },
     spaceAttempts: { US: 0, USSR: 0 },
     inf,
     deck: [],
@@ -62,7 +65,7 @@ function initialState(setup: GameSetup): GameState {
     removed: [],
     hands: { US: [], USSR: [] },
     known: { US: [], USSR: [] },
-    china: { holder: 'USSR', faceUp: true },
+    china: { holder: sc?.china ?? 'USSR', faceUp: true },
     headline: {},
     inPlay: [],
     flags: {},
@@ -337,9 +340,21 @@ export class Game {
   // 主流程
   // =====================================================================
 
+  get scenario() {
+    return this.s.options.scenario;
+  }
+
+  /** 本局开始 / 结束的回合（剧本可以从中途开始、提前结束） */
+  get firstTurn() {
+    return this.scenario?.startTurn ?? 1;
+  }
+  get lastTurn() {
+    return this.scenario?.endTurn ?? 10;
+  }
+
   private *main(): Gen {
     yield* this.setupPhase();
-    for (let t = 1; t <= 10; t++) yield* this.turn(t);
+    for (let t = this.firstTurn; t <= this.lastTurn; t++) yield* this.turn(t);
     this.finalScore();
   }
 
@@ -364,9 +379,28 @@ export class Game {
 
   private *setupPhase(): Gen {
     const s = this.s;
+    const sc = this.scenario;
+    if (sc && (sc.startTurn > 1 || !sc.placement)) {
+      // 剧本开局：已发生的事件就位，按开始回合组牌、发牌，不做自由布置
+      const used = new Set<number>([CHINA_CARD]);
+      for (const id of sc.events ?? []) {
+        const def = CARDS[id];
+        const f = EVENT_FLAGS[id];
+        for (const k of f?.set ?? []) (s.flags as Record<string, unknown>)[k] = true;
+        for (const k of f?.clear ?? []) delete s.flags[k];
+        if (def.ongoing && f) s.inPlay.push(id);
+        else if (def.starred) s.removed.push(id);
+        else s.discard.push(id);
+        used.add(id);
+      }
+      s.deck = shuffle(s, erasUpTo(sc.startTurn).flatMap((e) => this.buildDeck(e)).filter((c) => !used.has(c)));
+      this.deal(sc.startTurn <= 3 ? 8 : 9);
+      this.log(`剧本「${sc.name}」${sc.year ? `（${sc.year}）` : ''}：从第 ${sc.startTurn} 回合开始，打到第 ${sc.endTurn} 回合`, { kind: 'turn' });
+      return;
+    }
     s.deck = shuffle(s, this.buildDeck('early'));
     this.deal(8);
-    this.log('开局：双方各发 8 张早期牌，中国牌在苏联手中', { kind: 'turn' });
+    this.log(sc ? `剧本「${sc.name}」：双方各发 8 张早期牌` : '开局：双方各发 8 张早期牌，中国牌在苏联手中', { kind: 'turn' });
     yield* this.freePlacement('USSR', 6, (c) => inRegion(COUNTRIES[c], 'easternEurope'), '东欧');
     yield* this.freePlacement('US', 7, (c) => inRegion(COUNTRIES[c], 'westernEurope'), '西欧');
     const bonus = s.options.usBonus;
@@ -408,8 +442,9 @@ export class Game {
     s.turn = t;
     s.ar = 0;
     this.log(`—— 第 ${t} 回合 ——`, { kind: 'turn' });
-    if (t > 1) this.improveDefcon(1, '回合开始');
-    if (t > 1) this.deal(t <= 3 ? 8 : 9);
+    // 剧本的第一个回合：DEFCON 和手牌已经按剧本设好
+    if (t > this.firstTurn) this.improveDefcon(1, '回合开始');
+    if (t > this.firstTurn) this.deal(t <= 3 ? 8 : 9);
     s.spaceAttempts = { US: 0, USSR: 0 };
     yield* this.headlinePhase();
     s.phase = 'action';

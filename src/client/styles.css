@@ -1823,3 +1823,43 @@ g.links { pointer-events: none; }
 .lg-defcon.d3 { background: #c08a2a; }
 .lg-defcon.d2 { background: #c9503f; }
 .lg-defcon.d1 { background: #000; color: #f44; }
+
+/* 剧本页 / 编辑器 */
+.sc-intro { color: var(--text2); line-height: 1.7; max-width: 900px; }
+.sc-list { display: flex; flex-direction: column; gap: 12px; max-width: 900px; }
+.sc-card { background: var(--bg2); border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; }
+.sc-card.open { border-color: #a8862e; }
+.sc-head { display: flex; align-items: baseline; gap: 10px; cursor: pointer; flex-wrap: wrap; }
+.sc-year { color: #c9b37a; font-size: 13px; min-width: 70px; }
+.sc-name { font-size: 18px; font-weight: 800; color: #f5d76e; }
+.sc-tag { font-size: 11px; padding: 1px 6px; border-radius: 6px; background: #3a352e; color: #e9dfc7; }
+.sc-tag.user { background: #2f4a6a; }
+.sc-turns { margin-left: auto; color: var(--text2); font-size: 13px; }
+.sc-story { color: var(--text); line-height: 1.8; margin: 8px 0; }
+.sc-summary { font-size: 12.5px; color: var(--text2); line-height: 1.7; background: #ffffff08; padding: 8px 10px; border-radius: 6px; margin-bottom: 8px; }
+.sc-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn.danger { color: #f08a7c; }
+.sc-editor .panel { max-width: 1100px; margin-bottom: 14px; }
+.sc-editor h2 small, .sc-editor h3 small { font-size: 12px; font-weight: 400; color: var(--text2); margin-left: 8px; }
+.sc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px 14px; }
+.sc-grid label, .sc-story-input { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--text2); }
+.sc-story-input { margin-top: 10px; }
+.sc-story-input textarea { resize: vertical; line-height: 1.7; }
+.sc-story-input small { align-self: flex-end; }
+.sc-inf { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+.sc-region h3 { font-size: 14px; margin: 0 0 6px; color: #c9b37a; }
+.sc-inf-row { display: grid; grid-template-columns: 1fr 52px 52px; gap: 4px; align-items: center; font-size: 12.5px; padding: 1px 0; }
+.sc-inf-row small { margin-left: 4px; color: var(--text2); font-size: 10px; }
+.sc-inf-row.changed span { color: #f5d76e; }
+.sc-inf-row input { padding: 2px 4px; text-align: center; }
+.sc-inf-row input.us { border-color: #2f5d8a; }
+.sc-inf-row input.ussr { border-color: #8f2c23; }
+.sc-events { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 4px 10px; font-size: 12.5px; }
+.sc-ev { display: flex; gap: 6px; align-items: center; color: var(--text2); cursor: pointer; }
+.sc-ev.on { color: var(--text); font-weight: 700; }
+.sc-ev.side-us.on { color: #9cc6f0; }
+.sc-ev.side-ussr.on { color: #f5a090; }
+.sc-actions { display: flex; gap: 10px; align-items: center; justify-content: flex-end; max-width: 1100px; margin: 10px 0 40px; }
+.sc-err { color: #f08a7c; font-size: 13px; margin-right: auto; }
+.sc-manage { font-size: 12px; margin-left: 8px; }
+.sc-pick-story { font-size: 12px; color: var(--text2); line-height: 1.6; margin: 6px 0 0; max-height: 5.2em; overflow: hidden; }

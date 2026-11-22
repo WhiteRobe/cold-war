@@ -235,7 +235,7 @@ const TIPS: Tip[] = [
   {
     id: 'lastTurn', title: '最后一回合', target: 'vp',
     text: () => '这是第 10 回合。回合结束时进行终局计分：每个洲按「控制 / 支配 / 存在」再算一次分，中国牌的持有者 +1。鼠标停在顶栏胜利点上可以看到「如果现在终局」的逐项预估。',
-    when: (v) => v.turn >= 10,
+    when: (v) => v.turn >= (v.options.scenario?.endTurn ?? 10),
   },
   {
     id: 'quickref', title: '规则速查', target: 'sidetabs',

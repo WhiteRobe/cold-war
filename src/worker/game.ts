@@ -1,3 +1,4 @@
+import { validateScenario } from '../engine/scenario';
 import { DurableObject } from 'cloudflare:workers';
 import { chooseAI, type AiLevel } from '../ai';
 import { Game } from '../engine/game';
@@ -388,7 +389,12 @@ export function sanitizeConfig(c: Partial<RoomConfig> | undefined): RoomConfig {
   const ai = c?.ai === 1 || c?.ai === 2 || c?.ai === 3 ? c.ai : null;
   const hostSide = c?.hostSide === 'US' || c?.hostSide === 'USSR' ? c.hostSide : 'random';
   return {
-    options: { optionalCards: o.optionalCards !== false, usBonus: Math.max(-3, Math.min(3, Math.round(Number(o.usBonus) || 0))) },
+    options: {
+      optionalCards: o.optionalCards !== false,
+      usBonus: Math.max(-3, Math.min(3, Math.round(Number(o.usBonus) || 0))),
+      // 剧本：校验不过就当作标准开局
+      ...(o.scenario && !validateScenario(o.scenario) ? { scenario: o.scenario } : {}),
+    },
     hostSide,
     ai,
   };

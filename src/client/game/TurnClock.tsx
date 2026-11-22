@@ -4,11 +4,11 @@
 const YEARS = [1945, 1949, 1953, 1957, 1961, 1965, 1969, 1973, 1978, 1984, 1989];
 const ERA = (t: number) => (t <= 3 ? '冷战早期' : t <= 7 ? '冷战中期' : '冷战后期');
 
-export function TurnClock({ turn }: { turn: number }) {
+export function TurnClock({ turn, last: lastTurn = 10 }: { turn: number; last?: number }) {
   const R = 84;
   const ang = (t: number) => -90 + (t - 0.5) * 36; // 每回合占 36°，指针指在该格中间
   const from = ang(Math.max(1, turn - 1)), to = ang(turn);
-  const last = turn >= 10;
+  const last = turn >= lastTurn;
   return (
     <div class={`turn-clock${last ? ' last' : ''}`}>
       <svg viewBox="-110 -110 220 220" width="220" height="220">
