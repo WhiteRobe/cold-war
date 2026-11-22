@@ -105,16 +105,20 @@ export function* orbitalStrike(g: Game, side: Side): Gen {
   const regions = openRegions(g.s);
   const ops = strongRegions(g.s, side) + 2;
   const targets = COUNTRY_LIST.filter((c) => regions.includes(c.region) && g.canTarget(side, c.id, 'coup', { free: true })).map((c) => c.id);
+  // 说明只在本局第一次轨道打击时弹出，之后只记日志
+  const seen = (g.s.flags.seen ??= []);
+  const first = !seen.includes('orbit');
+  if (first) seen.push('orbit');
   g.log(`轨道打击：${SIDE_ZH[side]}可在${regions.map((r) => REGION_ZH[r]).join('、') || '（无）'}免费政变，行动点 ${ops}`, {
     side,
-    scene: {
+    scene: first ? {
       title: '轨道打击', side, art: 'orbit',
       sub: '空间站之后，太空就是战场。每次太空竞赛成功，可以在一个没有被任何一方控制的洲里免费政变一次：不降 DEFCON、不计军事行动。',
       steps: [
         { text: `政变行动点 = ${SIDE_ZH[side]}支配 / 控制的洲数 ${ops - 2} + 2 = ${ops}。` },
         { text: targets.length ? `可选目标：${regions.map((r) => REGION_ZH[r]).join('、')}里有对手影响力的国家。` : '没有可以打击的目标，这次轨道打击落空。' },
       ],
-    },
+    } : undefined,
   });
   if (!targets.length) return;
   const c = yield* g.askCountry(side, 'coupTarget', `轨道打击：选择政变目标（${ops} 点）`, targets);

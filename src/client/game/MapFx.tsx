@@ -227,7 +227,7 @@ function liveFog(view: GameView): FogEntry[] {
   return out;
 }
 
-/** 亚洲国家多、补雾的点也多，叠起来偏浓：整体再淡 30% */
+/** 亚洲国家多、补雾的点也多，叠起来偏浓：整体再淡 15%；本方控制的国家另加一圈核心光晕 */
 export function FogLayer({ view, fresh, pos }: { view: GameView; fresh: Set<string>; pos: Pos }) {
   const entries = liveFog(view);
   return (
@@ -245,7 +245,7 @@ export function FogLayer({ view, fresh, pos }: { view: GameView; fresh: Set<stri
         </radialGradient>
       </defs>
       {entries.map(({ key, region: r, side, k, ids, r: rad, strong, pairs }) => (
-        <g key={key} opacity={(k * (r === 'asia' ? 0.7 : 1)).toFixed(2)} class={`fog-wrap${strong ? ' strong' : ''}`}>
+        <g key={key} opacity={(k * (r === 'asia' ? 0.85 : 1)).toFixed(2)} class={`fog-wrap${strong ? ' strong' : ''}`}>
           <g class={`fog fog-${side.toLowerCase()}${fresh.has(r) ? ' fresh' : ''}`}>
             {pairs.map(([a, b], i) => {
               const [x1, y1] = pos(a), [x2, y2] = pos(b);
@@ -255,16 +255,20 @@ export function FogLayer({ view, fresh, pos }: { view: GameView; fresh: Set<stri
             })}
             {ids.map((id, i) => {
               const [x, y] = pos(id);
+              // 本方控制的国家再叠一圈小光晕：洲的边缘国家（如印度、蒙古）不至于被冲淡
+              const core = controller(view as never, id) === side;
               return (
-                <circle
-                  key={id}
-                  cx={x}
-                  cy={y}
-                  r={rad}
-                  fill={`url(#fog${side})`}
-                  class="fog-puff"
-                  style={{ animationDelay: `${-((i * 1.7) % 9)}s`, animationDuration: `${8 + (i % 5)}s` }}
-                />
+                <g key={id}>
+                  <circle
+                    cx={x}
+                    cy={y}
+                    r={rad}
+                    fill={`url(#fog${side})`}
+                    class="fog-puff"
+                    style={{ animationDelay: `${-((i * 1.7) % 9)}s`, animationDuration: `${8 + (i % 5)}s` }}
+                  />
+                  {core && <circle cx={x} cy={y} r={rad * 0.55} fill={`url(#fog${side})`} class="fog-core" />}
+                </g>
               );
             })}
           </g>

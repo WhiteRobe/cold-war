@@ -752,7 +752,7 @@ function RegionLabel({ region, view, onClick }: { region: RegionId; view: GameVi
           <Radiation r={8} />
         </g>
       )}
-      {view.flags.endlessWorld && <EndlessTroops x={x + TROOP_AT[region][0]} y={y + TROOP_AT[region][1]} sc={sc} />}
+      {view.flags.endlessWorld && <EndlessTroops view={view} region={region} x={x + TROOP_AT[region][0]} y={y + TROOP_AT[region][1]} sc={sc} />}
       {view.flags.endlessWorld && <EndlessEmblems view={view} x={x + REGION_ZH[region].length * 27.6 + (scoredNote(view, region) ? 28 : 10) + (view.flags.chernobyl === region ? 22 : 0)} y={y - 8} region={region} sc={sc} />}
       <text x={x} y={y + 18} class="rl-score">
         <tspan class="us">美 {LV_ZH[sc.US.level]}{ewOn ? '' : ` ${sc.points.US}`}</tspan>
@@ -902,17 +902,25 @@ function SanctionProtest({ side }: { side: Side }) {
 
 /** 士兵 / 坦克放在洲名下方（避开计分说明和图例） */
 const TROOP_AT: Record<RegionId, [number, number]> = {
-  europe: [30, 86], africa: [40, 74], asia: [40, 100], middleEast: [40, 76], centralAmerica: [40, 78], southAmerica: [40, 78],
+  europe: [30, 80], africa: [40, 46], asia: [40, 60], middleEast: [40, 46], centralAmerica: [40, 46], southAmerica: [40, 46],
 };
 
-/** 不死不休：支配的洲站着士兵，控制的洲开进坦克（画在洲名旁的空白处，纯装饰，不响应鼠标） */
-function EndlessTroops({ x, y, sc }: { x: number; y: number; sc: ReturnType<typeof scoreRegion> }) {
+/** 不死不休：支配的洲站着士兵，控制的洲开进坦克，整洲锁死（所有国家都控制）换成轰炸机（画在洲名下方的空白处，纯装饰，不响应鼠标） */
+function EndlessTroops({ view, region, x, y, sc }: { view: GameView; region: RegionId; x: number; y: number; sc: ReturnType<typeof scoreRegion> }) {
   const sides = (['US', 'USSR'] as Side[]).filter((s) => sc[s].level === 'domination' || sc[s].level === 'control');
   return (
     <g class="ew-troops">
       {sides.map((side, k) => (
         <g key={side} class={`ew-troop ${side.toLowerCase()}`} transform={`translate(${x + k * 52},${y}) scale(1.5)`}>
-          {sc[side].level === 'control' ? (
+          {regionSealed(view as never, side, region) ? (
+            <g transform="translate(0,-5)">
+              <title>{REGION_ZH[region]}已被{side === 'US' ? '美国' : '苏联'}全境控制，整洲锁死</title>
+              <path d="M-3,-1.6 L-7,-13 L-4.5,-13 L5,-1.6z M-3,1.6 L-7,13 L-4.5,13 L5,1.6z" class="tr-body" />
+              <path d="M-13,-1 L-16,-6 L-14,-6 L-10,-1z M-13,1 L-16,6 L-14,6 L-10,1z" class="tr-body" />
+              <path d="M-15,-2 L11,-2 Q16,-1.6 17,0 Q16,1.6 11,2 L-15,2z" class="tr-body" />
+              {[[-3.6, -6.6], [-5.8, -10.6], [-3.6, 5.1], [-5.8, 9.1]].map(([ex, ey]) => <rect key={ey} x={ex} y={ey} width="4" height="1.5" rx="0.7" class="tr-track" />)}
+            </g>
+          ) : sc[side].level === 'control' ? (
             <g>
               <rect x="-14" y="-2" width="28" height="7" rx="3" class="tr-track" />
               <rect x="-11" y="-9" width="22" height="8" rx="1.5" class="tr-body" />
