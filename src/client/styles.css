@@ -1913,3 +1913,7 @@ g.links { pointer-events: none; }
 @keyframes ewCloud { to { opacity: 0.7; } }
 .rules h3 { margin: 18px 0 6px; font-size: 16px; color: var(--gold, #d4a83a); }
 .rules ol, .rules ul { padding-left: 22px; line-height: 1.8; }
+.lg-country { cursor: pointer; }
+.lg-country:hover { filter: brightness(1.25); box-shadow: 0 0 0 1px #f5d76e; }
+/* 记录区点国家定位：金圈脉冲 + 方框高亮 */
+.roll-focus.locate circle { stroke-width: 6; animation-iteration-count: 3; }

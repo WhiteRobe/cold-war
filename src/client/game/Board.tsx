@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
+import { signal } from '@preact/signals';
 import { CARDS, CARD_LIST, CHINA_CARD, COUNTRY_LIST, REGION_ZH, byWorld, setWorld, worldOf, type RegionId, type Side } from '../../data';
 import { REGION_POINTS, scoreRegion } from '../../engine/scoring';
 import type { Choice, Decision, LogEntry } from '../../engine/types';
@@ -164,7 +165,7 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
           const open = () => setBolt((b) => (b?.id === id && b.kind === kind ? b : { id, x, y, kind }));
           if (now || (bolt?.id === id && bolt.kind === kind)) open();
           else boltOpenTimer.current = setTimeout(open, HOVER_MS);
-        }} onBoltLeave={() => { clearTimeout(boltOpenTimer.current); leaveBolt(); }} focus={paced.beat?.kind === 'roll' ? paced.beat.roll.target : paced.beat?.kind === 'scene' ? paced.beat.scene.steps[paced.beat.step]?.country : undefined} />
+        }} onBoltLeave={() => { clearTimeout(boltOpenTimer.current); leaveBolt(); }} focus={paced.beat?.kind === 'roll' ? paced.beat.roll.target : paced.beat?.kind === 'scene' ? paced.beat.scene.steps[paced.beat.step]?.country : locateCountry.value?.id} focusKey={paced.beat ? undefined : locateCountry.value?.n} />
         <BeatOverlay beat={paced.beat} names={names} onNext={paced.next} onSkipAll={paced.skipAll} />
       </main>
       <aside class="board-side">
@@ -473,6 +474,16 @@ function logKind(e: LogEntry): { icon: string; cls: string } | null {
   return null;
 }
 
+/** 点记录里的国家名：地图上闪一下那个国家 */
+const locateCountry = signal<{ id: string; n: number } | null>(null);
+let locateN = 0;
+let locateTimer: ReturnType<typeof setTimeout> | undefined;
+function locate(id: string) {
+  locateCountry.value = { id, n: ++locateN };
+  clearTimeout(locateTimer);
+  locateTimer = setTimeout(() => (locateCountry.value = null), 2200);
+}
+
 const REGION_TINT: Record<string, string> = {
   europe: '#5b6177', asia: '#9a6f16', middleEast: '#4a7429', africa: '#8b3a72', centralAmerica: '#22796f', southAmerica: '#55569f',
 };
@@ -491,7 +502,7 @@ function richSeg(text: string, key: string): (string | preact.JSX.Element)[] {
     if (!part) return part;
     const k = `${key}-${i}`;
     const c = LOG_WORDS().zh.get(part);
-    if (c) return <span key={k} class="lg-country" style={{ background: REGION_TINT[c.region] }}>{part}</span>;
+    if (c) return <span key={k} class="lg-country" title="点击在地图上定位" style={{ background: REGION_TINT[c.region] }} onClick={() => locate(c.id)}>{part}</span>;
     if (part.startsWith('DEFCON')) {
       const to = Number(part.slice(-1));
       return <span key={k} class={`lg-defcon d${to}`}>{part}</span>;

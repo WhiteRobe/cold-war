@@ -151,12 +151,14 @@ interface Props {
   onRegion?: (r: RegionId) => void;
   /** 正在掷骰的目标国（脉冲高亮） */
   focus?: string;
+  /** 记录区点国家定位时的序号（每次点击重新播放闪烁） */
+  focusKey?: number;
   /** 点了国家右下角的闪电：列出点名该国的卡 */
   onBolt?: (id: string, x: number, y: number, now?: boolean, kind?: CardKind) => void;
   onBoltLeave?: () => void;
 }
 
-export function MapView({ view, selectable, onPick, flash, onRegion, focus, onBolt, onBoltLeave }: Props) {
+export function MapView({ view, selectable, onPick, flash, onRegion, focus, focusKey, onBolt, onBoltLeave }: Props) {
   const [hover, setHover] = useState<string | null>(null);
   const { fx, fresh, regionCtl } = useMapFx(view);
   const [zoom, setZoom] = useState({ x: 0, y: 0, k: 1 });
@@ -258,6 +260,16 @@ export function MapView({ view, selectable, onPick, flash, onRegion, focus, onBo
   useEffect(() => {
     live.current = zoom;
   }, [zoom]);
+  // 记录区点国家定位：国家在放大后的视野外时，把视野移过去
+  useEffect(() => {
+    if (!focusKey || !focus || !COUNTRIES[focus]) return;
+    const z = live.current;
+    if (z.k <= 1) return;
+    const [x, y] = pos(focus);
+    const w = MAP_W / z.k, h = MAP_H / z.k;
+    if (x > z.x + 40 && x < z.x + w - 40 && y > z.y + 30 && y < z.y + h - 30) return;
+    setZoom(clampZoom({ x: x - w / 2, y: y - h / 2, k: z.k }));
+  }, [focusKey]);
   const apply = (z: { x: number; y: number; k: number }) => {
     live.current = z;
     if (raf.current) return;
@@ -464,8 +476,8 @@ export function MapView({ view, selectable, onPick, flash, onRegion, focus, onBo
             })}
           </g>
         )}
-        {focus && COUNTRIES[focus] && (
-          <g class="roll-focus" key={focus}>
+        {focus && COUNTRIES[focus] && COUNTRY_LIST.some((c) => c.id === focus) && (
+          <g class={`roll-focus${focusKey ? ' locate' : ''}`} key={`${focus}-${focusKey ?? ''}`}>
             <circle cx={pos(focus)[0]} cy={pos(focus)[1]} r="34" />
             <circle cx={pos(focus)[0]} cy={pos(focus)[1]} r="34" class="r2" />
           </g>
