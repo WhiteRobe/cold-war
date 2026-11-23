@@ -145,7 +145,7 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
   const known = view.hands[oppSide];
 
   return (
-    <div class={`board me-${(me ?? 'none').toLowerCase()}`}>
+    <div class={`board me-${(me ?? 'none').toLowerCase()}${sideFolded.value ? ' side-folded' : ''}`} style={{ '--side-w': `${sideWidth.value}px` } as Record<string, string>}>
       <div class="rotate-hint">请把手机横过来玩 ↻</div>
       <header class="board-top">
         <button type="button" class="icon-btn" title="返回" onClick={() => go('/')}>←</button>
@@ -168,8 +168,24 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
           else boltOpenTimer.current = setTimeout(open, HOVER_MS);
         }} onBoltLeave={() => { clearTimeout(boltOpenTimer.current); leaveBolt(); }} focus={paced.beat?.kind === 'roll' ? paced.beat.roll.target : paced.beat?.kind === 'scene' ? paced.beat.scene.steps[paced.beat.step]?.country : locateCountry.value?.id} focusKey={paced.beat ? undefined : locateCountry.value?.n} anims={paced.beat?.kind === 'scene' && paced.beat.scene.anims?.length ? { key: paced.beat.key, list: paced.beat.scene.anims } : undefined} />
         <BeatOverlay beat={paced.beat} names={names} onNext={paced.next} onSkipAll={paced.skipAll} />
+        {/* 右栏折叠时，轮到自己的操作提示浮在地图右上角 */}
+        {sideFolded.value && d && d.side === me && (
+          <div class="side-float">
+            <DecisionPanel view={view} d={d} names={names} choose={choose} onZoom={setZoomCard} />
+          </div>
+        )}
       </main>
+      {sideFolded.value ? (
+        <aside class="board-side folded">
+          <button type="button" class="side-unfold" title="展开右栏" onClick={() => setSideFolded(false)}>
+            <span>‹</span>
+            <span class="side-unfold-label">记录 · 牌堆 · 局势</span>
+          </button>
+        </aside>
+      ) : (
       <aside class="board-side">
+        <SideResizer />
+        <button type="button" class="side-fold" title="折叠右栏" onClick={() => setSideFolded(true)}>›</button>
         <div class={nudge ? 'nudge-flash' : ''} key={nudge ?? 'n'}>
           <DecisionPanel view={view} d={d} names={names} choose={choose} onZoom={setZoomCard} />
         </div>
@@ -183,6 +199,7 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
         </div>
         {tab === 'log' ? <LogView log={view.log} me={me} onPeek={peekLater} /> : tab === 'headlines' ? <HeadlineHistory view={view} names={names} onZoom={setZoomCard} /> : tab === 'cards' ? <CardsPanel view={view} names={names} onZoom={setZoomCard} /> : tab === 'regions' ? <RegionPanel view={view} /> : <QuickRef endless={!!view.options.endless} />}
       </aside>
+      )}
       <button type="button" class={`hand-toggle${handChoice ? ' need' : ''}`} onClick={() => setHandOpen(!handOpen)}>
         手牌 {myHand.length}{handOpen ? ' ▾' : ' ▴'}
       </button>
@@ -338,6 +355,42 @@ export function Board({ session, tutorial }: { session: GameSession; tutorial?: 
       )}
     </div>
   );
+}
+
+/** 右栏宽度（可拖动左边缘调整）与折叠状态，存在本机 */
+const SIDE_W_KEY = 'cw.sideW';
+const SIDE_FOLD_KEY = 'cw.sideFolded';
+const SIDE_MIN = 220, SIDE_MAX = 720;
+const sideWidth = signal(Math.min(SIDE_MAX, Math.max(SIDE_MIN, Number(localStorage.getItem(SIDE_W_KEY)) || 330)));
+const sideFolded = signal(localStorage.getItem(SIDE_FOLD_KEY) === '1');
+function setSideFolded(v: boolean) {
+  sideFolded.value = v;
+  localStorage.setItem(SIDE_FOLD_KEY, v ? '1' : '0');
+}
+
+/** 右栏左边缘的拖动条：向左拖变宽，双击恢复默认 */
+function SideResizer() {
+  const start = (e: PointerEvent) => {
+    e.preventDefault();
+    const x0 = e.clientX, w0 = sideWidth.value;
+    const move = (ev: PointerEvent) => {
+      sideWidth.value = Math.min(SIDE_MAX, Math.max(SIDE_MIN, Math.min(window.innerWidth - 480, w0 + x0 - ev.clientX)));
+    };
+    const up = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      document.body.classList.remove('side-resizing');
+      localStorage.setItem(SIDE_W_KEY, String(sideWidth.value));
+    };
+    document.body.classList.add('side-resizing');
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  };
+  const reset = () => {
+    sideWidth.value = 330;
+    localStorage.setItem(SIDE_W_KEY, '330');
+  };
+  return <div class="side-resizer" title="拖动调整宽度，双击恢复默认" onPointerDown={start} onDblClick={reset} />;
 }
 
 function DecisionPanel({ view, d, names, choose, onZoom }: { view: GameView; d?: Decision; names: Record<Side, string>; choose: (v: Choice) => void; onZoom: (c: number) => void }) {

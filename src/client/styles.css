@@ -141,13 +141,24 @@ select.input { appearance: none; -webkit-appearance: none; padding-right: 34px; 
 
 /* ---------------- 对局 ---------------- */
 .board {
-  height: 100vh; display: grid; grid-template-columns: minmax(0, 1fr) 330px; grid-template-rows: auto minmax(0, 1fr) auto;
+  height: 100vh; display: grid; grid-template-columns: minmax(0, 1fr) var(--side-w, 330px); grid-template-rows: auto minmax(0, 1fr) auto;
   grid-template-areas: 'top top' 'map side' 'hand side';
   background: var(--bg);
 }
 .board-top { grid-area: top; position: relative; z-index: 30; display: flex; gap: 8px; align-items: center; padding: 6px 8px; background: var(--bg2); border-bottom: 1px solid var(--line); }
 .board-map { grid-area: map; position: relative; min-height: 0; display: flex; flex-direction: column; }
-.board-side { grid-area: side; background: var(--bg2); border-left: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; }
+.board-side { grid-area: side; position: relative; background: var(--bg2); border-left: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; }
+/* 右栏：拖动左边缘调宽、可折叠成窄条 */
+.board.side-folded { grid-template-columns: minmax(0, 1fr) 30px; }
+.side-resizer { position: absolute; left: -4px; top: 0; bottom: 0; width: 8px; cursor: col-resize; z-index: 5; }
+.side-resizer:hover, body.side-resizing .side-resizer { background: linear-gradient(90deg, transparent 3px, #a8862e 3px, #a8862e 5px, transparent 5px); }
+body.side-resizing { cursor: col-resize; user-select: none; }
+.side-fold { position: absolute; left: -1px; top: 50%; transform: translate(-100%, -50%); z-index: 6; width: 16px; height: 44px; padding: 0; border: 1px solid var(--line); border-right: none; border-radius: 6px 0 0 6px; background: var(--bg2); color: var(--muted, #9a917e); font-size: 14px; cursor: pointer; }
+.side-fold:hover { color: #f5d76e; }
+.side-unfold { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 10px 0; border: none; background: none; color: var(--muted, #9a917e); cursor: pointer; font-size: 16px; }
+.side-unfold:hover { color: #f5d76e; background: #ffffff08; }
+.side-unfold-label { writing-mode: vertical-rl; font-size: 13px; letter-spacing: 3px; }
+.side-float { position: absolute; top: 8px; right: 60px; z-index: 40; width: min(340px, 45%); max-height: 70%; overflow: auto; background: var(--bg2); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 10px 30px #0009; }
 .board-hand { grid-area: hand; background: var(--bg2); border-top: 1px solid var(--line); padding: 6px 8px; display: flex; gap: 14px; min-width: 0; }
 .hand-label { font-size: 12px; color: var(--text2); margin-bottom: 4px; display: flex; gap: 8px; align-items: center; }
 .hand-cards { display: flex; gap: 6px; overflow-x: auto; padding: 14px 4px 6px; }
@@ -351,7 +362,7 @@ select.input { appearance: none; -webkit-appearance: none; padding-right: 34px; 
 .rotate-hint { display: none; }
 @media (max-width: 1000px), (max-height: 620px) {
   .tracks { overflow-x: auto; }
-  .board { grid-template-columns: minmax(0, 1fr) 230px; grid-template-rows: auto minmax(0, 1fr); grid-template-areas: 'top top' 'map side'; }
+  .board { grid-template-columns: minmax(0, 1fr) min(var(--side-w, 230px), 230px); grid-template-rows: auto minmax(0, 1fr); grid-template-areas: 'top top' 'map side'; }
   .board-top { padding: 3px 4px; }
   .trk { padding: 2px 5px; }
   .trk-label, .trk-sub, .hand-counts { font-size: 9.5px; }
